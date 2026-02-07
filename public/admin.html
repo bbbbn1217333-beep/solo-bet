@@ -1,46 +1,50 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>솔랭 내기 관리자 패널</title>
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; padding:20px; }
-    input { margin:5px; padding:5px; width:150px; }
-    button { padding:5px 10px; margin:10px 0; }
-  </style>
+<meta charset="UTF-8">
+<title>솔랭 내기 관리자</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<style>
+  body { background:#111; color:#fff; font-family:'Orbitron', sans-serif; padding:20px; }
+  h2 { text-align:center; color:#0ff; text-shadow: 0 0 10px #0ff; margin-bottom:20px; }
+  #controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:15px;}
+  input { padding:5px 10px; border-radius:5px; border:none; text-align:center; }
+  button { padding:5px 10px; border-radius:5px; background:#0ff; color:#111; font-weight:bold; cursor:pointer; }
+  #playerInputs { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  .player-input { display:flex; flex-direction:column; align-items:center; }
+  label { font-size:0.8em; margin-bottom:3px; }
+</style>
 </head>
 <body>
 
 <h2>관리자 패널</h2>
-<label>팀 인원 수: <input type="number" id="teamCount" value="5" min="1" max="10"></label>
-<button onclick="applySettings()">적용</button>
-
+<div id="controls">
+  <label>팀 인원 수: <input type="number" id="teamCount" value="5" min="1" max="33"></label>
+  <button onclick="applySettings()">적용</button>
+</div>
 <div id="playerInputs"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
-  const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
-  const supabaseKey = 'sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j';
-  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-</script>
+const supabaseUrl = 'YOUR_PROJECT_URL';
+const supabaseKey = 'YOUR_ANON_PUBLIC_KEY';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-<script>
 function generateInputs(teamCount){
   const container = document.getElementById('playerInputs');
   container.innerHTML = ''; // 초기화
 
   for(let i=1;i<=teamCount;i++){
-    let ourInput = document.createElement('input');
-    ourInput.id = `our-${i}`;
-    ourInput.placeholder = `우리팀 플레이어 ${i}`;
-    container.appendChild(ourInput);
+    const ourDiv = document.createElement('div');
+    ourDiv.className='player-input';
+    ourDiv.innerHTML=`<label>우리팀 ${i}</label><input type="text" id="our-${i}" placeholder="우리팀 플레이어">`;
 
-    let oppInput = document.createElement('input');
-    oppInput.id = `opp-${i}`;
-    oppInput.placeholder = `상대팀 플레이어 ${i}`;
-    container.appendChild(oppInput);
+    const oppDiv = document.createElement('div');
+    oppDiv.className='player-input';
+    oppDiv.innerHTML=`<label>상대팀 ${i}</label><input type="text" id="opp-${i}" placeholder="상대팀 플레이어">`;
 
-    container.appendChild(document.createElement('br'));
+    container.appendChild(ourDiv);
+    container.appendChild(oppDiv);
   }
 }
 
@@ -48,12 +52,15 @@ async function applySettings(){
   const teamCount = parseInt(document.getElementById('teamCount').value);
   generateInputs(teamCount);
 
-  const players = [];
+  // 기존 DB 초기화
+  await supabaseClient.from('players').delete().neq('id',0); // 모든 row 삭제
+
+  const players=[];
   for(let i=1;i<=teamCount;i++){
-    const ourName = document.getElementById(`our-${i}`).value.trim();
-    const oppName = document.getElementById(`opp-${i}`).value.trim();
-    if(ourName) players.push({name: ourName, team:'우리팀', wins:0, losses:0, streak:0});
-    if(oppName) players.push({name: oppName, team:'상대팀', wins:0, losses:0, streak:0});
+    const ourName=document.getElementById(`our-${i}`).value.trim();
+    const oppName=document.getElementById(`opp-${i}`).value.trim();
+    if(ourName) players.push({name:ourName, team:'우리팀', wins:0, losses:0, streak:0});
+    if(oppName) players.push({name:oppName, team:'상대팀', wins:0, losses:0, streak:0});
   }
 
   if(players.length){
@@ -63,11 +70,12 @@ async function applySettings(){
   }
 }
 
-// 처음 로드 시 기본 입력창 생성
+// 초기 입력창 생성
 generateInputs(parseInt(document.getElementById('teamCount').value));
 </script>
 </body>
 </html>
+
 
 
 
