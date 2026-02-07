@@ -17,7 +17,6 @@
 
 <div id="playerInputs"></div>
 
-<!-- Supabase JS SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
   const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
@@ -28,29 +27,18 @@
 <script>
 function generateInputs(teamCount){
   const container = document.getElementById('playerInputs');
+  container.innerHTML = ''; // 초기화
 
   for(let i=1;i<=teamCount;i++){
-    // 기존 value 유지
-    const oldOur = document.getElementById(`our-${i}`)?.value || '';
-    const oldOpp = document.getElementById(`opp-${i}`)?.value || '';
+    let ourInput = document.createElement('input');
+    ourInput.id = `our-${i}`;
+    ourInput.placeholder = `우리팀 플레이어 ${i}`;
+    container.appendChild(ourInput);
 
-    let ourInput = document.getElementById(`our-${i}`);
-    if(!ourInput){
-      ourInput = document.createElement('input');
-      ourInput.id = `our-${i}`;
-      ourInput.placeholder = `우리팀 플레이어 ${i}`;
-      container.appendChild(ourInput);
-    }
-    ourInput.value = oldOur;
-
-    let oppInput = document.getElementById(`opp-${i}`);
-    if(!oppInput){
-      oppInput = document.createElement('input');
-      oppInput.id = `opp-${i}`;
-      oppInput.placeholder = `상대팀 플레이어 ${i}`;
-      container.appendChild(oppInput);
-    }
-    oppInput.value = oldOpp;
+    let oppInput = document.createElement('input');
+    oppInput.id = `opp-${i}`;
+    oppInput.placeholder = `상대팀 플레이어 ${i}`;
+    container.appendChild(oppInput);
 
     container.appendChild(document.createElement('br'));
   }
@@ -80,6 +68,7 @@ generateInputs(parseInt(document.getElementById('teamCount').value));
 </script>
 </body>
 </html>
+
 
 
 
