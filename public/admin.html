@@ -3,16 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <title>솔랭 내기 관리자 패널</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; padding:20px; }
+    input { margin:5px; padding:5px; }
+    button { padding:5px 10px; margin:10px 0; }
+  </style>
 </head>
 <body>
 
 <h2>관리자 패널</h2>
-<label>팀 인원 수: <input type="number" id="teamCount" value="5"></label>
+<label>팀 인원 수: <input type="number" id="teamCount" value="5" min="1" max="10"></label>
 <button onclick="applySettings()">적용</button>
 
 <div id="playerInputs"></div>
 
-<!-- 2번 코드: Supabase JS SDK 연결 -->
+<!-- Supabase 연결 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
   const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
@@ -20,14 +25,13 @@
   const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 </script>
 
-<!-- 관리자 JS 로직 -->
+<!-- 관리자 JS -->
 <script>
 async function applySettings() {
   const teamCount = parseInt(document.getElementById('teamCount').value);
   const playerInputsDiv = document.getElementById('playerInputs');
   playerInputsDiv.innerHTML = '';
 
-  // 팀별 입력창 생성
   for(let i=1; i<=teamCount; i++){
     const ourInput = document.createElement('input');
     ourInput.placeholder = `우리팀 플레이어 ${i} 닉네임`;
@@ -42,11 +46,10 @@ async function applySettings() {
     playerInputsDiv.appendChild(document.createElement('br'));
   }
 
-  // 입력값 DB에 저장
   const players = [];
   for(let i=1;i<=teamCount;i++){
-    const ourName = document.getElementById(`our-${i}`).value;
-    const oppName = document.getElementById(`opp-${i}`).value;
+    const ourName = document.getElementById(`our-${i}`).value.trim();
+    const oppName = document.getElementById(`opp-${i}`).value.trim();
     if(ourName) players.push({name: ourName, team: '우리팀', wins:0, losses:0, streak:0});
     if(oppName) players.push({name: oppName, team: '상대팀', wins:0, losses:0, streak:0});
   }
@@ -54,12 +57,13 @@ async function applySettings() {
   if(players.length){
     const { data, error } = await supabase.from('players').upsert(players);
     if(error) console.log(error);
-    else console.log('적용 완료', data);
+    else alert('적용 완료!');
   }
 }
 </script>
 
 </body>
 </html>
+
 
 
