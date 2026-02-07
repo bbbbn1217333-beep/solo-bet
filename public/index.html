@@ -1,35 +1,60 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>5 VS 5 솔랭 내기</title>
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; padding:20px; background:#f0f0f0; }
-    h1 { text-align:center; margin-bottom:20px; }
-    #screen div { margin:5px 0; font-size:18px; }
-    .win { color:green; }
-    .lose { color:red; }
-  </style>
+<meta charset="UTF-8">
+<title>솔랭 내기 송출 화면</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<style>
+  body { background:#111; color:#fff; font-family:'Orbitron', sans-serif; padding:20px; }
+  h1 { text-align:center; font-size:3em; color:#0ff; text-shadow: 0 0 10px #0ff,0 0 20px #0ff; margin-bottom:20px;}
+  #screen { display:flex; flex-wrap: wrap; gap:10px; justify-content:center; }
+  .player-card {
+    padding:10px 15px;
+    border-radius:10px;
+    background:#222;
+    color:#fff;
+    text-shadow:0 0 5px #0ff;
+    font-weight:bold;
+    transition: all 0.3s ease;
+  }
+  .win { text-shadow: 0 0 10px lime,0 0 20px lime; animation: glow 1s infinite alternate; }
+  .lose { text-shadow: 0 0 10px red,0 0 20px darkred; opacity:0.6; }
+  .emoji { margin-left:5px; }
+  @keyframes glow {
+    0% { text-shadow: 0 0 5px lime,0 0 10px lime; }
+    100% { text-shadow: 0 0 20px lime,0 0 40px lime; }
+  }
+</style>
 </head>
 <body>
 
-<h1>5 VS 5 솔랭 내기</h1>
+<h1 id="title">5 VS 5 솔랭 내기</h1>
 <div id="screen"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
-const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
-const supabaseKey = 'sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j';
+const supabaseUrl = 'YOUR_PROJECT_URL';
+const supabaseKey = 'YOUR_ANON_PUBLIC_KEY';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 function updateScreen(players){
   const screenDiv = document.getElementById('screen');
   screenDiv.innerHTML = '';
+
+  const ourTeam = players.filter(p => p.team==='우리팀');
+  const oppTeam = players.filter(p => p.team==='상대팀');
+
+  // 제목 자동 변경
+  document.getElementById('title').textContent = `${ourTeam.length} VS ${oppTeam.length} 솔랭 내기`;
+
   players.forEach(p => {
     const div = document.createElement('div');
-    const streakText = p.streak>1 ? `${p.streak}연승` : '';
-    div.innerHTML = `<span>${p.name} (${p.team}) - ${p.wins}승 ${p.losses}패 ${streakText}</span>`;
-    if(p.streak>0) div.classList.add('win');
+    div.className = 'player-card';
+    let streakEmoji = '';
+    if(p.streak > 1) { div.classList.add('win'); streakEmoji='🔥'; }
+    else if(p.streak < -1) { div.classList.add('lose'); streakEmoji='💀'; }
+
+    div.innerHTML = `${p.name} (${p.team}) ${p.wins}승 ${p.losses}패 ${streakEmoji ? `<span class="emoji">${streakEmoji}</span>`:''}`;
     screenDiv.appendChild(div);
   });
 }
@@ -40,23 +65,21 @@ async function loadPlayers(){
   else updateScreen(players);
 }
 
-// Supabase v2 실시간 구독
+// v2 실시간 구독
 supabaseClient
   .channel('players_channel')
   .on(
     'postgres_changes', 
     { event: '*', schema: 'public', table: 'players' }, 
-    (payload) => {
-      loadPlayers();
-    }
+    payload => { loadPlayers(); }
   )
   .subscribe();
 
-// 초기 로드
 loadPlayers();
 </script>
 </body>
 </html>
+
 
 
 
