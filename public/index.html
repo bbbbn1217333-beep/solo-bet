@@ -35,23 +35,29 @@ function updateScreen(players){
 }
 
 async function loadPlayers(){
-  let { data: players, error } = await supabaseClient.from('players').select('*');
+  const { data: players, error } = await supabaseClient.from('players').select('*');
   if(error) console.log('DB 불러오기 오류:', error);
   else updateScreen(players);
 }
 
-// 실시간 구독
+// Supabase v2 실시간 구독
 supabaseClient
-  .from('players')
-  .on('*', payload => {
-    loadPlayers();
-  })
+  .channel('players_channel')
+  .on(
+    'postgres_changes', 
+    { event: '*', schema: 'public', table: 'players' }, 
+    (payload) => {
+      loadPlayers();
+    }
+  )
   .subscribe();
 
+// 초기 로드
 loadPlayers();
 </script>
 </body>
 </html>
+
 
 
 
