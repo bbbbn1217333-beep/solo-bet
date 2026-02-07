@@ -2,23 +2,158 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>TEST</title>
+  <title>솔랭 내기 스코어보드</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      background: #111;
-      color: #0f0;
-      font-size: 48px;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      overflow: hidden;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      font-family: Arial, sans-serif;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    .screen.active {
+      opacity: 1;
+    }
+
+    .title {
+      font-size: 64px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+    }
+
+    .datetime {
+      font-size: 28px;
+      opacity: 0.9;
+      margin-bottom: 50px;
+    }
+
+    .scoreboard {
+      display: flex;
+      gap: 120px;
+      align-items: center;
+    }
+
+    .team {
+      text-align: center;
+    }
+
+    .team-name {
+      font-size: 32px;
+      margin-bottom: 10px;
+      opacity: 0.85;
+    }
+
+    .score {
+      font-size: 96px;
+      font-weight: 800;
+    }
+
+    .vs {
+      font-size: 48px;
+      opacity: 0.7;
+    }
+
+    .subtitle {
+      font-size: 36px;
+      margin-top: 40px;
+      opacity: 0.85;
     }
   </style>
 </head>
 <body>
-  VERCEL TEST OK
+
+  <!-- Screen 1 -->
+  <div class="screen active" id="screen1">
+    <div class="title" id="matchTitle"></div>
+    <div class="datetime" id="datetime"></div>
+
+    <div class="scoreboard">
+      <div class="team">
+        <div class="team-name">우리 팀</div>
+        <div class="score" id="teamA">0</div>
+      </div>
+
+      <div class="vs">VS</div>
+
+      <div class="team">
+        <div class="team-name">상대 팀</div>
+        <div class="score" id="teamB">0</div>
+      </div>
+    </div>
+
+    <div class="subtitle">
+      총 스코어: <span id="total">0</span>
+    </div>
+  </div>
+
+  <!-- Screen 2 -->
+  <div class="screen" id="screen2">
+    <div class="title">전체 진행 현황</div>
+    <div class="subtitle">
+      우리 팀 <span id="summaryA">0</span>승 /
+      상대 팀 <span id="summaryB">0</span>승
+    </div>
+  </div>
+
+  <script>
+    /* ===============================
+       URL 파라미터로 인원 설정
+       =============================== */
+    const params = new URLSearchParams(window.location.search);
+    const teamAPlayers = params.get('a') || 5;
+    const teamBPlayers = params.get('b') || 5;
+
+    document.getElementById('matchTitle').textContent =
+      `${teamAPlayers} vs ${teamBPlayers} 솔랭 내기`;
+
+    /* ===============================
+       화면 자동 전환 (움짤 느낌)
+       =============================== */
+    const screens = document.querySelectorAll('.screen');
+    let current = 0;
+
+    setInterval(() => {
+      screens[current].classList.remove('active');
+      current = (current + 1) % screens.length;
+      screens[current].classList.add('active');
+    }, 5000);
+
+    /* ===============================
+       날짜 / 시간 실시간 표시
+       =============================== */
+    function updateDateTime() {
+      const now = new Date();
+      const date = now.toLocaleDateString('ko-KR');
+      const time = now.toLocaleTimeString('ko-KR');
+      document.getElementById('datetime').textContent = `${date} ${time}`;
+    }
+
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+  </script>
+
 </body>
 </html>
+
 
