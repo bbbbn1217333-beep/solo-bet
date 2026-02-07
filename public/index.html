@@ -2,9 +2,9 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>솔랭 내기 스코어보드</title>
+  <title>솔랭 내기 시트지</title>
 
-  <!-- Google Font -->
+  <!-- 폰트 -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 
   <style>
@@ -14,146 +14,87 @@
 
     body {
       margin: 0;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      color: #fff;
+      background: #0f0f12;
+      color: #ffffff;
       font-family: 'Montserrat', sans-serif;
-      overflow: hidden;
     }
 
-    .screen {
-      position: absolute;
-      inset: 0;
+    .wrapper {
+      width: 100vw;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
-      opacity: 0;
-      transition: opacity 1s ease;
-    }
-
-    .screen.active {
-      opacity: 1;
+      justify-content: center;
+      gap: 20px;
     }
 
     .title {
-      font-size: 64px;
+      font-size: 42px;
       font-weight: 800;
-      margin-bottom: 20px;
-      letter-spacing: 2px;
     }
 
-    .datetime {
-      font-size: 28px;
-      opacity: 0.9;
-      margin-bottom: 50px;
+    .sub {
+      font-size: 24px;
+      opacity: 0.85;
     }
 
-    .scoreboard {
+    .score-box {
       display: flex;
-      gap: 120px;
-      align-items: center;
+      gap: 60px;
+      margin-top: 20px;
     }
 
     .team {
+      background: #1a1a22;
+      padding: 20px 30px;
+      border-radius: 16px;
       text-align: center;
+      min-width: 200px;
     }
 
-    .team-name {
-      font-size: 32px;
-      margin-bottom: 10px;
-      opacity: 0.85;
+    .team h2 {
+      margin: 0 0 10px;
+      font-size: 26px;
     }
 
     .score {
-      font-size: 96px;
+      font-size: 48px;
       font-weight: 800;
     }
 
-    .vs {
-      font-size: 48px;
-      opacity: 0.7;
-    }
-
-    .subtitle {
-      font-size: 36px;
-      margin-top: 40px;
-      opacity: 0.85;
+    .footer {
+      position: fixed;
+      bottom: 20px;
+      font-size: 14px;
+      opacity: 0.5;
     }
   </style>
 </head>
+
 <body>
+  <div class="wrapper">
+    <div class="title">5 vs 5 솔랭 내기</div>
+    <div class="sub">실시간 전적 자동 반영</div>
 
-  <!-- Screen 1 -->
-  <div class="screen active" id="screen1">
-    <div class="title" id="matchTitle"></div>
-    <div class="datetime" id="datetime"></div>
-
-    <div class="scoreboard">
+    <div class="score-box">
       <div class="team">
-        <div class="team-name">우리 팀</div>
-        <div class="score" id="teamA">0</div>
+        <h2>우리팀</h2>
+        <div class="score">0 승</div>
       </div>
 
-      <div class="vs">VS</div>
-
       <div class="team">
-        <div class="team-name">상대 팀</div>
-        <div class="score" id="teamB">0</div>
+        <h2>상대팀</h2>
+        <div class="score">0 승</div>
       </div>
-    </div>
-
-    <div class="subtitle">
-      총 스코어: <span id="total">0</span>
     </div>
   </div>
 
-  <!-- Screen 2 -->
-  <div class="screen" id="screen2">
-    <div class="title">전체 진행 현황</div>
-    <div class="subtitle">
-      우리 팀 <span id="summaryA">0</span>승 /
-      상대 팀 <span id="summaryB">0</span>승
-    </div>
+  <div class="footer">
+    ⏱ 2026-02-07 · Vercel Test OK
   </div>
-
-  <script>
-    /* ===============================
-       URL 파라미터로 인원 설정
-       =============================== */
-    const params = new URLSearchParams(window.location.search);
-    const teamAPlayers = params.get('a') || 5;
-    const teamBPlayers = params.get('b') || 5;
-
-    document.getElementById('matchTitle').textContent =
-      `${teamAPlayers} vs ${teamBPlayers} 솔랭 내기`;
-
-    /* ===============================
-       화면 자동 전환 (움짤 느낌)
-       =============================== */
-    const screens = document.querySelectorAll('.screen');
-    let current = 0;
-
-    setInterval(() => {
-      screens[current].classList.remove('active');
-      current = (current + 1) % screens.length;
-      screens[current].classList.add('active');
-    }, 5000);
-
-    /* ===============================
-       날짜 / 시간 실시간 표시
-       =============================== */
-    function updateDateTime() {
-      const now = new Date();
-      const date = now.toLocaleDateString('ko-KR');
-      const time = now.toLocaleTimeString('ko-KR');
-      document.getElementById('datetime').textContent = `${date} ${time}`;
-    }
-
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
-  </script>
-
 </body>
 </html>
+
 
 
