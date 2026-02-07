@@ -17,12 +17,12 @@
 
 <div id="playerInputs"></div>
 
-<!-- Supabase JS SDK 연결 -->
+<!-- Supabase JS SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
   const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
   const supabaseKey = 'sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j';
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 </script>
 
 <script>
@@ -34,7 +34,6 @@ function generateInputs(teamCount){
     const oldOur = document.getElementById(`our-${i}`)?.value || '';
     const oldOpp = document.getElementById(`opp-${i}`)?.value || '';
 
-    // 우리팀 input
     let ourInput = document.getElementById(`our-${i}`);
     if(!ourInput){
       ourInput = document.createElement('input');
@@ -44,7 +43,6 @@ function generateInputs(teamCount){
     }
     ourInput.value = oldOur;
 
-    // 상대팀 input
     let oppInput = document.getElementById(`opp-${i}`);
     if(!oppInput){
       oppInput = document.createElement('input');
@@ -71,7 +69,7 @@ async function applySettings(){
   }
 
   if(players.length){
-    const { data, error } = await supabase.from('players').upsert(players);
+    const { data, error } = await supabaseClient.from('players').upsert(players);
     if(error) console.log('DB 저장 오류:', error);
     else alert('적용 완료!');
   }
@@ -82,6 +80,7 @@ generateInputs(parseInt(document.getElementById('teamCount').value));
 </script>
 </body>
 </html>
+
 
 
 
