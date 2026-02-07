@@ -67,17 +67,33 @@
     <div class="score-box">
       <div class="team">
         <h2>우리 팀</h2>
-        <div class="score" id="ourScore">0</div>
+        <div class="score">0</div>
       </div>
 
       <div class="team">
         <h2>상대 팀</h2>
-        <div class="score" id="enemyScore">0</div>
+        <div class="score">0</div>
       </div>
     </div>
   </div>
+
+  <script>
+    // 🔥 관리자 패널에서 저장한 값 읽기
+    const saved = localStorage.getItem("soloBetSetting");
+
+    if (saved) {
+      const data = JSON.parse(saved);
+      const n = data.players;
+
+      if (n && n > 0) {
+        document.getElementById("mainTitle").innerText =
+          `${n} VS ${n} 솔랭 내기`;
+      }
+    }
+  </script>
 </body>
 </html>
+
 
 
 
