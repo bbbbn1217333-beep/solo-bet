@@ -1,106 +1,65 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>솔랭 내기 관리자 패널</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
-
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      background: #0f0f12;
-      color: white;
-      font-family: 'Montserrat', sans-serif;
-    }
-
-    .container {
-      max-width: 480px;
-      margin: 60px auto;
-      background: #1a1a22;
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    }
-
-    h1 {
-      margin-top: 0;
-      text-align: center;
-      font-size: 28px;
-    }
-
-    label {
-      display: block;
-      margin-top: 20px;
-      font-size: 14px;
-      opacity: 0.8;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      margin-top: 6px;
-      border-radius: 10px;
-      border: none;
-      font-size: 16px;
-    }
-
-    button {
-      width: 100%;
-      margin-top: 30px;
-      padding: 14px;
-      font-size: 16px;
-      font-weight: 700;
-      border: none;
-      border-radius: 14px;
-      background: #4f6bff;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #3d56d8;
-    }
-
-    .hint {
-      margin-top: 20px;
-      font-size: 13px;
-      opacity: 0.6;
-      text-align: center;
-    }
-  </style>
 </head>
-
 <body>
-  <div class="container">
-    <h1>솔랭 내기 관리자</h1>
 
-    <label>인원 수 (예: 5 → 5 VS 5)</label>
-    <input id="playerCount" type="number" value="5" />
+<h2>관리자 패널</h2>
+<label>팀 인원 수: <input type="number" id="teamCount" value="5"></label>
+<button onclick="applySettings()">적용</button>
 
-    <button onclick="applySetting()">적용</button>
+<div id="playerInputs"></div>
 
-    <div class="hint">
-      이 페이지는 관리자 전용입니다<br>
-      스트리머에게 공유 ❌
-    </div>
-  </div>
+<!-- 2번 코드: Supabase JS SDK 연결 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+  const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
+  const supabaseKey = 'sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j';
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+</script>
 
-  <script>
-    function applySetting() {
-      const n = document.getElementById("playerCount").value;
+<!-- 관리자 JS 로직 -->
+<script>
+async function applySettings() {
+  const teamCount = parseInt(document.getElementById('teamCount').value);
+  const playerInputsDiv = document.getElementById('playerInputs');
+  playerInputsDiv.innerHTML = '';
 
-      const data = {
-        players: Number(n)
-      };
+  // 팀별 입력창 생성
+  for(let i=1; i<=teamCount; i++){
+    const ourInput = document.createElement('input');
+    ourInput.placeholder = `우리팀 플레이어 ${i} 닉네임`;
+    ourInput.id = `our-${i}`;
+    playerInputsDiv.appendChild(ourInput);
 
-      localStorage.setItem("soloBetSetting", JSON.stringify(data));
+    const oppInput = document.createElement('input');
+    oppInput.placeholder = `상대팀 플레이어 ${i} 닉네임`;
+    oppInput.id = `opp-${i}`;
+    playerInputsDiv.appendChild(oppInput);
 
-      alert("적용 완료! 송출 화면에 반영됩니다.");
-    }
-  </script>
+    playerInputsDiv.appendChild(document.createElement('br'));
+  }
+
+  // 입력값 DB에 저장
+  const players = [];
+  for(let i=1;i<=teamCount;i++){
+    const ourName = document.getElementById(`our-${i}`).value;
+    const oppName = document.getElementById(`opp-${i}`).value;
+    if(ourName) players.push({name: ourName, team: '우리팀', wins:0, losses:0, streak:0});
+    if(oppName) players.push({name: oppName, team: '상대팀', wins:0, losses:0, streak:0});
+  }
+
+  if(players.length){
+    const { data, error } = await supabase.from('players').upsert(players);
+    if(error) console.log(error);
+    else console.log('적용 완료', data);
+  }
+}
+</script>
+
 </body>
 </html>
+
 
