@@ -4,17 +4,14 @@
   <meta charset="UTF-8" />
   <title>솔랭 내기 시트지</title>
 
-  <!-- 폰트 -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background: #0f0f12;
+      background: radial-gradient(circle at top, #1b1b25, #0c0c10);
       color: #ffffff;
       font-family: 'Montserrat', sans-serif;
     }
@@ -26,75 +23,103 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 20px;
+      gap: 14px;
     }
 
     .title {
-      font-size: 42px;
+      font-size: 48px;
       font-weight: 800;
+      letter-spacing: -1px;
     }
 
-    .sub {
-      font-size: 24px;
-      opacity: 0.85;
+    .subtitle {
+      font-size: 18px;
+      opacity: 0.75;
     }
 
     .score-box {
       display: flex;
-      gap: 60px;
-      margin-top: 20px;
+      gap: 70px;
+      margin-top: 26px;
     }
 
     .team {
-      background: #1a1a22;
-      padding: 20px 30px;
-      border-radius: 16px;
+      background: linear-gradient(180deg, #1f1f2b, #15151d);
+      padding: 24px 36px;
+      border-radius: 22px;
       text-align: center;
-      min-width: 200px;
+      min-width: 240px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
 
     .team h2 {
-      margin: 0 0 10px;
-      font-size: 26px;
+      margin: 0 0 12px;
+      font-size: 22px;
+      opacity: 0.9;
     }
 
     .score {
-      font-size: 48px;
+      font-size: 56px;
       font-weight: 800;
     }
 
-    .footer {
-      position: fixed;
-      bottom: 20px;
+    /* 임시 컨트롤 */
+    .control {
+      margin-top: 30px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .control button {
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      background: #2a2a38;
+      color: white;
       font-size: 14px;
-      opacity: 0.5;
+      cursor: pointer;
+    }
+
+    .control button:hover {
+      background: #3a3a52;
     }
   </style>
 </head>
 
 <body>
   <div class="wrapper">
-    <div class="title">5 vs 5 솔랭 내기</div>
-    <div class="sub">실시간 전적 자동 반영</div>
+    <div class="title" id="mainTitle">5 vs 5 솔랭 내기</div>
+    <div class="subtitle">실시간 전적 자동 집계 시트지</div>
 
     <div class="score-box">
       <div class="team">
-        <h2>우리팀</h2>
-        <div class="score">0 승</div>
+        <h2>우리 팀</h2>
+        <div class="score">0</div>
       </div>
 
       <div class="team">
-        <h2>상대팀</h2>
-        <div class="score">0 승</div>
+        <h2>상대 팀</h2>
+        <div class="score">0</div>
       </div>
+    </div>
+
+    <!-- 테스트용 (나중에 관리자 패널로 대체) -->
+    <div class="control">
+      <button onclick="setMatch(3)">3 vs 3</button>
+      <button onclick="setMatch(5)">5 vs 5</button>
+      <button onclick="setMatch(10)">10 vs 10</button>
     </div>
   </div>
 
-  <div class="footer">
-    ⏱ 2026-02-07 · Vercel Test OK
-  </div>
+  <script>
+    function setMatch(n) {
+      document.getElementById("mainTitle").innerText =
+        `${n} vs ${n} 솔랭 내기`;
+    }
+  </script>
 </body>
 </html>
+
 
 
 
