@@ -1,98 +1,42 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <title>이라네 솔랭 내기 시트지</title>
+<h1>5 VS 5 솔랭 내기</h1>
+<div id="screen"></div>
 
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
+const supabaseKey = 'sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j';
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  <style>
-    * { box-sizing: border-box; }
+// 화면 갱신 함수
+function updateScreen(players){
+  const screenDiv = document.getElementById('screen');
+  screenDiv.innerHTML = '';
+  players.forEach(p => {
+    const div = document.createElement('div');
+    div.innerText = `${p.name} (${p.team}) - ${p.wins}승 ${p.losses}패 ${p.streak}연승`;
+    screenDiv.appendChild(div);
+  });
+}
 
-    body {
-      margin: 0;
-      background: radial-gradient(circle at top, #1b1b25, #0c0c10);
-      color: #ffffff;
-      font-family: 'Montserrat', sans-serif;
-    }
+// 초기 데이터 가져오기
+async function loadPlayers(){
+  let { data: players, error } = await supabase.from('players').select('*');
+  if(error) console.log(error);
+  else updateScreen(players);
+}
 
-    .wrapper {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 18px;
-    }
+// 실시간 구독
+supabase
+  .from('players')
+  .on('*', payload => {
+    console.log('데이터 변경:', payload.new);
+    loadPlayers(); // 변경 발생하면 화면 업데이트
+  })
+  .subscribe();
 
-    .title {
-      font-size: 52px;
-      font-weight: 800;
-      letter-spacing: -1px;
-    }
+loadPlayers(); // 초기 로드
+</script>
 
-    .score-box {
-      display: flex;
-      gap: 80px;
-      margin-top: 32px;
-    }
-
-    .team {
-      background: linear-gradient(180deg, #1f1f2b, #15151d);
-      padding: 26px 40px;
-      border-radius: 24px;
-      text-align: center;
-      min-width: 260px;
-      box-shadow: 0 12px 34px rgba(0,0,0,0.45);
-    }
-
-    .team h2 {
-      margin: 0 0 14px;
-      font-size: 24px;
-      opacity: 0.9;
-    }
-
-    .score {
-      font-size: 64px;
-      font-weight: 800;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="wrapper">
-    <div class="title" id="mainTitle">5 VS 5 솔랭 내기</div>
-
-    <div class="score-box">
-      <div class="team">
-        <h2>우리 팀</h2>
-        <div class="score">0</div>
-      </div>
-
-      <div class="team">
-        <h2>상대 팀</h2>
-        <div class="score">0</div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // 🔥 관리자 패널에서 저장한 값 읽기
-    const saved = localStorage.getItem("soloBetSetting");
-
-    if (saved) {
-      const data = JSON.parse(saved);
-      const n = data.players;
-
-      if (n && n > 0) {
-        document.getElementById("mainTitle").innerText =
-          `이라네 ${n} VS ${n} 솔랭 내기`;
-      }
-    }
-  </script>
-</body>
-</html>
 
 
 
