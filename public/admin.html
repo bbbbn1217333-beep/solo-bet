@@ -1,1 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>솔랭 내기 관리자 패널</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #0f0f12;
+      color: white;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 60px auto;
+      background: #1a1a22;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+      font-size: 28px;
+    }
+
+    label {
+      display: block;
+      margin-top: 20px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 6px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 30px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: 14px;
+      background: #4f6bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #3d56d8;
+    }
+
+    .hint {
+      margin-top: 20px;
+      font-size: 13px;
+      opacity: 0.6;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>솔랭 내기 관리자</h1>
+
+    <label>인원 수 (예: 5 → 5 VS 5)</label>
+    <input id="playerCount" type="number" value="5" />
+
+    <button onclick="applySetting()">적용</button>
+
+    <div class="hint">
+      이 페이지는 관리자 전용입니다<br>
+      스트리머에게 공유 ❌
+    </div>
+  </div>
+
+  <script>
+    function applySetting() {
+      const n = document.getElementById("playerCount").value;
+
+      const data = {
+        players: Number(n)
+      };
+
+      localStorage.setItem("soloBetSetting", JSON.stringify(data));
+
+      alert("적용 완료! 송출 화면에 반영됩니다.");
+    }
+  </script>
+</body>
+</html>
 
