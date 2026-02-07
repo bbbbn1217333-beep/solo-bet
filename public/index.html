@@ -5,7 +5,7 @@
   <title>5 VS 5 솔랭 내기</title>
   <style>
     body { font-family: 'Segoe UI', sans-serif; padding:20px; background:#f0f0f0; }
-    h1 { text-align:center; }
+    h1 { text-align:center; margin-bottom:20px; }
     #screen div { margin:5px 0; font-size:18px; }
     .win { color:green; }
     .lose { color:red; }
@@ -20,7 +20,7 @@
 <script>
 const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
 const supabaseKey = 'sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 function updateScreen(players){
   const screenDiv = document.getElementById('screen');
@@ -35,13 +35,13 @@ function updateScreen(players){
 }
 
 async function loadPlayers(){
-  let { data: players, error } = await supabase.from('players').select('*');
+  let { data: players, error } = await supabaseClient.from('players').select('*');
   if(error) console.log('DB 불러오기 오류:', error);
   else updateScreen(players);
 }
 
 // 실시간 구독
-supabase
+supabaseClient
   .from('players')
   .on('*', payload => {
     loadPlayers();
@@ -52,6 +52,7 @@ loadPlayers();
 </script>
 </body>
 </html>
+
 
 
 
