@@ -5,7 +5,7 @@
   <title>솔랭 내기 관리자 패널</title>
   <style>
     body { font-family: 'Segoe UI', sans-serif; padding:20px; }
-    input { margin:5px; padding:5px; }
+    input { margin:5px; padding:5px; width:150px; }
     button { padding:5px 10px; margin:10px 0; }
   </style>
 </head>
@@ -17,7 +17,7 @@
 
 <div id="playerInputs"></div>
 
-<!-- Supabase 연결 -->
+<!-- Supabase JS SDK 연결 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
   const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
@@ -25,45 +25,64 @@
   const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 </script>
 
-<!-- 관리자 JS -->
 <script>
-async function applySettings() {
-  const teamCount = parseInt(document.getElementById('teamCount').value);
-  const playerInputsDiv = document.getElementById('playerInputs');
-  playerInputsDiv.innerHTML = '';
+function generateInputs(teamCount){
+  const container = document.getElementById('playerInputs');
 
-  for(let i=1; i<=teamCount; i++){
-    const ourInput = document.createElement('input');
-    ourInput.placeholder = `우리팀 플레이어 ${i} 닉네임`;
-    ourInput.id = `our-${i}`;
-    playerInputsDiv.appendChild(ourInput);
+  for(let i=1;i<=teamCount;i++){
+    // 기존 value 유지
+    const oldOur = document.getElementById(`our-${i}`)?.value || '';
+    const oldOpp = document.getElementById(`opp-${i}`)?.value || '';
 
-    const oppInput = document.createElement('input');
-    oppInput.placeholder = `상대팀 플레이어 ${i} 닉네임`;
-    oppInput.id = `opp-${i}`;
-    playerInputsDiv.appendChild(oppInput);
+    // 우리팀 input
+    let ourInput = document.getElementById(`our-${i}`);
+    if(!ourInput){
+      ourInput = document.createElement('input');
+      ourInput.id = `our-${i}`;
+      ourInput.placeholder = `우리팀 플레이어 ${i}`;
+      container.appendChild(ourInput);
+    }
+    ourInput.value = oldOur;
 
-    playerInputsDiv.appendChild(document.createElement('br'));
+    // 상대팀 input
+    let oppInput = document.getElementById(`opp-${i}`);
+    if(!oppInput){
+      oppInput = document.createElement('input');
+      oppInput.id = `opp-${i}`;
+      oppInput.placeholder = `상대팀 플레이어 ${i}`;
+      container.appendChild(oppInput);
+    }
+    oppInput.value = oldOpp;
+
+    container.appendChild(document.createElement('br'));
   }
+}
+
+async function applySettings(){
+  const teamCount = parseInt(document.getElementById('teamCount').value);
+  generateInputs(teamCount);
 
   const players = [];
   for(let i=1;i<=teamCount;i++){
     const ourName = document.getElementById(`our-${i}`).value.trim();
     const oppName = document.getElementById(`opp-${i}`).value.trim();
-    if(ourName) players.push({name: ourName, team: '우리팀', wins:0, losses:0, streak:0});
-    if(oppName) players.push({name: oppName, team: '상대팀', wins:0, losses:0, streak:0});
+    if(ourName) players.push({name: ourName, team:'우리팀', wins:0, losses:0, streak:0});
+    if(oppName) players.push({name: oppName, team:'상대팀', wins:0, losses:0, streak:0});
   }
 
   if(players.length){
     const { data, error } = await supabase.from('players').upsert(players);
-    if(error) console.log(error);
+    if(error) console.log('DB 저장 오류:', error);
     else alert('적용 완료!');
   }
 }
-</script>
 
+// 처음 로드 시 기본 입력창 생성
+generateInputs(parseInt(document.getElementById('teamCount').value));
+</script>
 </body>
 </html>
+
 
 
 
