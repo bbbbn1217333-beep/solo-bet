@@ -2,59 +2,170 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>솔랭 내기 송출 화면</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<title>솔랭 내기</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+
 <style>
-body { background:#111; color:#fff; font-family:'Orbitron', sans-serif; padding:20px; }
-h1 { text-align:center; font-size:3em; color:#ff3333; text-shadow:0 0 10px #ff3333,0 0 20px #ff6666; margin-bottom:20px;}
-#screen { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
-.player-card { padding:10px 15px; border-radius:10px; background:#330000; color:#fff; text-shadow:0 0 5px #ff4444; font-weight:bold; transition: all 0.3s ease; }
-.win { text-shadow:0 0 10px lime,0 0 20px lime; animation: glow 1s infinite alternate; }
-.lose { text-shadow:0 0 10px #ff2222,0 0 20px #990000; opacity:0.6; }
-.emoji { margin-left:5px; }
-@keyframes glow { 0% { text-shadow:0 0 5px lime,0 0 10px lime; } 100% { text-shadow:0 0 20px lime,0 0 40px lime; } }
+body {
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:'Orbitron', sans-serif;
+}
+
+.container {
+  display:flex;
+  height:100vh;
+}
+
+.team {
+  flex:1;
+  padding:20px;
+}
+
+.red {
+  background:linear-gradient(180deg,#2a0000,#0b0b0b);
+}
+.blue {
+  background:linear-gradient(180deg,#001a2a,#0b0b0b);
+}
+
+.team h1 {
+  text-align:center;
+  font-size:32px;
+  margin-bottom:10px;
+}
+
+.red h1 { color:#ff4444; text-shadow:0 0 12px #ff4444; }
+.blue h1 { color:#44aaff; text-shadow:0 0 12px #44aaff; }
+
+.summary {
+  text-align:center;
+  font-size:18px;
+  margin-bottom:15px;
+}
+
+.win {
+  color:#00ff99;
+}
+.lose {
+  color:#ff5555;
+}
+
+.streak-win {
+  animation:pulse 1s infinite;
+}
+.streak-lose {
+  opacity:0.6;
+}
+
+@keyframes pulse {
+  0% { text-shadow:0 0 5px #00ff99; }
+  50% { text-shadow:0 0 20px #00ff99; }
+  100% { text-shadow:0 0 5px #00ff99; }
+}
+
+table {
+  width:100%;
+  border-collapse:collapse;
+}
+
+th, td {
+  padding:6px;
+  text-align:center;
+}
+
+th {
+  border-bottom:2px solid #444;
+}
+
+tr:nth-child(even) {
+  background:#111;
+}
 </style>
 </head>
-<body>
-<h1 id="title">5 VS 5 솔랭 내기</h1>
-<div id="screen"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<body>
+<div class="container">
+
+  <div class="team red">
+    <h1 id="redName">RED TEAM</h1>
+    <div class="summary" id="redSummary"></div>
+    <table>
+      <thead>
+        <tr><th>닉네임</th><th>승</th><th>패</th></tr>
+      </thead>
+      <tbody id="redPlayers"></tbody>
+    </table>
+  </div>
+
+  <div class="team blue">
+    <h1 id="blueName">BLUE TEAM</h1>
+    <div class="summary" id="blueSummary"></div>
+    <table>
+      <thead>
+        <tr><th>닉네임</th><th>승</th><th>패</th></tr>
+      </thead>
+      <tbody id="bluePlayers"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function updateScreen(players){
-  const screenDiv=document.getElementById('screen');
-  screenDiv.innerHTML='';
-  const ourTeam=players.filter(p=>p.team==='우리팀');
-  const oppTeam=players.filter(p=>p.team==='상대팀');
-  document.getElementById('title').textContent=`${ourTeam.length} VS ${oppTeam.length} 솔랭 내기`;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  players.forEach(p=>{
-    const div=document.createElement('div');
-    div.className='player-card';
-    let streakEmoji='';
-    if(p.streak>1){ div.classList.add('win'); streakEmoji='🔥'; }
-    else if(p.streak<-1){ div.classList.add('lose'); streakEmoji='💀'; }
-    div.innerHTML=`${p.name} (${p.team}) ${p.wins}승 ${p.losses}패 ${streakEmoji?`<span class="emoji">${streakEmoji}</span>`:''}`;
-    screenDiv.appendChild(div);
+async function render() {
+  const { data: players } = await sb.from('players').select('*');
+  const { data: setting } = await sb.from('settings').select('*').single();
+
+  document.getElementById('redName').textContent = setting.red_team_name;
+  document.getElementById('blueName').textContent = setting.blue_team_name;
+
+  const red = players.filter(p=>p.team==='red');
+  const blue = players.filter(p=>p.team==='blue');
+
+  renderTeam(red,'redPlayers','redSummary');
+  renderTeam(blue,'bluePlayers','blueSummary');
+}
+
+function renderTeam(list, bodyId, summaryId) {
+  const body = document.getElementById(bodyId);
+  body.innerHTML='';
+
+  let w=0,l=0,streak=0;
+
+  list.forEach(p=>{
+    w+=p.wins;
+    l+=p.losses;
+    streak+=p.streak;
+
+    body.insertAdjacentHTML('beforeend',`
+      <tr>
+        <td>${p.name}</td>
+        <td class="win">${p.wins}</td>
+        <td class="lose">${p.losses}</td>
+      </tr>
+    `);
   });
+
+  const el = document.getElementById(summaryId);
+  el.innerHTML = `
+    ${w}승 ${l}패<br>
+    ${streak>0 ? `🔥 ${streak}연승` : streak<0 ? `💀 ${Math.abs(streak)}연패` : ''}
+  `;
+  el.className = streak>0 ? 'streak-win' : streak<0 ? 'streak-lose' : '';
 }
 
-async function loadPlayers(){
-  const {data:players,error} = await supabaseClient.from('players').select('*');
-  if(error) console.log('DB 불러오기 오류:',error);
-  else updateScreen(players);
-}
-
-// v2 실시간 구독
-supabaseClient.channel('players_channel')
-.on('postgres_changes',{event:'*',schema:'public',table:'players'},payload=>{ loadPlayers(); })
-.subscribe();
-
-loadPlayers();
+render();
+sb.channel('realtime')
+  .on('postgres_changes',{event:'*',schema:'public',table:'players'},render)
+  .subscribe();
 </script>
 </body>
 </html>
