@@ -23,7 +23,7 @@ h1 { text-align:center; font-size:3em; color:#ff3333; text-shadow:0 0 10px #ff33
 <script>
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
-const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function updateScreen(players){
   const screenDiv=document.getElementById('screen');
