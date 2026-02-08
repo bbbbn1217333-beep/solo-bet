@@ -203,8 +203,8 @@ function renderTeam(list, containerId, summaryId) {
       <div class="member-card" style="${borderAnim}">
         <div class="name">${p.name} ${streakText ? `<span class="${streakClass}">${streakText}</span>` : ''}</div>
         <div class="record">
-          <span class="win">😁 ${p.wins}</span> /
-          <span class="lose">😡 ${p.losses}</span>
+          <span class="win">😁 ${p.wins}승</span> /
+          <span class="lose">😡 ${p.losses}패</span>
         </div>
       </div>
     `);
@@ -226,6 +226,7 @@ sb.channel('realtime')
 
 </body>
 </html>
+
 
 
 
