@@ -1,214 +1,123 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <title>솔랭 내기 관리자 패널</title>
+<meta charset="UTF-8">
+<title>솔랭 내기 관리자</title>
 
-  <!-- Supabase CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <style>
-    body {
-      background: #0e0e0e;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-
-    h1 {
-      text-align: center;
-      color: #ff3b3b;
-      margin-bottom: 20px;
-    }
-
-    .wrap {
-      max-width: 1000px;
-      margin: auto;
-      border: 1px solid #333;
-      padding: 20px;
-      border-radius: 10px;
-    }
-
-    .top {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .top input {
-      flex: 1;
-      padding: 8px;
-      background: #111;
-      border: 1px solid #444;
-      color: #fff;
-      border-radius: 6px;
-    }
-
-    .teams {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    .team {
-      border: 1px solid #444;
-      padding: 15px;
-      border-radius: 8px;
-    }
-
-    .team h2 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
-    .players {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 8px;
-    }
-
-    .players input {
-      padding: 6px;
-      background: #111;
-      border: 1px solid #444;
-      color: #fff;
-      border-radius: 6px;
-    }
-
-    .actions {
-      margin-top: 20px;
-      text-align: center;
-    }
-
-    button {
-      padding: 12px 30px;
-      background: #ff3b3b;
-      border: none;
-      color: #fff;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-  </style>
+<style>
+body {
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial, sans-serif;
+  padding:20px;
+}
+h2 { margin-top:30px; }
+input, select, button {
+  padding:6px;
+  margin:4px;
+}
+.team-box {
+  border:1px solid #333;
+  padding:10px;
+  margin-bottom:10px;
+}
+button {
+  background:#222;
+  color:#fff;
+  border:1px solid #555;
+  cursor:pointer;
+}
+button:hover { background:#333; }
+</style>
 </head>
 
 <body>
-  <h1>솔랭 내기 관리자 패널</h1>
 
-  <div class="wrap">
-    <div class="top">
-      <input id="teamCount" type="number" min="1" max="33" value="5" />
-    </div>
+<h1>솔랭 내기 관리자 패널</h1>
 
-    <div class="teams">
-      <div class="team">
-        <h2>우리팀</h2>
-        <div class="players" id="redPlayers"></div>
-      </div>
+<h2>팀 이름 설정</h2>
+<input id="redTeamName" placeholder="RED TEAM 이름">
+<input id="blueTeamName" placeholder="BLUE TEAM 이름">
+<button onclick="saveSettings()">팀 이름 저장</button>
 
-      <div class="team">
-        <h2>상대팀</h2>
-        <div class="players" id="bluePlayers"></div>
-      </div>
-    </div>
+<h2>플레이어 추가</h2>
+<div class="team-box">
+  <input id="playerName" placeholder="닉네임">
+  <select id="playerTeam">
+    <option value="red">RED</option>
+    <option value="blue">BLUE</option>
+  </select>
+  <button onclick="addPlayer()">추가</button>
+</div>
 
-    <div class="actions">
-      <button onclick="apply()">적용</button>
-    </div>
-  </div>
+<h2>현재 등록 목록</h2>
+<pre id="preview"></pre>
 
+<button onclick="applyAll()">🔥 적용 (송출 반영)</button>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  /* ===============================
-     Supabase 연결 (단 1번)
-  =============================== */
-  const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
+const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const db = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+let tempPlayers = [];
 
-  /* ===============================
-     DOM
-  =============================== */
-  const redWrap = document.getElementById("redPlayers");
-  const blueWrap = document.getElementById("bluePlayers");
-  const teamCountInput = document.getElementById("teamCount");
+async function loadSettings() {
+  const { data } = await sb.from('settings').select('*').single();
+  redTeamName.value = data.red_team_name;
+  blueTeamName.value = data.blue_team_name;
+}
+loadSettings();
 
-  /* ===============================
-     인풋 생성
-  =============================== */
-  function createInputs() {
-    const count = Number(teamCountInput.value);
+function addPlayer() {
+  const name = playerName.value.trim();
+  const team = playerTeam.value;
+  if (!name) return;
 
-    redWrap.innerHTML = "";
-    blueWrap.innerHTML = "";
+  tempPlayers.push({
+    name,
+    team,
+    wins: 0,
+    losses: 0,
+    streak: 0
+  });
 
-    for (let i = 0; i < count; i++) {
-      const r = document.createElement("input");
-      r.placeholder = `우리팀 ${i + 1}`;
-      redWrap.appendChild(r);
+  playerName.value = '';
+  renderPreview();
+}
 
-      const b = document.createElement("input");
-      b.placeholder = `상대팀 ${i + 1}`;
-      blueWrap.appendChild(b);
-    }
+function renderPreview() {
+  preview.textContent = JSON.stringify(tempPlayers, null, 2);
+}
+
+async function saveSettings() {
+  await sb.from('settings')
+    .update({
+      red_team_name: redTeamName.value,
+      blue_team_name: blueTeamName.value
+    })
+    .eq('id',1);
+
+  alert('팀 이름 저장 완료');
+}
+
+async function applyAll() {
+  // 🔴 핵심: 기존 players 전부 삭제
+  await sb.from('players').delete().neq('id',0);
+
+  // 새로 삽입
+  if (tempPlayers.length > 0) {
+    await sb.from('players').insert(tempPlayers);
   }
 
-  teamCountInput.addEventListener("change", createInputs);
-  createInputs();
-
-  /* ===============================
-     적용 버튼
-  =============================== */
-  async function apply() {
-    const redNames = [...redWrap.querySelectorAll("input")]
-      .map(i => i.value.trim())
-      .filter(Boolean);
-
-    const blueNames = [...blueWrap.querySelectorAll("input")]
-      .map(i => i.value.trim())
-      .filter(Boolean);
-
-    if (redNames.length === 0 || blueNames.length === 0) {
-      alert("플레이어 이름을 입력해주세요.");
-      return;
-    }
-
-    // 기존 players 전부 삭제
-    await db.from("players").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-    // 새 데이터
-    const players = [
-      ...redNames.map(name => ({
-        name,
-        team: "red",
-        wins: 0,
-        losses: 0,
-        streak: 0
-      })),
-      ...blueNames.map(name => ({
-        name,
-        team: "blue",
-        wins: 0,
-        losses: 0,
-        streak: 0
-      }))
-    ];
-
-    const { error } = await db.from("players").insert(players);
-
-    if (error) {
-      console.error(error);
-      alert("저장 실패");
-    } else {
-      alert("적용 완료");
-    }
-  }
+  alert('송출 패널 적용 완료');
+}
 </script>
+
 </body>
 </html>
+
 
 
 
