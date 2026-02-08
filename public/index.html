@@ -23,7 +23,9 @@ body {
 /* 팀 영역 */
 .team {
   flex:1;
-  padding:30px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
 }
 
 .red {
@@ -36,8 +38,8 @@ body {
 /* 팀명 */
 .team h1 {
   text-align:center;
-  font-size:42px;
-  margin-bottom:10px;
+  font-size:36px;
+  margin-bottom:15px;
   letter-spacing:2px;
   font-family:'Orbitron', sans-serif;
 }
@@ -48,8 +50,8 @@ body {
 /* 요약 */
 .summary {
   text-align:center;
-  font-size:22px;
-  margin-bottom:20px;
+  font-size:20px;
+  margin-bottom:15px;
   animation:scoreGlow 1.4s infinite;
 }
 
@@ -59,50 +61,70 @@ body {
   100% { text-shadow:0 0 4px #fff; opacity:0.7; }
 }
 
-/* 테이블 */
-table {
-  width:100%;
-  border-collapse:collapse;
+/* 멤버 카드 */
+.members {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
 }
 
-th {
-  padding:14px 0;
-  font-size:22px;
-  border-bottom:2px solid #222;
-}
-
-/* 헤더 색 */
-.red-table .th-name { color:#ff5c5c; }
-.blue-table .th-name { color:#4db8ff; }
-
-.th-win  { color:#ffd369; }
-.th-lose { color:#ff6b6b; }
-
-/* 셀 */
-td {
-  padding:10px 0;
+.member-card {
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:12px;
+  padding:15px;
+  width:140px;
   text-align:center;
-  font-size:20px;
+  font-size:16px;
+  position:relative;
+  transition: transform 0.3s;
 }
 
-/* 스트리머 이름 */
-.name {
-  color:#ffffff;
+.member-card:hover {
+  transform:scale(1.05);
 }
 
-/* 숫자 */
-.win {
-  color:#ffd369;
+/* 이름 */
+.member-card .name {
+  font-weight:800;
+  margin-bottom:5px;
   font-family:'Orbitron', sans-serif;
 }
-.lose {
-  color:#ff6b6b;
-  font-family:'Orbitron', sans-serif;
+
+/* 승패 */
+.member-card .record {
+  display:flex;
+  justify-content:center;
+  gap:5px;
+  font-weight:600;
+  font-size:14px;
 }
 
-tr:nth-child(even) {
-  background:rgba(255,255,255,0.04);
+.win { color:#ffd369; }
+.lose { color:#ff6b6b; }
+
+/* 연승/연패 */
+.streak {
+  margin-top:5px;
+  font-size:14px;
+  animation:streakGlow 1.2s infinite;
 }
+
+.win-streak { color:#ffe066; }
+.lose-streak { color:#ff8787; }
+
+@keyframes streakGlow {
+  0%   { text-shadow:0 0 4px #fff; opacity:0.7; }
+  50%  { text-shadow:0 0 12px #fff; opacity:1; }
+  100% { text-shadow:0 0 4px #fff; opacity:0.7; }
+}
+
+/* 이모티콘 */
+.emoji {
+  margin-left:4px;
+}
+
 </style>
 </head>
 
@@ -113,32 +135,14 @@ tr:nth-child(even) {
   <div class="team red">
     <h1 id="redName">RED TEAM</h1>
     <div class="summary" id="redSummary"></div>
-    <table class="red-table">
-      <thead>
-        <tr>
-          <th class="th-name">스트리머</th>
-          <th class="th-win">승리</th>
-          <th class="th-lose">패배</th>
-        </tr>
-      </thead>
-      <tbody id="redPlayers"></tbody>
-    </table>
+    <div class="members" id="redPlayers"></div>
   </div>
 
   <!-- BLUE -->
   <div class="team blue">
     <h1 id="blueName">BLUE TEAM</h1>
     <div class="summary" id="blueSummary"></div>
-    <table class="blue-table">
-      <thead>
-        <tr>
-          <th class="th-name">스트리머</th>
-          <th class="th-win">승리</th>
-          <th class="th-lose">패배</th>
-        </tr>
-      </thead>
-      <tbody id="bluePlayers"></tbody>
-    </table>
+    <div class="members" id="bluePlayers"></div>
   </div>
 
 </div>
@@ -162,29 +166,41 @@ async function render() {
   renderTeam(blue,'bluePlayers','blueSummary');
 }
 
-function renderTeam(list, bodyId, summaryId) {
-  const body = document.getElementById(bodyId);
-  body.innerHTML = '';
+function renderTeam(list, containerId, summaryId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
 
-  let w=0,l=0;
+  let w=0, l=0;
 
   list.forEach(p=>{
     w+=p.wins;
     l+=p.losses;
 
-    body.insertAdjacentHTML('beforeend',`
-      <tr>
-        <td class="name">${p.name}</td>
-        <td class="win">${p.wins}</td>
-        <td class="lose">${p.losses}</td>
-      </tr>
+    // 연승/연패 표시 (streak)
+    let streakText = '';
+    let streakClass = '';
+    if(p.streak > 0) {
+      streakText = `🔥 ${p.streak}연승`;
+      streakClass = 'win-streak';
+    } else if(p.streak < 0) {
+      streakText = `💀 ${Math.abs(p.streak)}연패`;
+      streakClass = 'lose-streak';
+    }
+
+    container.insertAdjacentHTML('beforeend',`
+      <div class="member-card">
+        <div class="name">${p.name}</div>
+        <div class="record">
+          <span class="win">🏆 ${p.wins}</span> /
+          <span class="lose">💔 ${p.losses}</span>
+        </div>
+        ${streakText ? `<div class="streak ${streakClass}">${streakText}</div>` : ''}
+      </div>
     `);
   });
 
   const summaryEl = document.getElementById(summaryId);
-  summaryEl.innerHTML =
-    `<span class="win">${w}승</span> /
-     <span class="lose">${l}패</span>`;
+  summaryEl.innerHTML = `<span class="win">🏆 ${w}승</span> / <span class="lose">💔 ${l}패</span>`;
 }
 
 /* 최초 렌더 */
@@ -199,6 +215,7 @@ sb.channel('realtime')
 
 </body>
 </html>
+
 
 
 
