@@ -61,20 +61,20 @@ body {
   100% { text-shadow:0 0 4px #fff; opacity:0.7; }
 }
 
-/* 멤버 카드 */
+/* 멤버 카드 (세로 배열) */
 .members {
   display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:10px;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
 }
 
 .member-card {
   background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.2);
+  border:2px solid rgba(255,255,255,0.2);
   border-radius:12px;
-  padding:15px;
-  width:140px;
+  padding:15px 20px;
+  width:200px;
   text-align:center;
   font-size:16px;
   position:relative;
@@ -96,9 +96,9 @@ body {
 .member-card .record {
   display:flex;
   justify-content:center;
-  gap:5px;
+  gap:10px;
   font-weight:600;
-  font-size:14px;
+  font-size:16px;
 }
 
 .win { color:#ffd369; }
@@ -106,25 +106,33 @@ body {
 
 /* 연승/연패 */
 .streak {
-  margin-top:5px;
-  font-size:14px;
-  animation:streakGlow 1.2s infinite;
+  margin-top:6px;
+  font-size:16px;
+  font-weight:700;
 }
 
-.win-streak { color:#ffe066; }
-.lose-streak { color:#ff8787; }
-
-@keyframes streakGlow {
-  0%   { text-shadow:0 0 4px #fff; opacity:0.7; }
-  50%  { text-shadow:0 0 12px #fff; opacity:1; }
-  100% { text-shadow:0 0 4px #fff; opacity:0.7; }
+.streak span {
+  display:inline-block;
+  margin-left:5px;
 }
 
-/* 이모티콘 */
-.emoji {
-  margin-left:4px;
+/* 테두리 반짝임 */
+@keyframes borderGlowYellow {
+  0%,100% { box-shadow:0 0 6px #fff; }
+  50% { box-shadow:0 0 12px #ffeb3b; }
+}
+@keyframes borderGlowRed {
+  0%,100% { box-shadow:0 0 6px #fff; }
+  50% { box-shadow:0 0 12px #ff3b3b; }
 }
 
+/* 연승/연패 색 진하기 */
+.streak-2.win { color:#fff59d; } /* 연한 노랑 */
+.streak-3.win { color:#ffe066; } /* 중간 노랑 */
+.streak-4.win { color:#ffd700; } /* 진한 노랑 */
+.streak-2.lose { color:#ff8a80; } /* 연한 빨강 */
+.streak-3.lose { color:#ff5252; } /* 중간 빨강 */
+.streak-4.lose { color:#ff1744; } /* 진한 빨강 */
 </style>
 </head>
 
@@ -152,6 +160,14 @@ const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+function getStreakClass(streak){
+  const abs = Math.abs(streak);
+  if(abs >=4) return 4;
+  if(abs ===3) return 3;
+  if(abs ===2) return 2;
+  return 1;
+}
+
 async function render() {
   const { data: players } = await sb.from('players').select('*');
   const { data: setting } = await sb.from('settings').select('*').single();
@@ -176,31 +192,35 @@ function renderTeam(list, containerId, summaryId) {
     w+=p.wins;
     l+=p.losses;
 
-    // 연승/연패 표시 (streak)
     let streakText = '';
     let streakClass = '';
-    if(p.streak > 0) {
-      streakText = `🔥 ${p.streak}연승`;
-      streakClass = 'win-streak';
-    } else if(p.streak < 0) {
-      streakText = `💀 ${Math.abs(p.streak)}연패`;
-      streakClass = 'lose-streak';
+    if(p.streak >0){
+      streakText = `⭐${p.streak}연승`;
+      streakClass = `streak win streak-${getStreakClass(p.streak)}`;
+    } else if(p.streak <0){
+      streakText = `💀${Math.abs(p.streak)}연패`;
+      streakClass = `streak lose streak-${getStreakClass(p.streak)}`;
     }
 
+    // 카드 테두리 깜빡임
+    let borderAnim = '';
+    if(p.streak>0) borderAnim='animation:borderGlowYellow 1s infinite';
+    if(p.streak<0) borderAnim='animation:borderGlowRed 1s infinite';
+
     container.insertAdjacentHTML('beforeend',`
-      <div class="member-card">
+      <div class="member-card" style="${borderAnim}">
         <div class="name">${p.name}</div>
         <div class="record">
-          <span class="win">🏆 ${p.wins}</span> /
-          <span class="lose">💔 ${p.losses}</span>
+          <span class="win">😁 ${p.wins}</span> /
+          <span class="lose">😡 ${p.losses}</span>
         </div>
-        ${streakText ? `<div class="streak ${streakClass}">${streakText}</div>` : ''}
+        ${streakText ? `<div class="${streakClass}">${streakText}</div>` : ''}
       </div>
     `);
   });
 
   const summaryEl = document.getElementById(summaryId);
-  summaryEl.innerHTML = `<span class="win">🏆 ${w}승</span> / <span class="lose">💔 ${l}패</span>`;
+  summaryEl.innerHTML = `<span class="win">😁 ${w}승</span> / <span class="lose">😡 ${l}패</span>`;
 }
 
 /* 최초 렌더 */
@@ -215,6 +235,7 @@ sb.channel('realtime')
 
 </body>
 </html>
+
 
 
 
