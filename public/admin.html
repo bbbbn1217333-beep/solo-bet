@@ -8,88 +8,150 @@
 
 <style>
 body {
+  margin:0;
   background:#0e0e0e;
   color:#fff;
-  font-family:Arial, sans-serif;
+  font-family:'Pretendard', sans-serif;
+  display:flex;
+  justify-content:center;
   padding:20px;
-}
-
-h1 {
-  text-align:center;
-  color:#ff3b3b;
-  margin-bottom:20px;
 }
 
 .wrap {
   max-width:1000px;
-  margin:auto;
-  border:1px solid #333;
-  padding:20px;
-  border-radius:10px;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:20px;
 }
 
+/* 팀 이름 입력 */
 .top {
   display:flex;
   gap:10px;
-  margin-bottom:20px;
+  width:100%;
+  justify-content:center;
 }
 
 .top input {
   flex:1;
-  padding:8px;
+  padding:10px;
   background:#111;
   border:1px solid #444;
   color:#fff;
-  border-radius:6px;
+  border-radius:8px;
+  font-size:16px;
+  text-align:center;
 }
 
+/* 팀 영역 */
 .teams {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px;
+  display:flex;
+  gap:80px;
+  width:100%;
+  justify-content:center;
 }
 
 .team {
-  border:1px solid #444;
-  padding:15px;
-  border-radius:8px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
 
 .team h2 {
-  text-align:center;
+  font-family:'Orbitron', sans-serif;
+  font-size:28px;
+  color:#ff3b3b;
   margin-bottom:10px;
 }
 
-.players {
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
-  gap:8px;
+/* 멤버 카드 */
+.members {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
 }
 
-.players input {
-  padding:6px;
-  background:#111;
-  border:1px solid #444;
-  color:#fff;
-  border-radius:6px;
+.member-card {
+  background:rgba(255,255,255,0.05);
+  border:2px solid rgba(255,255,255,0.2);
+  border-radius:12px;
+  padding:12px 18px;
+  width:180px;
+  min-height:100px;
+  text-align:center;
+  font-size:14px;
+  position:relative;
+  transition: transform 0.3s;
 }
 
-.preview {
-  margin-top:15px;
-}
+.member-card:hover { transform:scale(1.03); }
 
-.card {
-  background:#111;
-  border:1px solid #333;
-  padding:6px 10px;
+.name {
+  font-weight:800;
   margin-bottom:6px;
+  font-family:'Orbitron', sans-serif;
+  font-size:16px;
 }
 
+.record {
+  display:flex;
+  justify-content:center;
+  gap:6px;
+  font-weight:600;
+  font-size:16px;
+  margin-bottom:4px;
+}
+
+.win { color:#ffd369; }
+.lose { color:#ff6b6b; }
+
+.recent {
+  display:flex;
+  justify-content:center;
+  gap:2px;
+  margin-top:4px;
+  font-size:16px;
+}
+
+/* 연승/연패 */
+.streak {
+  margin-left:5px;
+  font-size:14px;
+  font-weight:700;
+}
+
+/* 테두리 반짝임 */
+@keyframes borderGlowYellow {
+  0%,100% { box-shadow:0 0 6px #fff; }
+  50% { box-shadow:0 0 12px #ffeb3b; }
+}
+@keyframes borderGlowRed {
+  0%,100% { box-shadow:0 0 6px #fff; }
+  50% { box-shadow:0 0 12px #ff3b3b; }
+}
+
+/* 연승/연패 색 단계 */
+.streak-2.win { color:#fff59d; }
+.streak-3.win { color:#ffe066; }
+.streak-4.win { color:#ffd700; }
+.streak-5.win { color:#ffc107; }
+.streak-6.win { color:#ffb300; }
+.streak-7.win { color:#ffa000; }
+
+.streak-2.lose { color:#ff8a80; }
+.streak-3.lose { color:#ff5252; }
+.streak-4.lose { color:#ff1744; }
+.streak-5.lose { color:#e53935; }
+.streak-6.lose { color:#d32f2f; }
+.streak-7.lose { color:#c62828; }
+
+/* 버튼 */
 .actions {
   margin-top:20px;
   text-align:center;
 }
-
 button {
   padding:12px 30px;
   background:#ff3b3b;
@@ -104,28 +166,26 @@ button {
 
 <body>
 
-<h1>솔랭 내기 관리자 패널</h1>
-
 <div class="wrap">
 
-  <!-- 팀 설정 -->
+  <!-- 팀 이름 & 멤버 수 -->
   <div class="top">
     <input id="redTeamName" placeholder="RED 팀 이름">
     <input id="blueTeamName" placeholder="BLUE 팀 이름">
     <input id="teamCount" type="number" min="1" max="10" value="5">
   </div>
 
-  <!-- 팀 입력 -->
+  <!-- 팀 카드 -->
   <div class="teams">
 
     <div class="team">
       <h2>RED TEAM</h2>
-      <div class="players" id="redPlayers"></div>
+      <div class="members" id="redPlayers"></div>
     </div>
 
     <div class="team">
       <h2>BLUE TEAM</h2>
-      <div class="players" id="bluePlayers"></div>
+      <div class="members" id="bluePlayers"></div>
     </div>
 
   </div>
@@ -156,10 +216,12 @@ function createInputs() {
   for (let i=0;i<count;i++) {
     const r = document.createElement('input');
     r.placeholder = `RED ${i+1}`;
+    r.className='member-card';
     redWrap.appendChild(r);
 
     const b = document.createElement('input');
     b.placeholder = `BLUE ${i+1}`;
+    b.className='member-card';
     blueWrap.appendChild(b);
   }
 }
@@ -198,14 +260,16 @@ async function applyAll() {
       team:'red',
       wins:0,
       losses:0,
-      streak:0
+      streak:0,
+      recent:[]
     })),
     ...blueNames.map(name=>({
       name,
       team:'blue',
       wins:0,
       losses:0,
-      streak:0
+      streak:0,
+      recent:[]
     }))
   ];
 
@@ -217,6 +281,7 @@ async function applyAll() {
 
 </body>
 </html>
+
 
 
 
