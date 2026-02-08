@@ -18,14 +18,18 @@ body {
 .container {
   display:flex;
   height:100vh;
+  justify-content:space-around;
+  align-items:center;
 }
 
 /* 팀 영역 */
 .team {
   flex:1;
-  padding:20px;
+  padding:10px 20px;
   display:flex;
   flex-direction:column;
+  align-items:center;
+  overflow-y:auto;
 }
 
 .red {
@@ -38,8 +42,8 @@ body {
 /* 팀명 */
 .team h1 {
   text-align:center;
-  font-size:36px;
-  margin-bottom:15px;
+  font-size:32px;
+  margin-bottom:10px;
   letter-spacing:2px;
   font-family:'Orbitron', sans-serif;
 }
@@ -50,14 +54,14 @@ body {
 /* 요약 */
 .summary {
   text-align:center;
-  font-size:20px;
-  margin-bottom:15px;
+  font-size:18px;
+  margin-bottom:10px;
   animation:scoreGlow 1.4s infinite;
 }
 
 @keyframes scoreGlow {
   0%   { text-shadow:0 0 4px #fff; opacity:0.7; }
-  50%  { text-shadow:0 0 14px #fff; opacity:1; }
+  50%  { text-shadow:0 0 12px #fff; opacity:1; }
   100% { text-shadow:0 0 4px #fff; opacity:0.7; }
 }
 
@@ -66,17 +70,17 @@ body {
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:12px;
+  gap:8px;
 }
 
 .member-card {
   background:rgba(255,255,255,0.05);
   border:2px solid rgba(255,255,255,0.2);
   border-radius:12px;
-  padding:15px 20px;
-  width:200px;
+  padding:12px 18px;
+  width:180px;
   text-align:center;
-  font-size:16px;
+  font-size:14px;
   position:relative;
   transition: transform 0.3s;
 }
@@ -85,20 +89,25 @@ body {
   transform:scale(1.05);
 }
 
-/* 이름 */
+/* 이름 + 상대팀 */
 .member-card .name {
   font-weight:800;
-  margin-bottom:5px;
+  margin-bottom:4px;
   font-family:'Orbitron', sans-serif;
+}
+
+.member-card .vs {
+  font-size:12px;
+  color:#aaa;
 }
 
 /* 승패 */
 .member-card .record {
   display:flex;
   justify-content:center;
-  gap:10px;
+  gap:6px;
   font-weight:600;
-  font-size:16px;
+  font-size:14px;
 }
 
 .win { color:#ffd369; }
@@ -106,13 +115,14 @@ body {
 
 /* 연승/연패 */
 .streak {
-  margin-top:6px;
-  font-size:16px;
+  margin-top:4px;
+  font-size:14px;
   font-weight:700;
+  display:flex;
+  justify-content:center;
 }
 
 .streak span {
-  display:inline-block;
   margin-left:5px;
 }
 
@@ -178,11 +188,11 @@ async function render() {
   const red = players.filter(p=>p.team==='red');
   const blue = players.filter(p=>p.team==='blue');
 
-  renderTeam(red,'redPlayers','redSummary');
-  renderTeam(blue,'bluePlayers','blueSummary');
+  renderTeam(red,'redPlayers','redSummary',setting.blue_team_name);
+  renderTeam(blue,'bluePlayers','blueSummary',setting.red_team_name);
 }
 
-function renderTeam(list, containerId, summaryId) {
+function renderTeam(list, containerId, summaryId, opponentName) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
 
@@ -202,19 +212,18 @@ function renderTeam(list, containerId, summaryId) {
       streakClass = `streak lose streak-${getStreakClass(p.streak)}`;
     }
 
-    // 카드 테두리 깜빡임
     let borderAnim = '';
     if(p.streak>0) borderAnim='animation:borderGlowYellow 1s infinite';
     if(p.streak<0) borderAnim='animation:borderGlowRed 1s infinite';
 
     container.insertAdjacentHTML('beforeend',`
       <div class="member-card" style="${borderAnim}">
-        <div class="name">${p.name}</div>
+        <div class="name">${p.name} ${streakText ? `<span class="${streakClass}">${streakText}</span>` : ''}</div>
+        <div class="vs">VS ${opponentName}</div>
         <div class="record">
           <span class="win">😁 ${p.wins}</span> /
           <span class="lose">😡 ${p.losses}</span>
         </div>
-        ${streakText ? `<div class="${streakClass}">${streakText}</div>` : ''}
       </div>
     `);
   });
@@ -235,6 +244,7 @@ sb.channel('realtime')
 
 </body>
 </html>
+
 
 
 
