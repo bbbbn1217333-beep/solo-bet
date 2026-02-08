@@ -14,51 +14,24 @@ body {
   font-family:'Orbitron', sans-serif;
 }
 
-.container {
-  display:flex;
-  height:100vh;
-}
+.container { display:flex; height:100vh; }
+.team { flex:1; padding:20px; }
 
-.team {
-  flex:1;
-  padding:20px;
-}
-
-.red {
-  background:linear-gradient(180deg,#2a0000,#0b0b0b);
-}
-.blue {
-  background:linear-gradient(180deg,#001a2a,#0b0b0b);
-}
+.red { background:linear-gradient(180deg,#2a0000,#0b0b0b); }
+.blue { background:linear-gradient(180deg,#001a2a,#0b0b0b); }
 
 .team h1 {
   text-align:center;
   font-size:32px;
-  margin-bottom:10px;
 }
 
 .red h1 { color:#ff4444; text-shadow:0 0 12px #ff4444; }
 .blue h1 { color:#44aaff; text-shadow:0 0 12px #44aaff; }
 
-.summary {
-  text-align:center;
-  font-size:18px;
-  margin-bottom:15px;
-}
+.summary { text-align:center; margin-bottom:10px; }
 
-.win {
-  color:#00ff99;
-}
-.lose {
-  color:#ff5555;
-}
-
-.streak-win {
-  animation:pulse 1s infinite;
-}
-.streak-lose {
-  opacity:0.6;
-}
+.streak-win { animation:pulse 1s infinite; }
+.streak-lose { opacity:0.6; }
 
 @keyframes pulse {
   0% { text-shadow:0 0 5px #00ff99; }
@@ -66,50 +39,33 @@ body {
   100% { text-shadow:0 0 5px #00ff99; }
 }
 
-table {
-  width:100%;
-  border-collapse:collapse;
-}
-
-th, td {
-  padding:6px;
-  text-align:center;
-}
-
-th {
-  border-bottom:2px solid #444;
-}
-
-tr:nth-child(even) {
-  background:#111;
-}
+table { width:100%; border-collapse:collapse; }
+th,td { padding:6px; text-align:center; }
+th { border-bottom:2px solid #444; }
+tr:nth-child(even) { background:#111; }
 </style>
 </head>
 
 <body>
 <div class="container">
 
-  <div class="team red">
-    <h1 id="redName">RED TEAM</h1>
-    <div class="summary" id="redSummary"></div>
-    <table>
-      <thead>
-        <tr><th>닉네임</th><th>승</th><th>패</th></tr>
-      </thead>
-      <tbody id="redPlayers"></tbody>
-    </table>
-  </div>
+<div class="team red">
+  <h1 id="redName"></h1>
+  <div class="summary" id="redSummary"></div>
+  <table>
+    <thead><tr><th>닉네임</th><th>승</th><th>패</th></tr></thead>
+    <tbody id="redPlayers"></tbody>
+  </table>
+</div>
 
-  <div class="team blue">
-    <h1 id="blueName">BLUE TEAM</h1>
-    <div class="summary" id="blueSummary"></div>
-    <table>
-      <thead>
-        <tr><th>닉네임</th><th>승</th><th>패</th></tr>
-      </thead>
-      <tbody id="bluePlayers"></tbody>
-    </table>
-  </div>
+<div class="team blue">
+  <h1 id="blueName"></h1>
+  <div class="summary" id="blueSummary"></div>
+  <table>
+    <thead><tr><th>닉네임</th><th>승</th><th>패</th></tr></thead>
+    <tbody id="bluePlayers"></tbody>
+  </table>
+</div>
 
 </div>
 
@@ -117,26 +73,22 @@ tr:nth-child(even) {
 <script>
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function render() {
   const { data: players } = await sb.from('players').select('*');
   const { data: setting } = await sb.from('settings').select('*').single();
 
-  document.getElementById('redName').textContent = setting.red_team_name;
-  document.getElementById('blueName').textContent = setting.blue_team_name;
+  redName.textContent = setting.red_team_name;
+  blueName.textContent = setting.blue_team_name;
 
-  const red = players.filter(p=>p.team==='red');
-  const blue = players.filter(p=>p.team==='blue');
-
-  renderTeam(red,'redPlayers','redSummary');
-  renderTeam(blue,'bluePlayers','blueSummary');
+  renderTeam(players.filter(p=>p.team==='red'), 'redPlayers', 'redSummary');
+  renderTeam(players.filter(p=>p.team==='blue'), 'bluePlayers', 'blueSummary');
 }
 
 function renderTeam(list, bodyId, summaryId) {
   const body = document.getElementById(bodyId);
-  body.innerHTML='';
+  body.innerHTML = '';
 
   let w=0,l=0,streak=0;
 
@@ -144,31 +96,30 @@ function renderTeam(list, bodyId, summaryId) {
     w+=p.wins;
     l+=p.losses;
     streak+=p.streak;
-
     body.insertAdjacentHTML('beforeend',`
       <tr>
         <td>${p.name}</td>
-        <td class="win">${p.wins}</td>
-        <td class="lose">${p.losses}</td>
+        <td>${p.wins}</td>
+        <td>${p.losses}</td>
       </tr>
     `);
   });
 
-  const el = document.getElementById(summaryId);
-  el.innerHTML = `
-    ${w}승 ${l}패<br>
-    ${streak>0 ? `🔥 ${streak}연승` : streak<0 ? `💀 ${Math.abs(streak)}연패` : ''}
-  `;
-  el.className = streak>0 ? 'streak-win' : streak<0 ? 'streak-lose' : '';
+  const s = document.getElementById(summaryId);
+  s.innerHTML = `${w}승 ${l}패<br>${streak>0?`🔥 ${streak}연승`:streak<0?`💀 ${-streak}연패`:''}`;
+  s.className = streak>0?'streak-win':streak<0?'streak-lose':'';
 }
 
 render();
+
 sb.channel('realtime')
   .on('postgres_changes',{event:'*',schema:'public',table:'players'},render)
+  .on('postgres_changes',{event:'*',schema:'public',table:'settings'},render)
   .subscribe();
 </script>
 </body>
 </html>
+
 
 
 
