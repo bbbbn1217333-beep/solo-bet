@@ -23,7 +23,7 @@ body {
   display:flex;
   justify-content:center;
   align-items:flex-start;
-  gap:60px; /* 양 팀 사이 간격 */
+  gap:60px;
 }
 
 /* 팀 영역 */
@@ -36,7 +36,6 @@ body {
 .red h1 { color:#ff5c5c; }
 .blue h1 { color:#4db8ff; }
 
-/* 팀명 */
 .team h1 {
   text-align:center;
   font-size:36px;
@@ -73,7 +72,7 @@ body {
   border-radius:12px;
   padding:12px 18px;
   width:180px;
-  min-height:70px; /* 카드 높이 통일 */
+  min-height:100px;
   text-align:center;
   font-size:14px;
   position:relative;
@@ -87,8 +86,9 @@ body {
 /* 이름 */
 .member-card .name {
   font-weight:800;
-  margin-bottom:4px;
+  margin-bottom:6px;
   font-family:'Orbitron', sans-serif;
+  font-size:16px;
 }
 
 /* 승패 */
@@ -97,11 +97,21 @@ body {
   justify-content:center;
   gap:6px;
   font-weight:600;
-  font-size:14px;
+  font-size:16px;
+  margin-bottom:4px;
 }
 
 .win { color:#ffd369; }
 .lose { color:#ff6b6b; }
+
+/* 최근 전적 */
+.member-card .recent {
+  display:flex;
+  justify-content:center;
+  gap:2px;
+  margin-top:4px;
+  font-size:16px;
+}
 
 /* 연승/연패 */
 .streak {
@@ -121,26 +131,30 @@ body {
 }
 
 /* 연승/연패 색 진하기 */
-.streak-2.win { color:#fff59d; } /* 연한 노랑 */
-.streak-3.win { color:#ffe066; } /* 중간 노랑 */
-.streak-4.win { color:#ffd700; } /* 진한 노랑 */
-.streak-2.lose { color:#ff8a80; } /* 연한 빨강 */
-.streak-3.lose { color:#ff5252; } /* 중간 빨강 */
-.streak-4.lose { color:#ff1744; } /* 진한 빨강 */
+.streak-2.win { color:#fff59d; }
+.streak-3.win { color:#ffe066; }
+.streak-4.win { color:#ffd700; }
+.streak-5.win { color:#ffc107; }
+.streak-6.win { color:#ffb300; }
+.streak-7.win { color:#ffa000; }
+.streak-2.lose { color:#ff8a80; }
+.streak-3.lose { color:#ff5252; }
+.streak-4.lose { color:#ff1744; }
+.streak-5.lose { color:#e53935; }
+.streak-6.lose { color:#d32f2f; }
+.streak-7.lose { color:#c62828; }
 </style>
 </head>
 
 <body>
 <div class="container">
 
-  <!-- RED -->
   <div class="team red">
     <h1 id="redName">RED TEAM</h1>
     <div class="summary" id="redSummary"></div>
     <div class="members" id="redPlayers"></div>
   </div>
 
-  <!-- BLUE -->
   <div class="team blue">
     <h1 id="blueName">BLUE TEAM</h1>
     <div class="summary" id="blueSummary"></div>
@@ -156,7 +170,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function getStreakClass(streak){
   const abs = Math.abs(streak);
-  if(abs >=4) return 4;
+  if(abs >=7) return 7;
+  if(abs ===6) return 6;
+  if(abs ===5) return 5;
+  if(abs ===4) return 4;
   if(abs ===3) return 3;
   if(abs ===2) return 2;
   return 1;
@@ -197,8 +214,14 @@ function renderTeam(list, containerId, summaryId) {
     }
 
     let borderAnim = '';
-    if(p.streak>0) borderAnim='animation:borderGlowYellow 1s infinite';
-    if(p.streak<0) borderAnim='animation:borderGlowRed 1s infinite';
+    if(p.streak>0) borderAnim=`animation:borderGlowYellow ${0.8 + 0.1*Math.min(p.streak,7)}s infinite`;
+    if(p.streak<0) borderAnim=`animation:borderGlowRed ${0.8 + 0.1*Math.min(Math.abs(p.streak),7)}s infinite`;
+
+    // 최근 전적 표시 (승 = 😁, 패 = 😡)
+    let recentHTML = '';
+    if(p.recent && p.recent.length){
+      recentHTML = p.recent.map(r=>r==='win' ? '😁' : '😡').join('');
+    }
 
     container.insertAdjacentHTML('beforeend',`
       <div class="member-card" style="${borderAnim}">
@@ -207,6 +230,7 @@ function renderTeam(list, containerId, summaryId) {
           <span class="win">😁 ${p.wins}승</span> /
           <span class="lose">😡 ${p.losses}패</span>
         </div>
+        <div class="recent">${recentHTML}</div>
       </div>
     `);
   });
@@ -227,6 +251,7 @@ sb.channel('realtime')
 
 </body>
 </html>
+
 
 
 
