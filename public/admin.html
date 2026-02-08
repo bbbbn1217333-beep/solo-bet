@@ -5,81 +5,77 @@
 <title>솔랭 내기 관리자</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
 <style>
-  body { background:#111; color:#fff; font-family:'Orbitron', sans-serif; padding:20px; }
-  h2 { text-align:center; color:#ff3333; text-shadow: 0 0 10px #ff3333; margin-bottom:20px; }
-  #controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:15px;}
-  input { padding:5px 10px; border-radius:5px; border:none; text-align:center; }
-  button { padding:5px 10px; border-radius:5px; background:#ff4444; color:#fff; font-weight:bold; cursor:pointer; }
-  #playerInputs { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
-  .team-column { display:flex; flex-direction:column; gap:5px; margin:0 10px; }
-  .player-input { display:flex; flex-direction:column; align-items:center; }
-  label { font-size:0.8em; margin-bottom:3px; }
+body { background:#111; color:#fff; font-family:'Orbitron', sans-serif; padding:20px; }
+h2 { text-align:center; color:#ff3333; text-shadow:0 0 10px #ff3333; margin-bottom:20px; }
+#controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:15px;}
+input { padding:5px 10px; border-radius:5px; border:none; text-align:center; }
+button { padding:5px 10px; border-radius:5px; background:#ff4444; color:#fff; font-weight:bold; cursor:pointer; }
+#playerInputs { display:flex; justify-content:center; gap:50px; }
+.team-column { display:flex; flex-direction:column; gap:5px; }
+.player-input { display:flex; flex-direction:column; align-items:center; }
+label { font-size:0.8em; margin-bottom:3px; }
 </style>
 </head>
 <body>
-
 <h2>관리자 패널</h2>
+
 <div id="controls">
   <label>팀 인원 수: <input type="number" id="teamCount" value="5" min="1" max="33"></label>
   <button onclick="applySettings()">적용</button>
 </div>
 
-<div id="playerInputs" style="display:flex; justify-content:center; gap:50px;">
+<div id="playerInputs">
   <div class="team-column" id="ourTeamColumn"><h3>우리팀</h3></div>
   <div class="team-column" id="oppTeamColumn"><h3>상대팀</h3></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
-const supabaseUrl = 'https://hsvknfmnsehwytnvaiwr.supabase.co';
-const supabaseKey = 'sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j';
+const supabaseUrl='YOUR_PROJECT_URL';
+const supabaseKey='YOUR_ANON_PUBLIC_KEY';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 function generateInputs(teamCount){
-  const ourColumn = document.getElementById('ourTeamColumn');
-  const oppColumn = document.getElementById('oppTeamColumn');
-
-  // 초기화
+  const ourColumn=document.getElementById('ourTeamColumn');
+  const oppColumn=document.getElementById('oppTeamColumn');
   ourColumn.innerHTML='<h3>우리팀</h3>';
   oppColumn.innerHTML='<h3>상대팀</h3>';
-
   for(let i=1;i<=teamCount;i++){
-    const ourDiv = document.createElement('div');
+    const ourDiv=document.createElement('div');
     ourDiv.className='player-input';
     ourDiv.innerHTML=`<label>우리팀 ${i}</label><input type="text" id="our-${i}" placeholder="우리팀 플레이어">`;
     ourColumn.appendChild(ourDiv);
 
-    const oppDiv = document.createElement('div');
+    const oppDiv=document.createElement('div');
     oppDiv.className='player-input';
     oppDiv.innerHTML=`<label>상대팀 ${i}</label><input type="text" id="opp-${i}" placeholder="상대팀 플레이어">`;
     oppColumn.appendChild(oppDiv);
   }
 }
 
-async function applySettings(){
-  const teamCount = parseInt(document.getElementById('teamCount').value);
-  generateInputs(teamCount);
+// 팀 인원수 바뀔 때만 입력칸 새로 생성
+document.getElementById('teamCount').addEventListener('change',()=>{
+  generateInputs(parseInt(document.getElementById('teamCount').value));
+});
 
+async function applySettings(){
+  const teamCount=parseInt(document.getElementById('teamCount').value);
   const players=[];
   for(let i=1;i<=teamCount;i++){
-    const ourName=document.getElementById(`our-${i}`).value.trim();
-    const oppName=document.getElementById(`opp-${i}`).value.trim();
+    const ourName=document.getElementById(`our-${i}`)?.value.trim();
+    const oppName=document.getElementById(`opp-${i}`)?.value.trim();
     if(ourName) players.push({name:ourName, team:'우리팀', wins:0, losses:0, streak:0});
     if(oppName) players.push({name:oppName, team:'상대팀', wins:0, losses:0, streak:0});
   }
 
   if(players.length){
-    // 기존 DB 초기화
-    const { error: delError } = await supabaseClient.from('players').delete().neq('id',0);
-    if(delError) console.log('삭제 오류:', delError);
+    const { error:delError } = await supabaseClient.from('players').delete().neq('id',0);
+    if(delError) console.log('삭제 오류:',delError);
 
-    // 새 데이터 적용
-    const { data, error } = await supabaseClient.from('players').upsert(players);
-    if(error) console.log('DB 저장 오류:', error);
+    const { data,error } = await supabaseClient.from('players').upsert(players);
+    if(error) console.log('DB 저장 오류:',error);
     else alert('적용 완료!');
-  } else {
-    alert('플레이어 이름을 입력해주세요!');
-  }
+  } else alert('플레이어 이름을 입력해주세요!');
 }
 
 // 초기 입력창 생성
@@ -87,6 +83,7 @@ generateInputs(parseInt(document.getElementById('teamCount').value));
 </script>
 </body>
 </html>
+
 
 
 
