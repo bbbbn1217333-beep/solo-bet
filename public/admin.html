@@ -62,8 +62,8 @@ label {
   <label>팀 인원 수
     <input type="number" id="teamCount" value="5" min="1" max="33">
   </label>
-  <button onclick="generateInputs()">입력칸 생성</button>
-  <button onclick="applySettings()">적용</button>
+  <button id="genBtn">입력칸 생성</button>
+  <button id="applyBtn">적용</button>
 </div>
 
 <div id="playerInputs">
@@ -71,62 +71,81 @@ label {
   <div class="team-column" id="oppTeam"><h3>상대팀</h3></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script>
-const supabaseUrl = 'YOUR_PROJECT_URL';
-const supabaseKey = 'YOUR_ANON_PUBLIC_KEY';
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+<!-- Supabase CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-function generateInputs(){
-  const count = parseInt(document.getElementById('teamCount').value);
+<script>
+const SUPABASE_URL = 'YOUR_PROJECT_URL';
+const SUPABASE_KEY = 'YOUR_ANON_PUBLIC_KEY';
+
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+function generateInputs() {
+  const count = Number(document.getElementById('teamCount').value);
   const our = document.getElementById('ourTeam');
   const opp = document.getElementById('oppTeam');
 
   our.innerHTML = '<h3>우리팀</h3>';
   opp.innerHTML = '<h3>상대팀</h3>';
 
-  for(let i=1;i<=count;i++){
-    our.innerHTML += `
+  for (let i = 1; i <= count; i++) {
+    our.insertAdjacentHTML('beforeend', `
       <div class="player-input">
         <label>우리팀 ${i}</label>
         <input id="our-${i}">
-      </div>`;
-    opp.innerHTML += `
+      </div>
+    `);
+
+    opp.insertAdjacentHTML('beforeend', `
       <div class="player-input">
         <label>상대팀 ${i}</label>
         <input id="opp-${i}">
-      </div>`;
+      </div>
+    `);
   }
 }
 
-async function applySettings(){
-  const count = parseInt(document.getElementById('teamCount').value);
+async function applySettings() {
+  const count = Number(document.getElementById('teamCount').value);
   const players = [];
 
-  for(let i=1;i<=count;i++){
+  for (let i = 1; i <= count; i++) {
     const o = document.getElementById(`our-${i}`)?.value.trim();
     const p = document.getElementById(`opp-${i}`)?.value.trim();
-    if(o) players.push({ name:o, team:'우리팀', wins:0, losses:0, streak:0 });
-    if(p) players.push({ name:p, team:'상대팀', wins:0, losses:0, streak:0 });
+    if (o) players.push({ name:o, team:'우리팀', wins:0, losses:0, streak:0 });
+    if (p) players.push({ name:p, team:'상대팀', wins:0, losses:0, streak:0 });
   }
 
-  if(players.length === 0){
-    alert('플레이어를 입력하세요');
+  if (!players.length) {
+    alert('플레이어 이름을 입력하세요');
     return;
   }
 
-  await supabase.from('players').delete().neq('id',0);
-  const { error } = await supabase.from('players').insert(players);
-  if(error) alert('DB 오류');
-  else alert('적용 완료!');
+  await supabaseClient.from('players').delete().neq('id',0);
+  const { error } = await supabaseClient.from('players').insert(players);
+
+  if (error) {
+    console.error(error);
+    alert('DB 저장 실패');
+  } else {
+    alert('적용 완료!');
+  }
 }
 
-// 최초 1회 생성
+// 버튼 연결
+document.getElementById('genBtn').onclick = generateInputs;
+document.getElementById('applyBtn').onclick = applySettings;
+
+// 최초 1회
 generateInputs();
 </script>
 
 </body>
 </html>
+
 
 
 
