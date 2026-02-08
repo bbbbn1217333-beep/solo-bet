@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>솔랭 내기 송출 패널</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -16,7 +15,7 @@ body {
   display:flex;
   justify-content:center;
   align-items:flex-start;
-  height:100vh;
+  min-height:100vh;
   padding:20px;
 }
 
@@ -24,7 +23,9 @@ body {
   display:flex;
   justify-content:center;
   align-items:flex-start;
-  gap:40px;
+  gap:60px;
+  flex-wrap:wrap; /* 줄바꿈 가능 */
+  max-width:100%;
 }
 
 /* 팀 영역 */
@@ -65,8 +66,7 @@ body {
   flex-direction:column;
   align-items:center;
   gap:8px;
-  max-height:80vh;       /* 화면 높이에 맞춤 */
-  overflow-y:auto;       /* 스크롤 */
+  width:220px;
 }
 
 .member-card {
@@ -74,10 +74,10 @@ body {
   border:2px solid rgba(255,255,255,0.2);
   border-radius:12px;
   padding:12px 18px;
-  width:180px;
+  width:100%;
   min-height:100px;
   text-align:center;
-  font-size:14px;
+  font-size:16px;
   position:relative;
   transition: transform 0.3s;
 }
@@ -151,19 +151,16 @@ body {
 
 <body>
 <div class="container">
-
   <div class="team red">
     <h1 id="redName">RED TEAM</h1>
     <div class="summary" id="redSummary"></div>
     <div class="members" id="redPlayers"></div>
   </div>
-
   <div class="team blue">
     <h1 id="blueName">BLUE TEAM</h1>
     <div class="summary" id="blueSummary"></div>
     <div class="members" id="bluePlayers"></div>
   </div>
-
 </div>
 
 <script>
@@ -200,40 +197,37 @@ function renderTeam(list, containerId, summaryId) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
 
-  let w=0, l=0;
+  let w=0,l=0;
 
   list.forEach(p=>{
-    const name = p.name || '멤버';
-    const wins = p.wins ?? 0;
-    const losses = p.losses ?? 0;
-    const streak = p.streak ?? 0;
-    const recentArr = p.recent || [];
-
-    w += wins;
-    l += losses;
+    w+=p.wins;
+    l+=p.losses;
 
     let streakText = '';
     let streakClass = '';
-    if(streak >0){
-      streakText = `⭐${streak}연승`;
-      streakClass = `streak win streak-${getStreakClass(streak)}`;
-    } else if(streak <0){
-      streakText = `💀${Math.abs(streak)}연패`;
-      streakClass = `streak lose streak-${getStreakClass(streak)}`;
+    if(p.streak >0){
+      streakText = `⭐${p.streak}연승`;
+      streakClass = `streak win streak-${getStreakClass(p.streak)}`;
+    } else if(p.streak <0){
+      streakText = `💀${Math.abs(p.streak)}연패`;
+      streakClass = `streak lose streak-${getStreakClass(p.streak)}`;
     }
 
     let borderAnim = '';
-    if(streak>0) borderAnim=`animation:borderGlowYellow ${0.8 + 0.1*Math.min(streak,7)}s infinite`;
-    if(streak<0) borderAnim=`animation:borderGlowRed ${0.8 + 0.1*Math.min(Math.abs(streak),7)}s infinite`;
+    if(p.streak>0) borderAnim=`animation:borderGlowYellow ${0.8 + 0.1*Math.min(p.streak,7)}s infinite`;
+    if(p.streak<0) borderAnim=`animation:borderGlowRed ${0.8 + 0.1*Math.min(Math.abs(p.streak),7)}s infinite`;
 
-    let recentHTML = recentArr.map(r=>r==='win' ? '😁' : '😡').join('');
+    let recentHTML = '';
+    if(p.recent && p.recent.length){
+      recentHTML = p.recent.map(r=>r==='win' ? '😁' : '😡').join('');
+    }
 
     container.insertAdjacentHTML('beforeend',`
       <div class="member-card" style="${borderAnim}">
-        <div class="name">${name} ${streakText ? `<span class="${streakClass}">${streakText}</span>` : ''}</div>
+        <div class="name">${p.name} ${streakText ? `<span class="${streakClass}">${streakText}</span>` : ''}</div>
         <div class="record">
-          <span class="win">😁 ${wins}승</span> /
-          <span class="lose">😡 ${losses}패</span>
+          <span class="win">😁 ${p.wins}승</span> /
+          <span class="lose">😡 ${p.losses}패</span>
         </div>
         <div class="recent">${recentHTML}</div>
       </div>
@@ -244,18 +238,16 @@ function renderTeam(list, containerId, summaryId) {
   summaryEl.innerHTML = `<span class="win">😁 ${w}승</span> / <span class="lose">😡 ${l}패</span>`;
 }
 
-/* 최초 렌더 */
 render();
 
-/* 실시간 반영 */
 sb.channel('realtime')
   .on('postgres_changes',{event:'*',schema:'public',table:'players'},render)
   .on('postgres_changes',{event:'*',schema:'public',table:'settings'},render)
   .subscribe();
 </script>
-
 </body>
 </html>
+
 
 
 
