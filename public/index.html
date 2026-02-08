@@ -4,19 +4,10 @@
 <meta charset="UTF-8">
 <title>솔랭 내기 송출 패널</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root {
-  --bg:#050505;
-  --panel:#0e0e0e;
-  --gold:#ffd369;
-  --gold-glow:#fff2b0;
-  --red:#ff5c5c;
-  --red-glow:#ff9a9a;
-  --blue:#4db8ff;
-}
-
 body {
   margin:0;
   background:radial-gradient(circle at top,#1a1a1a,#050505);
@@ -29,110 +20,111 @@ body {
   height:100vh;
 }
 
+/* 팀 영역 */
 .team {
   flex:1;
   padding:30px;
-  background:linear-gradient(180deg,#141414,#060606);
 }
 
-.team.red { border-right:2px solid #222; }
+.red {
+  background:linear-gradient(180deg,#3a0000,#070707);
+}
+.blue {
+  background:linear-gradient(180deg,#001f3a,#070707);
+}
 
+/* 팀명 */
 .team h1 {
   text-align:center;
-  font-size:44px;
-  margin:0;
+  font-size:42px;
+  margin-bottom:8px;
   letter-spacing:2px;
+  font-family:'Orbitron', sans-serif;
 }
 
 .red h1 {
-  color:var(--red);
-  text-shadow:0 0 20px rgba(255,90,90,.9);
+  color:#ff5c5c;
+  text-shadow:0 0 25px #ff5c5c;
 }
 .blue h1 {
-  color:var(--blue);
-  text-shadow:0 0 20px rgba(90,160,255,.9);
+  color:#4db8ff;
+  text-shadow:0 0 25px #4db8ff;
 }
 
 /* 요약 */
 .summary {
-  margin:16px 0 22px;
   text-align:center;
-  font-size:24px;
-  font-weight:700;
-}
-
-.sparkle {
-  animation:sparkle 1.6s infinite;
-}
-
-@keyframes sparkle {
-  0% { text-shadow:0 0 6px currentColor; }
-  50% { text-shadow:0 0 22px currentColor; }
-  100% { text-shadow:0 0 6px currentColor; }
-}
-
-/* 연승 */
-.streak {
-  margin-top:6px;
-  font-size:26px;
-}
-
-.streak-win {
-  color:#00ff99;
-  animation:pulse 1s infinite;
-}
-
-.streak-lose {
-  color:#ff6666;
-  opacity:.85;
-}
-
-@keyframes pulse {
-  0% { text-shadow:0 0 6px #00ff99; }
-  50% { text-shadow:0 0 26px #00ff99; }
-  100% { text-shadow:0 0 6px #00ff99; }
+  font-size:20px;
+  margin-bottom:18px;
 }
 
 /* 테이블 */
 table {
   width:100%;
   border-collapse:collapse;
-  font-size:22px;
 }
 
 th {
-  padding:12px 0;
+  padding:14px 0;
+  font-size:22px;
   border-bottom:2px solid #333;
-  color:#ddd;
 }
 
+/* 헤더 색상 */
+.red-table .th-name {
+  color:#ff7a7a;
+  text-shadow:0 0 14px #ffb3b3;
+}
+.blue-table .th-name {
+  color:#6cc7ff;
+  text-shadow:0 0 14px #b8e4ff;
+}
+
+.th-win {
+  color:#ffd369;
+  text-shadow:0 0 18px #fff1b0;
+  animation:sparkle 1.6s infinite;
+}
+.th-lose {
+  color:#ff5c5c;
+  text-shadow:0 0 18px #ff9a9a;
+  animation:sparkle 1.6s infinite;
+}
+
+/* 셀 */
 td {
-  padding:12px 0;
+  padding:10px 0;
   text-align:center;
+  font-size:20px;
 }
 
-.nickname {
-  font-weight:600;
-  color:#ffffff;
+.name-red {
+  color:#ff9a9a;
+}
+.name-blue {
+  color:#9ad4ff;
 }
 
-.streamer {
-  color:#9effff;
-  font-weight:700;
-  animation:sparkle 2s infinite;
-}
-
-/* 승 / 패 */
 .win {
+  color:#ffd369;
+  text-shadow:0 0 10px #fff1b0;
   font-family:'Orbitron', sans-serif;
-  color:var(--gold);
-  text-shadow:0 0 14px var(--gold-glow);
+}
+.lose {
+  color:#ff6b6b;
+  text-shadow:0 0 10px #ff9a9a;
+  font-family:'Orbitron', sans-serif;
 }
 
-.lose {
-  font-family:'Orbitron', sans-serif;
-  color:var(--red);
-  text-shadow:0 0 14px var(--red-glow);
+tr:nth-child(even) {
+  background:rgba(255,255,255,0.03);
+}
+
+/* 반짝 애니메이션 */
+@keyframes sparkle {
+  0% { opacity:0.7; }
+  50% { opacity:1; }
+  100% { opacity:0.7; }
 }
 </style>
 </head>
@@ -140,30 +132,32 @@ td {
 <body>
 <div class="container">
 
+  <!-- RED -->
   <div class="team red">
     <h1 id="redName">RED TEAM</h1>
     <div class="summary" id="redSummary"></div>
-    <table>
+    <table class="red-table">
       <thead>
         <tr>
-          <th>스트리머</th>
-          <th>승리</th>
-          <th>패배</th>
+          <th class="th-name">스트리머</th>
+          <th class="th-win">승리</th>
+          <th class="th-lose">패배</th>
         </tr>
       </thead>
       <tbody id="redPlayers"></tbody>
     </table>
   </div>
 
+  <!-- BLUE -->
   <div class="team blue">
     <h1 id="blueName">BLUE TEAM</h1>
     <div class="summary" id="blueSummary"></div>
-    <table>
+    <table class="blue-table">
       <thead>
         <tr>
-          <th>스트리머</th>
-          <th>승리</th>
-          <th>패배</th>
+          <th class="th-name">스트리머</th>
+          <th class="th-win">승리</th>
+          <th class="th-lose">패배</th>
         </tr>
       </thead>
       <tbody id="bluePlayers"></tbody>
@@ -172,11 +166,9 @@ td {
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function render() {
@@ -186,51 +178,49 @@ async function render() {
   document.getElementById('redName').textContent = setting.red_team_name;
   document.getElementById('blueName').textContent = setting.blue_team_name;
 
-  renderTeam(players.filter(p=>p.team==='red'),'redPlayers','redSummary');
-  renderTeam(players.filter(p=>p.team==='blue'),'bluePlayers','blueSummary');
+  const red = players.filter(p=>p.team==='red');
+  const blue = players.filter(p=>p.team==='blue');
+
+  renderTeam(red,'redPlayers','redSummary','red');
+  renderTeam(blue,'bluePlayers','blueSummary','blue');
 }
 
-function renderTeam(list, bodyId, summaryId) {
+function renderTeam(list, bodyId, summaryId, team) {
   const body = document.getElementById(bodyId);
-  body.innerHTML='';
+  body.innerHTML = '';
 
-  let win=0, lose=0, streak=0;
+  let w=0,l=0;
 
   list.forEach(p=>{
-    win+=p.wins;
-    lose+=p.losses;
-    streak+=p.streak;
+    w+=p.wins;
+    l+=p.losses;
 
     body.insertAdjacentHTML('beforeend',`
       <tr>
-        <td class="${p.is_streamer ? 'streamer' : 'nickname'}">
-          ${p.name}
-        </td>
-        <td class="win sparkle">${p.wins}</td>
-        <td class="lose sparkle">${p.losses}</td>
+        <td class="name-${team}">${p.name}</td>
+        <td class="win">${p.wins}</td>
+        <td class="lose">${p.losses}</td>
       </tr>
     `);
   });
 
-  document.getElementById(summaryId).innerHTML = `
-    <span class="win sparkle">${win} 승리</span> · 
-    <span class="lose sparkle">${lose} 패배</span>
-    <div class="streak ${streak>0?'streak-win':streak<0?'streak-lose':''}">
-      ${streak>0 ? `🔥 ${streak}연승` : streak<0 ? `💀 ${Math.abs(streak)}연패` : ''}
-    </div>
-  `;
+  document.getElementById(summaryId).innerHTML =
+    `<span class="win">${w}승</span> / <span class="lose">${l}패</span>`;
 }
 
+/* 최초 렌더 */
 render();
 
 /* 실시간 반영 */
-sb.channel('live')
+sb.channel('realtime')
   .on('postgres_changes',{event:'*',schema:'public',table:'players'},render)
   .on('postgres_changes',{event:'*',schema:'public',table:'settings'},render)
   .subscribe();
 </script>
+
 </body>
 </html>
+
 
 
 
