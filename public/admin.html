@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>솔랭 내기 관리자 패널</title>
 
-  <!-- Supabase -->
+  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -97,8 +97,6 @@
 
   <div class="wrap">
     <div class="top">
-      <input id="redTeamName" placeholder="우리팀 이름" />
-      <input id="blueTeamName" placeholder="상대팀 이름" />
       <input id="teamCount" type="number" min="1" max="33" value="5" />
     </div>
 
@@ -120,19 +118,27 @@
   </div>
 
 <script>
-  // 🔑 여기에 본인 키 입력
+  /* ===============================
+     Supabase 연결 (단 1번)
+  =============================== */
   const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
   const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 
-  const supabase = window.supabase.createClient(
+  const db = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
   );
 
+  /* ===============================
+     DOM
+  =============================== */
   const redWrap = document.getElementById("redPlayers");
   const blueWrap = document.getElementById("bluePlayers");
   const teamCountInput = document.getElementById("teamCount");
 
+  /* ===============================
+     인풋 생성
+  =============================== */
   function createInputs() {
     const count = Number(teamCountInput.value);
 
@@ -153,24 +159,27 @@
   teamCountInput.addEventListener("change", createInputs);
   createInputs();
 
+  /* ===============================
+     적용 버튼
+  =============================== */
   async function apply() {
     const redNames = [...redWrap.querySelectorAll("input")]
       .map(i => i.value.trim())
-      .filter(v => v);
+      .filter(Boolean);
 
     const blueNames = [...blueWrap.querySelectorAll("input")]
       .map(i => i.value.trim())
-      .filter(v => v);
+      .filter(Boolean);
 
     if (redNames.length === 0 || blueNames.length === 0) {
       alert("플레이어 이름을 입력해주세요.");
       return;
     }
 
-    // 기존 데이터 삭제
-    await supabase.from("players").delete().neq("id", 0);
+    // 기존 players 전부 삭제
+    await db.from("players").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
-    // 새 데이터 삽입
+    // 새 데이터
     const players = [
       ...redNames.map(name => ({
         name,
@@ -188,11 +197,11 @@
       }))
     ];
 
-    const { error } = await supabase.from("players").insert(players);
+    const { error } = await db.from("players").insert(players);
 
     if (error) {
-      alert("저장 실패");
       console.error(error);
+      alert("저장 실패");
     } else {
       alert("적용 완료");
     }
