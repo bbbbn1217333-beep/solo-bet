@@ -21,7 +21,7 @@ body {
 }
 
 .wrap {
-  max-width:1000px;
+  max-width:1200px;
   width:100%;
   display:flex;
   flex-direction:column;
@@ -43,7 +43,7 @@ body {
   margin-right:4px;
 }
 
-.top input {
+.top input[type="text"], .top input[type="number"] {
   flex:1;
   padding:10px;
   background:#111;
@@ -73,33 +73,31 @@ body {
 .team h2 {
   font-family:'Orbitron', sans-serif;
   font-size:28px;
-  color:#ff3b3b;
   margin-bottom:10px;
 }
+
+#redTeamHeader { color:#ff5c5c; }
+#blueTeamHeader { color:#4db8ff; }
 
 /* 멤버 카드 */
 .members {
   display:flex;
   flex-direction:column;
   gap:10px;
-  width:200px;
+  width:220px;
 }
 
 .member-card {
   background:#111;
   border:2px solid #444;
   border-radius:12px;
-  padding:12px;
+  padding:10px;
   width:100%;
   font-family:'Pretendard', sans-serif;
   font-size:16px;
   color:#fff;
   text-align:center;
   outline:none;
-}
-.member-card::placeholder {
-  color:#bbb;
-  font-weight:500;
 }
 
 /* 버튼 */
@@ -116,6 +114,25 @@ button {
   border-radius:6px;
   cursor:pointer;
 }
+
+/* 승패 입력 버튼 */
+.recent-buttons {
+  display:flex;
+  gap:6px;
+  justify-content:center;
+  margin-top:4px;
+}
+
+.recent-buttons button {
+  padding:4px 8px;
+  font-size:14px;
+  border-radius:6px;
+  border:none;
+  cursor:pointer;
+}
+
+.win-btn { background:#ffd369; color:#000; }
+.lose-btn { background:#ff6b6b; color:#fff; }
 </style>
 </head>
 
@@ -178,11 +195,17 @@ function createInputs() {
     const r = document.createElement('input');
     r.placeholder = `멤버 ${i+1}`;
     r.className='member-card';
+    r.addEventListener('keydown', e => {
+      if (e.key==='Enter') e.preventDefault(); // 엔터 눌러도 입력 유지
+    });
     redWrap.appendChild(r);
 
     const b = document.createElement('input');
     b.placeholder = `멤버 ${i+1}`;
     b.className='member-card';
+    b.addEventListener('keydown', e => {
+      if (e.key==='Enter') e.preventDefault();
+    });
     blueWrap.appendChild(b);
   }
 }
@@ -226,7 +249,7 @@ async function applyAll() {
       wins:0,
       losses:0,
       streak:0,
-      recent:[]
+      recent:[] // JSONB 컬럼
     })),
     ...blueNames.map(name=>({
       name,
@@ -246,6 +269,7 @@ async function applyAll() {
 
 </body>
 </html>
+
 
 
 
