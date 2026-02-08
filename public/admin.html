@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <title>솔랭 내기 관리자 패널</title>
 
+<!-- 폰트 적용 -->
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -49,6 +52,8 @@ body {
   border-radius:8px;
   font-size:16px;
   text-align:center;
+  font-family:'Pretendard', sans-serif;
+  outline:none;
 }
 
 /* 팀 영역 */
@@ -77,65 +82,24 @@ body {
   display:flex;
   flex-direction:column;
   gap:10px;
+  width:200px;
 }
 
 .member-card {
-  background:rgba(255,255,255,0.05);
-  border:2px solid rgba(255,255,255,0.2);
+  background:#111;
+  border:2px solid #444;
   border-radius:12px;
-  padding:12px 18px;
-  width:180px;
-  min-height:100px;
+  padding:12px;
+  width:100%;
+  font-family:'Pretendard', sans-serif;
+  font-size:16px;
+  color:#fff;
   text-align:center;
-  font-size:14px;
-  position:relative;
-  transition: transform 0.3s;
+  outline:none;
 }
-
-.member-card:hover { transform:scale(1.03); }
-
-.name {
-  font-weight:800;
-  margin-bottom:6px;
-  font-family:'Orbitron', sans-serif;
-  font-size:16px;
-}
-
-.record {
-  display:flex;
-  justify-content:center;
-  gap:6px;
-  font-weight:600;
-  font-size:16px;
-  margin-bottom:4px;
-}
-
-.win { color:#ffd369; }
-.lose { color:#ff6b6b; }
-
-.recent {
-  display:flex;
-  justify-content:center;
-  gap:2px;
-  margin-top:4px;
-  font-size:16px;
-}
-
-/* 연승/연패 */
-.streak {
-  margin-left:5px;
-  font-size:14px;
-  font-weight:700;
-}
-
-/* 테두리 반짝임 */
-@keyframes borderGlowYellow {
-  0%,100% { box-shadow:0 0 6px #fff; }
-  50% { box-shadow:0 0 12px #ffeb3b; }
-}
-@keyframes borderGlowRed {
-  0%,100% { box-shadow:0 0 6px #fff; }
-  50% { box-shadow:0 0 12px #ff3b3b; }
+.member-card::placeholder {
+  color:#bbb;
+  font-weight:500;
 }
 
 /* 버튼 */
@@ -162,8 +126,8 @@ button {
   <!-- 팀 이름 & 멤버 수 -->
   <div class="top">
     <label>팀 이름</label>
-    <input id="redTeamName" placeholder="RED 팀 이름">
-    <input id="blueTeamName" placeholder="BLUE 팀 이름">
+    <input id="redTeamName" placeholder="팀 이름">
+    <input id="blueTeamName" placeholder="팀 이름">
     <label>멤버 구성 수</label>
     <input id="teamCount" type="number" min="1" max="10" value="5">
   </div>
@@ -172,12 +136,12 @@ button {
   <div class="teams">
 
     <div class="team">
-      <h2 id="redTeamHeader">RED TEAM</h2>
+      <h2 id="redTeamHeader">팀 이름</h2>
       <div class="members" id="redPlayers"></div>
     </div>
 
     <div class="team">
-      <h2 id="blueTeamHeader">BLUE TEAM</h2>
+      <h2 id="blueTeamHeader">팀 이름</h2>
       <div class="members" id="bluePlayers"></div>
     </div>
 
@@ -212,20 +176,20 @@ function createInputs() {
 
   for (let i=0;i<count;i++) {
     const r = document.createElement('input');
-    r.placeholder = `RED ${i+1}`;
+    r.placeholder = `멤버 ${i+1}`;
     r.className='member-card';
     redWrap.appendChild(r);
 
     const b = document.createElement('input');
-    b.placeholder = `BLUE ${i+1}`;
+    b.placeholder = `멤버 ${i+1}`;
     b.className='member-card';
     blueWrap.appendChild(b);
   }
 }
 
 /* 팀 이름 변경시 실시간 반영 */
-redNameInput.addEventListener('input',()=>{ redHeader.textContent = redNameInput.value || 'RED TEAM'; });
-blueNameInput.addEventListener('input',()=>{ blueHeader.textContent = blueNameInput.value || 'BLUE TEAM'; });
+redNameInput.addEventListener('input',()=>{ redHeader.textContent = redNameInput.value || '팀 이름'; });
+blueNameInput.addEventListener('input',()=>{ blueHeader.textContent = blueNameInput.value || '팀 이름'; });
 
 teamCountInput.addEventListener('change', createInputs);
 createInputs();
@@ -247,8 +211,8 @@ async function applyAll() {
   /* settings 저장 (항상 id=1) */
   await sb.from('settings').upsert({
     id:1,
-    red_team_name: redNameInput.value || 'RED TEAM',
-    blue_team_name: blueNameInput.value || 'BLUE TEAM'
+    red_team_name: redNameInput.value || '팀 이름',
+    blue_team_name: blueNameInput.value || '팀 이름'
   });
 
   /* players 리셋 */
@@ -282,6 +246,7 @@ async function applyAll() {
 
 </body>
 </html>
+
 
 
 
