@@ -1,150 +1,206 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>솔랭 내기 관리자</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
-<style>
-body {
-  background:#111;
-  color:#fff;
-  font-family:'Orbitron', sans-serif;
-  padding:20px;
-}
-h2 {
-  text-align:center;
-  color:#ff3333;
-  text-shadow:0 0 10px #ff3333;
-}
-#controls {
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  margin-bottom:20px;
-}
-input {
-  padding:6px 10px;
-  border-radius:6px;
-  border:none;
-}
-button {
-  padding:6px 14px;
-  border-radius:6px;
-  background:#ff3333;
-  color:#fff;
-  font-weight:bold;
-  cursor:pointer;
-}
-#playerInputs {
-  display:flex;
-  justify-content:center;
-  gap:40px;
-}
-.team-column {
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-.player-input {
-  display:flex;
-  flex-direction:column;
-}
-label {
-  font-size:12px;
-}
-</style>
+  <meta charset="UTF-8" />
+  <title>솔랭 내기 관리자 패널</title>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      background: #0e0e0e;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #ff3b3b;
+      margin-bottom: 20px;
+    }
+
+    .wrap {
+      max-width: 1000px;
+      margin: auto;
+      border: 1px solid #333;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .top {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .top input {
+      flex: 1;
+      padding: 8px;
+      background: #111;
+      border: 1px solid #444;
+      color: #fff;
+      border-radius: 6px;
+    }
+
+    .teams {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .team {
+      border: 1px solid #444;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .team h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .players {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+    }
+
+    .players input {
+      padding: 6px;
+      background: #111;
+      border: 1px solid #444;
+      color: #fff;
+      border-radius: 6px;
+    }
+
+    .actions {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    button {
+      padding: 12px 30px;
+      background: #ff3b3b;
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
 </head>
+
 <body>
+  <h1>솔랭 내기 관리자 패널</h1>
 
-<h2>관리자 패널</h2>
+  <div class="wrap">
+    <div class="top">
+      <input id="redTeamName" placeholder="우리팀 이름" />
+      <input id="blueTeamName" placeholder="상대팀 이름" />
+      <input id="teamCount" type="number" min="1" max="33" value="5" />
+    </div>
 
-<div id="controls">
-  <label>팀 인원 수
-    <input type="number" id="teamCount" value="5" min="1" max="33">
-  </label>
-  <button id="genBtn">입력칸 생성</button>
-  <button id="applyBtn">적용</button>
-</div>
+    <div class="teams">
+      <div class="team">
+        <h2>우리팀</h2>
+        <div class="players" id="redPlayers"></div>
+      </div>
 
-<div id="playerInputs">
-  <div class="team-column" id="ourTeam"><h3>우리팀</h3></div>
-  <div class="team-column" id="oppTeam"><h3>상대팀</h3></div>
-</div>
+      <div class="team">
+        <h2>상대팀</h2>
+        <div class="players" id="bluePlayers"></div>
+      </div>
+    </div>
 
-<!-- Supabase CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <div class="actions">
+      <button onclick="apply()">적용</button>
+    </div>
+  </div>
 
 <script>
-const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
+  // 🔑 여기에 본인 키 입력
+  const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 
-const supabaseClient = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+  const supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
-function generateInputs() {
-  const count = Number(document.getElementById('teamCount').value);
-  const our = document.getElementById('ourTeam');
-  const opp = document.getElementById('oppTeam');
+  const redWrap = document.getElementById("redPlayers");
+  const blueWrap = document.getElementById("bluePlayers");
+  const teamCountInput = document.getElementById("teamCount");
 
-  our.innerHTML = '<h3>우리팀</h3>';
-  opp.innerHTML = '<h3>상대팀</h3>';
+  function createInputs() {
+    const count = Number(teamCountInput.value);
 
-  for (let i = 1; i <= count; i++) {
-    our.insertAdjacentHTML('beforeend', `
-      <div class="player-input">
-        <label>우리팀 ${i}</label>
-        <input id="our-${i}">
-      </div>
-    `);
+    redWrap.innerHTML = "";
+    blueWrap.innerHTML = "";
 
-    opp.insertAdjacentHTML('beforeend', `
-      <div class="player-input">
-        <label>상대팀 ${i}</label>
-        <input id="opp-${i}">
-      </div>
-    `);
-  }
-}
+    for (let i = 0; i < count; i++) {
+      const r = document.createElement("input");
+      r.placeholder = `우리팀 ${i + 1}`;
+      redWrap.appendChild(r);
 
-async function applySettings() {
-  const count = Number(document.getElementById('teamCount').value);
-  const players = [];
-
-  for (let i = 1; i <= count; i++) {
-    const o = document.getElementById(`our-${i}`)?.value.trim();
-    const p = document.getElementById(`opp-${i}`)?.value.trim();
-    if (o) players.push({ name:o, team:'우리팀', wins:0, losses:0, streak:0 });
-    if (p) players.push({ name:p, team:'상대팀', wins:0, losses:0, streak:0 });
+      const b = document.createElement("input");
+      b.placeholder = `상대팀 ${i + 1}`;
+      blueWrap.appendChild(b);
+    }
   }
 
-  if (!players.length) {
-    alert('플레이어 이름을 입력하세요');
-    return;
+  teamCountInput.addEventListener("change", createInputs);
+  createInputs();
+
+  async function apply() {
+    const redNames = [...redWrap.querySelectorAll("input")]
+      .map(i => i.value.trim())
+      .filter(v => v);
+
+    const blueNames = [...blueWrap.querySelectorAll("input")]
+      .map(i => i.value.trim())
+      .filter(v => v);
+
+    if (redNames.length === 0 || blueNames.length === 0) {
+      alert("플레이어 이름을 입력해주세요.");
+      return;
+    }
+
+    // 기존 데이터 삭제
+    await supabase.from("players").delete().neq("id", 0);
+
+    // 새 데이터 삽입
+    const players = [
+      ...redNames.map(name => ({
+        name,
+        team: "red",
+        wins: 0,
+        losses: 0,
+        streak: 0
+      })),
+      ...blueNames.map(name => ({
+        name,
+        team: "blue",
+        wins: 0,
+        losses: 0,
+        streak: 0
+      }))
+    ];
+
+    const { error } = await supabase.from("players").insert(players);
+
+    if (error) {
+      alert("저장 실패");
+      console.error(error);
+    } else {
+      alert("적용 완료");
+    }
   }
-
-  await supabaseClient.from('players').delete().neq('id',0);
-  const { error } = await supabaseClient.from('players').insert(players);
-
-  if (error) {
-    console.error(error);
-    alert('DB 저장 실패');
-  } else {
-    alert('적용 완료!');
-  }
-}
-
-// 버튼 연결
-document.getElementById('genBtn').onclick = generateInputs;
-document.getElementById('applyBtn').onclick = applySettings;
-
-// 최초 1회
-generateInputs();
 </script>
-
 </body>
 </html>
+
 
 
 
