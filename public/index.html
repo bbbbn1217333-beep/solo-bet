@@ -4,22 +4,22 @@
 <meta charset="UTF-8">
 <title>솔랭 내기 송출 패널</title>
 
-<!-- 인기 폰트 -->
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 
 <style>
 :root {
-  --bg:#070707;
-  --panel:#101010;
+  --bg:#050505;
+  --panel:#0e0e0e;
   --gold:#ffd369;
-  --gold-glow:#ffeb9c;
-  --red:#ff4d4d;
+  --gold-glow:#fff2b0;
+  --red:#ff5c5c;
+  --red-glow:#ff9a9a;
   --blue:#4db8ff;
 }
 
 body {
   margin:0;
-  background:radial-gradient(circle at top, #141414, #050505);
+  background:radial-gradient(circle at top,#1a1a1a,#050505);
   color:#fff;
   font-family:'Pretendard', sans-serif;
 }
@@ -31,48 +31,50 @@ body {
 
 .team {
   flex:1;
-  padding:28px;
-  background:linear-gradient(180deg,#121212,#070707);
+  padding:30px;
+  background:linear-gradient(180deg,#141414,#060606);
 }
 
 .team.red { border-right:2px solid #222; }
 
 .team h1 {
   text-align:center;
-  font-size:42px;
+  font-size:44px;
   margin:0;
   letter-spacing:2px;
 }
 
 .red h1 {
   color:var(--red);
-  text-shadow:0 0 18px rgba(255,80,80,.8);
+  text-shadow:0 0 20px rgba(255,90,90,.9);
 }
 .blue h1 {
   color:var(--blue);
-  text-shadow:0 0 18px rgba(80,160,255,.8);
+  text-shadow:0 0 20px rgba(90,160,255,.9);
 }
 
+/* 요약 */
 .summary {
-  margin:14px 0 20px;
+  margin:16px 0 22px;
   text-align:center;
-  font-size:22px;
+  font-size:24px;
   font-weight:700;
 }
 
 .sparkle {
-  animation:sparkle 1.5s infinite;
+  animation:sparkle 1.6s infinite;
 }
 
 @keyframes sparkle {
   0% { text-shadow:0 0 6px currentColor; }
-  50% { text-shadow:0 0 18px currentColor; }
+  50% { text-shadow:0 0 22px currentColor; }
   100% { text-shadow:0 0 6px currentColor; }
 }
 
+/* 연승 */
 .streak {
   margin-top:6px;
-  font-size:24px;
+  font-size:26px;
 }
 
 .streak-win {
@@ -87,47 +89,50 @@ body {
 
 @keyframes pulse {
   0% { text-shadow:0 0 6px #00ff99; }
-  50% { text-shadow:0 0 24px #00ff99; }
+  50% { text-shadow:0 0 26px #00ff99; }
   100% { text-shadow:0 0 6px #00ff99; }
 }
 
+/* 테이블 */
 table {
   width:100%;
   border-collapse:collapse;
-  font-size:20px;
+  font-size:22px;
 }
 
 th {
-  padding:10px 0;
+  padding:12px 0;
   border-bottom:2px solid #333;
-  color:#aaa;
+  color:#ddd;
 }
 
 td {
-  padding:10px 0;
+  padding:12px 0;
   text-align:center;
 }
 
 .nickname {
   font-weight:600;
-  color:#fff;
-}
-
-.win {
-  font-family:'Orbitron', sans-serif;
-  color:var(--gold);
-  text-shadow:0 0 12px var(--gold-glow);
-}
-
-.lose {
-  font-family:'Orbitron', sans-serif;
-  color:#ff6b6b;
-  text-shadow:0 0 10px rgba(255,100,100,.8);
+  color:#ffffff;
 }
 
 .streamer {
   color:#9effff;
+  font-weight:700;
   animation:sparkle 2s infinite;
+}
+
+/* 승 / 패 */
+.win {
+  font-family:'Orbitron', sans-serif;
+  color:var(--gold);
+  text-shadow:0 0 14px var(--gold-glow);
+}
+
+.lose {
+  font-family:'Orbitron', sans-serif;
+  color:var(--red);
+  text-shadow:0 0 14px var(--red-glow);
 }
 </style>
 </head>
@@ -141,7 +146,7 @@ td {
     <table>
       <thead>
         <tr>
-          <th>플레이어</th>
+          <th>스트리머</th>
           <th>승리</th>
           <th>패배</th>
         </tr>
@@ -156,7 +161,7 @@ td {
     <table>
       <thead>
         <tr>
-          <th>플레이어</th>
+          <th>스트리머</th>
           <th>승리</th>
           <th>패배</th>
         </tr>
@@ -198,8 +203,8 @@ function renderTeam(list, bodyId, summaryId) {
 
     body.insertAdjacentHTML('beforeend',`
       <tr>
-        <td class="nickname ${p.wins===0 && p.losses===0 ? 'streamer' : ''}">
-          ${p.wins===0 && p.losses===0 ? '🎤 스트리머' : p.name}
+        <td class="${p.is_streamer ? 'streamer' : 'nickname'}">
+          ${p.name}
         </td>
         <td class="win sparkle">${p.wins}</td>
         <td class="lose sparkle">${p.losses}</td>
@@ -207,8 +212,7 @@ function renderTeam(list, bodyId, summaryId) {
     `);
   });
 
-  const el = document.getElementById(summaryId);
-  el.innerHTML = `
+  document.getElementById(summaryId).innerHTML = `
     <span class="win sparkle">${win} 승리</span> · 
     <span class="lose sparkle">${lose} 패배</span>
     <div class="streak ${streak>0?'streak-win':streak<0?'streak-lose':''}">
@@ -219,7 +223,7 @@ function renderTeam(list, bodyId, summaryId) {
 
 render();
 
-/* 실시간 반영 (OBS 새로고침 필요 없음) */
+/* 실시간 반영 */
 sb.channel('live')
   .on('postgres_changes',{event:'*',schema:'public',table:'players'},render)
   .on('postgres_changes',{event:'*',schema:'public',table:'settings'},render)
@@ -227,6 +231,7 @@ sb.channel('live')
 </script>
 </body>
 </html>
+
 
 
 
