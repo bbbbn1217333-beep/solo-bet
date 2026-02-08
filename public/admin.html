@@ -32,6 +32,12 @@ body {
   gap:10px;
   width:100%;
   justify-content:center;
+  align-items:center;
+}
+
+.top label {
+  font-size:16px;
+  margin-right:4px;
 }
 
 .top input {
@@ -132,21 +138,6 @@ body {
   50% { box-shadow:0 0 12px #ff3b3b; }
 }
 
-/* 연승/연패 색 단계 */
-.streak-2.win { color:#fff59d; }
-.streak-3.win { color:#ffe066; }
-.streak-4.win { color:#ffd700; }
-.streak-5.win { color:#ffc107; }
-.streak-6.win { color:#ffb300; }
-.streak-7.win { color:#ffa000; }
-
-.streak-2.lose { color:#ff8a80; }
-.streak-3.lose { color:#ff5252; }
-.streak-4.lose { color:#ff1744; }
-.streak-5.lose { color:#e53935; }
-.streak-6.lose { color:#d32f2f; }
-.streak-7.lose { color:#c62828; }
-
 /* 버튼 */
 .actions {
   margin-top:20px;
@@ -170,8 +161,10 @@ button {
 
   <!-- 팀 이름 & 멤버 수 -->
   <div class="top">
+    <label>팀 이름</label>
     <input id="redTeamName" placeholder="RED 팀 이름">
     <input id="blueTeamName" placeholder="BLUE 팀 이름">
+    <label>멤버 구성 수</label>
     <input id="teamCount" type="number" min="1" max="10" value="5">
   </div>
 
@@ -179,12 +172,12 @@ button {
   <div class="teams">
 
     <div class="team">
-      <h2>RED TEAM</h2>
+      <h2 id="redTeamHeader">RED TEAM</h2>
       <div class="members" id="redPlayers"></div>
     </div>
 
     <div class="team">
-      <h2>BLUE TEAM</h2>
+      <h2 id="blueTeamHeader">BLUE TEAM</h2>
       <div class="members" id="bluePlayers"></div>
     </div>
 
@@ -206,6 +199,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const redWrap = document.getElementById('redPlayers');
 const blueWrap = document.getElementById('bluePlayers');
 const teamCountInput = document.getElementById('teamCount');
+const redHeader = document.getElementById('redTeamHeader');
+const blueHeader = document.getElementById('blueTeamHeader');
+const redNameInput = document.getElementById('redTeamName');
+const blueNameInput = document.getElementById('blueTeamName');
 
 /* ===== 입력 생성 ===== */
 function createInputs() {
@@ -225,6 +222,10 @@ function createInputs() {
     blueWrap.appendChild(b);
   }
 }
+
+/* 팀 이름 변경시 실시간 반영 */
+redNameInput.addEventListener('input',()=>{ redHeader.textContent = redNameInput.value || 'RED TEAM'; });
+blueNameInput.addEventListener('input',()=>{ blueHeader.textContent = blueNameInput.value || 'BLUE TEAM'; });
 
 teamCountInput.addEventListener('change', createInputs);
 createInputs();
@@ -246,8 +247,8 @@ async function applyAll() {
   /* settings 저장 (항상 id=1) */
   await sb.from('settings').upsert({
     id:1,
-    red_team_name: document.getElementById('redTeamName').value || 'RED TEAM',
-    blue_team_name: document.getElementById('blueTeamName').value || 'BLUE TEAM'
+    red_team_name: redNameInput.value || 'RED TEAM',
+    blue_team_name: blueNameInput.value || 'BLUE TEAM'
   });
 
   /* players 리셋 */
@@ -281,6 +282,7 @@ async function applyAll() {
 
 </body>
 </html>
+
 
 
 
