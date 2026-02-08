@@ -4,105 +4,108 @@
 <meta charset="UTF-8" />
 <title>솔랭 내기 송출 패널</title>
 
-<!-- Google Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&family=Orbitron:wght@600&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-  * {
-    box-sizing: border-box;
-    font-family: 'Pretendard', sans-serif;
+* {
+  box-sizing: border-box;
+  font-family: 'Pretendard', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+}
+
+.container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.team {
+  width: 50%;
+  background: #111;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.red { border: 2px solid #ff4d4d; }
+.blue { border: 2px solid #4da6ff; }
+
+.team-title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.red .team-title { color: #ff4d4d; }
+.blue .team-title { color: #4da6ff; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  font-size: 16px;
+  font-weight: 600;
+  padding-bottom: 8px;
+}
+
+.red th.streamer { color: #ff4d4d; }
+.blue th.streamer { color: #4da6ff; }
+
+th.win, th.lose {
+  color: #aaa;
+}
+
+td {
+  padding: 8px 6px;
+  text-align: center;
+  font-size: 18px;
+}
+
+td.name {
+  text-align: left;
+  padding-left: 10px;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 🔥 0승 0패 표시 영역 */
+.score-box {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: #1a1a1a;
+  color: #ffd700;
+  font-weight: 700;
+}
+
+/* ⭐ 항상 반짝 */
+.sparkle {
+  animation: glow 1.6s infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
   }
-
-  body {
-    margin: 0;
-    background: #000;
-    color: #fff;
+  to {
+    box-shadow: 0 0 14px rgba(255, 215, 0, 0.9);
   }
-
-  .container {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px;
-    gap: 20px;
-  }
-
-  .team {
-    width: 50%;
-    border-radius: 16px;
-    padding: 16px;
-    background: #111;
-  }
-
-  .red { border: 2px solid #ff4d4d; }
-  .blue { border: 2px solid #4da6ff; }
-
-  .team-title {
-    font-size: 32px;
-    font-weight: 800;
-    text-align: center;
-    margin-bottom: 16px;
-  }
-
-  .red .team-title { color: #ff4d4d; }
-  .blue .team-title { color: #4da6ff; }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  th {
-    font-size: 18px;
-    padding-bottom: 10px;
-  }
-
-  .red th.streamer { color: #ff4d4d; }
-  .blue th.streamer { color: #4da6ff; }
-
-  th.win { color: #ffd700; }
-  th.lose { color: #ffd700; }
-
-  td {
-    padding: 10px 6px;
-    font-size: 20px;
-    text-align: center;
-  }
-
-  td.name {
-    text-align: left;
-    padding-left: 12px;
-    color: #fff;
-    font-weight: 600;
-  }
-
-  /* 0승 0패 영역 */
-  .score-box {
-    font-family: 'Orbitron', sans-serif;
-    color: #ffd700;
-    font-size: 22px;
-  }
-
-  /* ⭐ 항상 반짝이는 이펙트 */
-  .sparkle {
-    animation: sparkle 1.6s infinite alternate;
-  }
-
-  @keyframes sparkle {
-    from {
-      text-shadow: 0 0 6px #ffd700;
-    }
-    to {
-      text-shadow: 0 0 18px #ffef99;
-    }
-  }
+}
 </style>
 </head>
 
 <body>
 
 <div class="container">
+
   <!-- RED TEAM -->
   <div class="team red">
     <div class="team-title" id="redTeamName">RED TEAM</div>
@@ -132,17 +135,16 @@
       <tbody id="blueBody"></tbody>
     </table>
   </div>
+
 </div>
 
 <script>
-/* 🔑 Supabase 정보 */
 const supabase = window.supabase.createClient(
   'YOUR_SUPABASE_URL',
   'YOUR_SUPABASE_ANON_KEY'
 );
 
-/* 렌더 함수 */
-function renderPlayers(players) {
+function render(players) {
   const red = document.getElementById('redBody');
   const blue = document.getElementById('blueBody');
 
@@ -150,60 +152,38 @@ function renderPlayers(players) {
   blue.innerHTML = '';
 
   players.forEach(p => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
       <td class="name">${p.nickname}</td>
       <td>
-        <div class="score-box sparkle">
-          ${p.win}승
-        </div>
+        <div class="score-box sparkle">${p.win}승</div>
       </td>
       <td>
-        <div class="score-box sparkle">
-          ${p.lose}패
-        </div>
+        <div class="score-box sparkle">${p.lose}패</div>
       </td>
     `;
 
-    if (p.team === 'RED') red.appendChild(row);
-    if (p.team === 'BLUE') blue.appendChild(row);
+    if (p.team === 'RED') red.appendChild(tr);
+    if (p.team === 'BLUE') blue.appendChild(tr);
   });
 }
 
-/* 초기 로드 */
 async function load() {
-  const { data: players } = await supabase
-    .from('players')
-    .select('*')
-    .order('id');
+  const { data: players } = await supabase.from('players').select('*').order('id');
+  render(players);
 
-  renderPlayers(players);
-
-  const { data: settings } = await supabase
-    .from('settings')
-    .select('*')
-    .single();
-
+  const { data: settings } = await supabase.from('settings').select('*').single();
   if (settings) {
-    document.getElementById('redTeamName').textContent = settings.red_team_name;
-    document.getElementById('blueTeamName').textContent = settings.blue_team_name;
+    redTeamName.textContent = settings.red_team_name;
+    blueTeamName.textContent = settings.blue_team_name;
   }
 }
 
 load();
 
-/* 🔴 실시간 반영 */
 supabase.channel('realtime')
-  .on(
-    'postgres_changes',
-    { event: '*', schema: 'public', table: 'players' },
-    load
-  )
-  .on(
-    'postgres_changes',
-    { event: '*', schema: 'public', table: 'settings' },
-    load
-  )
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, load)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, load)
   .subscribe();
 </script>
 
