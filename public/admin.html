@@ -2,32 +2,103 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>솔랭 내기 관리자</title>
+<title>솔랭 내기 관리자 패널</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body {
-  background:#0b0b0b;
+  background:#0e0e0e;
   color:#fff;
   font-family:Arial, sans-serif;
   padding:20px;
 }
-h2 { margin-top:30px; }
-input, select, button {
-  padding:6px;
-  margin:4px;
+
+h1 {
+  text-align:center;
+  color:#ff3b3b;
+  margin-bottom:20px;
 }
-.team-box {
+
+.wrap {
+  max-width:1000px;
+  margin:auto;
   border:1px solid #333;
-  padding:10px;
+  padding:20px;
+  border-radius:10px;
+}
+
+.top {
+  display:flex;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.top input {
+  flex:1;
+  padding:8px;
+  background:#111;
+  border:1px solid #444;
+  color:#fff;
+  border-radius:6px;
+}
+
+.teams {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+}
+
+.team {
+  border:1px solid #444;
+  padding:15px;
+  border-radius:8px;
+}
+
+.team h2 {
+  text-align:center;
   margin-bottom:10px;
 }
-button {
-  background:#222;
+
+.players {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
+  gap:8px;
+}
+
+.players input {
+  padding:6px;
+  background:#111;
+  border:1px solid #444;
   color:#fff;
-  border:1px solid #555;
+  border-radius:6px;
+}
+
+.preview {
+  margin-top:15px;
+}
+
+.card {
+  background:#111;
+  border:1px solid #333;
+  padding:6px 10px;
+  margin-bottom:6px;
+}
+
+.actions {
+  margin-top:20px;
+  text-align:center;
+}
+
+button {
+  padding:12px 30px;
+  background:#ff3b3b;
+  border:none;
+  color:#fff;
+  font-size:16px;
+  border-radius:6px;
   cursor:pointer;
 }
-button:hover { background:#333; }
 </style>
 </head>
 
@@ -35,88 +106,118 @@ button:hover { background:#333; }
 
 <h1>솔랭 내기 관리자 패널</h1>
 
-<h2>팀 이름 설정</h2>
-<input id="redTeamName" placeholder="RED TEAM 이름">
-<input id="blueTeamName" placeholder="BLUE TEAM 이름">
-<button onclick="saveSettings()">팀 이름 저장</button>
+<div class="wrap">
 
-<h2>플레이어 추가</h2>
-<div class="team-box">
-  <input id="playerName" placeholder="닉네임">
-  <select id="playerTeam">
-    <option value="red">RED</option>
-    <option value="blue">BLUE</option>
-  </select>
-  <button onclick="addPlayer()">추가</button>
+  <!-- 팀 설정 -->
+  <div class="top">
+    <input id="redTeamName" placeholder="RED 팀 이름">
+    <input id="blueTeamName" placeholder="BLUE 팀 이름">
+    <input id="teamCount" type="number" min="1" max="10" value="5">
+  </div>
+
+  <!-- 팀 입력 -->
+  <div class="teams">
+
+    <div class="team">
+      <h2>RED TEAM</h2>
+      <div class="players" id="redPlayers"></div>
+    </div>
+
+    <div class="team">
+      <h2>BLUE TEAM</h2>
+      <div class="players" id="bluePlayers"></div>
+    </div>
+
+  </div>
+
+  <div class="actions">
+    <button onclick="applyAll()">적용</button>
+  </div>
+
 </div>
 
-<h2>현재 등록 목록</h2>
-<pre id="preview"></pre>
-
-<button onclick="applyAll()">🔥 적용 (송출 반영)</button>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+/* ===== Supabase ===== */
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let tempPlayers = [];
+/* ===== DOM ===== */
+const redWrap = document.getElementById('redPlayers');
+const blueWrap = document.getElementById('bluePlayers');
+const teamCountInput = document.getElementById('teamCount');
 
-async function loadSettings() {
-  const { data } = await sb.from('settings').select('*').single();
-  redTeamName.value = data.red_team_name;
-  blueTeamName.value = data.blue_team_name;
-}
-loadSettings();
+/* ===== 입력 생성 ===== */
+function createInputs() {
+  const count = Number(teamCountInput.value);
+  redWrap.innerHTML = '';
+  blueWrap.innerHTML = '';
 
-function addPlayer() {
-  const name = playerName.value.trim();
-  const team = playerTeam.value;
-  if (!name) return;
+  for (let i=0;i<count;i++) {
+    const r = document.createElement('input');
+    r.placeholder = `RED ${i+1}`;
+    redWrap.appendChild(r);
 
-  tempPlayers.push({
-    name,
-    team,
-    wins: 0,
-    losses: 0,
-    streak: 0
-  });
-
-  playerName.value = '';
-  renderPreview();
+    const b = document.createElement('input');
+    b.placeholder = `BLUE ${i+1}`;
+    blueWrap.appendChild(b);
+  }
 }
 
-function renderPreview() {
-  preview.textContent = JSON.stringify(tempPlayers, null, 2);
-}
+teamCountInput.addEventListener('change', createInputs);
+createInputs();
 
-async function saveSettings() {
-  await sb.from('settings')
-    .update({
-      red_team_name: redTeamName.value,
-      blue_team_name: blueTeamName.value
-    })
-    .eq('id',1);
-
-  alert('팀 이름 저장 완료');
-}
-
+/* ===== 적용 ===== */
 async function applyAll() {
-  // 🔴 핵심: 기존 players 전부 삭제
-  await sb.from('players').delete().neq('id',0);
 
-  // 새로 삽입
-  if (tempPlayers.length > 0) {
-    await sb.from('players').insert(tempPlayers);
+  const redNames = [...redWrap.querySelectorAll('input')]
+    .map(i=>i.value.trim()).filter(Boolean);
+
+  const blueNames = [...blueWrap.querySelectorAll('input')]
+    .map(i=>i.value.trim()).filter(Boolean);
+
+  if (!redNames.length || !blueNames.length) {
+    alert('플레이어를 입력하세요');
+    return;
   }
 
-  alert('송출 패널 적용 완료');
+  /* settings 저장 (항상 id=1) */
+  await sb.from('settings').upsert({
+    id:1,
+    red_team_name: document.getElementById('redTeamName').value || 'RED TEAM',
+    blue_team_name: document.getElementById('blueTeamName').value || 'BLUE TEAM'
+  });
+
+  /* players 리셋 */
+  await sb.from('players').delete().neq('id',0);
+
+  /* players 삽입 */
+  const players = [
+    ...redNames.map(name=>({
+      name,
+      team:'red',
+      wins:0,
+      losses:0,
+      streak:0
+    })),
+    ...blueNames.map(name=>({
+      name,
+      team:'blue',
+      wins:0,
+      losses:0,
+      streak:0
+    }))
+  ];
+
+  await sb.from('players').insert(players);
+
+  alert('적용 완료');
 }
 </script>
 
 </body>
 </html>
+
 
 
 
