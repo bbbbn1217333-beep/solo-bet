@@ -13,43 +13,37 @@ body {
   background:#000;
   color:#fff;
   font-family:'Pretendard', sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
 
 .container {
   display:flex;
-  height:100vh;
-  justify-content:space-around;
-  align-items:center;
+  justify-content:center;
+  align-items:flex-start;
+  gap:60px; /* 양 팀 사이 간격 */
 }
 
 /* 팀 영역 */
 .team {
-  flex:1;
-  padding:10px 20px;
   display:flex;
   flex-direction:column;
   align-items:center;
-  overflow-y:auto;
-}
-
-.red {
-  background:linear-gradient(180deg,#140000,#000);
-}
-.blue {
-  background:linear-gradient(180deg,#000814,#000);
-}
-
-/* 팀명 */
-.team h1 {
-  text-align:center;
-  font-size:32px;
-  margin-bottom:10px;
-  letter-spacing:2px;
-  font-family:'Orbitron', sans-serif;
 }
 
 .red h1 { color:#ff5c5c; }
 .blue h1 { color:#4db8ff; }
+
+/* 팀명 */
+.team h1 {
+  text-align:center;
+  font-size:36px;
+  margin-bottom:10px;
+  letter-spacing:2px;
+  font-family:'Orbitron', sans-serif;
+}
 
 /* 요약 */
 .summary {
@@ -65,7 +59,7 @@ body {
   100% { text-shadow:0 0 4px #fff; opacity:0.7; }
 }
 
-/* 멤버 카드 (세로 배열) */
+/* 멤버 카드 */
 .members {
   display:flex;
   flex-direction:column;
@@ -89,16 +83,11 @@ body {
   transform:scale(1.05);
 }
 
-/* 이름 + 상대팀 */
+/* 이름 */
 .member-card .name {
   font-weight:800;
   margin-bottom:4px;
   font-family:'Orbitron', sans-serif;
-}
-
-.member-card .vs {
-  font-size:12px;
-  color:#aaa;
 }
 
 /* 승패 */
@@ -115,15 +104,9 @@ body {
 
 /* 연승/연패 */
 .streak {
-  margin-top:4px;
+  margin-left:5px;
   font-size:14px;
   font-weight:700;
-  display:flex;
-  justify-content:center;
-}
-
-.streak span {
-  margin-left:5px;
 }
 
 /* 테두리 반짝임 */
@@ -188,11 +171,11 @@ async function render() {
   const red = players.filter(p=>p.team==='red');
   const blue = players.filter(p=>p.team==='blue');
 
-  renderTeam(red,'redPlayers','redSummary',setting.blue_team_name);
-  renderTeam(blue,'bluePlayers','blueSummary',setting.red_team_name);
+  renderTeam(red,'redPlayers','redSummary');
+  renderTeam(blue,'bluePlayers','blueSummary');
 }
 
-function renderTeam(list, containerId, summaryId, opponentName) {
+function renderTeam(list, containerId, summaryId) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
 
@@ -219,7 +202,6 @@ function renderTeam(list, containerId, summaryId, opponentName) {
     container.insertAdjacentHTML('beforeend',`
       <div class="member-card" style="${borderAnim}">
         <div class="name">${p.name} ${streakText ? `<span class="${streakClass}">${streakText}</span>` : ''}</div>
-        <div class="vs">VS ${opponentName}</div>
         <div class="record">
           <span class="win">😁 ${p.wins}</span> /
           <span class="lose">😡 ${p.losses}</span>
@@ -244,6 +226,7 @@ sb.channel('realtime')
 
 </body>
 </html>
+
 
 
 
