@@ -5,9 +5,7 @@
 <title>솔랭 내기 송출 패널</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
-
-<!-- Supabase JS 쿼리스트링 추가 -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?t=<?=Date.now()?>"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body {
@@ -35,7 +33,7 @@ body {
   align-items:center;
 }
 
-.red h1 { color:#ff5c5c; font-size:52px; } 
+.red h1 { color:#ff5c5c; font-size:52px; } /* 팀명 키움 */
 .blue h1 { color:#4db8ff; font-size:52px; }
 
 .team h1 {
@@ -48,7 +46,7 @@ body {
 /* 팀 스코어 요약 */
 .summary {
   text-align:center;
-  font-size:26px;
+  font-size:26px; /* 키움 */
   margin-bottom:10px;
   animation:scoreGlow 1.4s infinite;
 }
@@ -71,9 +69,8 @@ body {
   background:rgba(255,255,255,0.05);
   border:2px solid rgba(255,255,255,0.2);
   border-radius:12px;
-  padding:8px 12px;
+  padding:8px 12px; /* 상하 여백 줄임 */
   width:180px;
-  min-height:110px;
   text-align:center;
   font-size:14px;
   position:relative;
@@ -88,7 +85,7 @@ body {
 .name {
   font-weight:800;
   font-family:'Orbitron',sans-serif;
-  font-size:18px;
+  font-size:18px; /* 키움 */
   margin-bottom:4px;
 }
 
@@ -98,7 +95,7 @@ body {
   justify-content:center;
   gap:6px;
   font-weight:700;
-  font-size:16px;
+  font-size:16px; /* 키움 */
   margin-bottom:4px;
 }
 
@@ -114,7 +111,7 @@ body {
 }
 
 .recent-dot {
-  width:18px;
+  width:18px;  /* 키움 */
   height:18px;
   border-radius:50%;
   display:inline-block;
@@ -134,7 +131,7 @@ body {
 }
 
 .champions img {
-  width:28px;
+  width:28px;  /* 키움 */
   height:28px;
   border-radius:4px;
 }
@@ -142,7 +139,7 @@ body {
 /* 연승/연패 */
 .streak {
   margin-left:5px;
-  font-size:16px;
+  font-size:16px; /* 키움 */
   font-weight:700;
 }
 </style>
@@ -165,9 +162,10 @@ body {
 
 <script>
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j?t=" + Date.now(); // 쿼리스트링 추가
+const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// 멤버 카드 스테이크 클래스
 function getStreakClass(streak){
   const abs=Math.abs(streak);
   if(abs>=7) return 7;
@@ -200,9 +198,15 @@ function renderTeam(list,containerId,summaryId){
     totalL += p.losses;
 
     let streakText='', streakClass='';
-    if(p.streak>0){ streakText = `⭐${p.streak}연승`; streakClass = `streak win streak-${getStreakClass(p.streak)}`; }
-    else if(p.streak<0){ streakText = `💀${Math.abs(p.streak)}연패`; streakClass = `streak lose streak-${getStreakClass(p.streak)}`; }
+    if(p.streak>0){
+      streakText = `⭐${p.streak}연승`;
+      streakClass = `streak win streak-${getStreakClass(p.streak)}`;
+    } else if(p.streak<0){
+      streakText = `💀${Math.abs(p.streak)}연패`;
+      streakClass = `streak lose streak-${getStreakClass(p.streak)}`;
+    }
 
+    // 최근 10전
     let recentHTML = '';
     if(p.recent && p.recent.length){
       const arr = p.recent.slice(-10);
@@ -222,7 +226,7 @@ function renderTeam(list,containerId,summaryId){
     let champHTML='';
     if(p.champions && Array.isArray(p.champions)){
       p.champions.forEach(c=>{
-        champHTML += `<img src="https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${encodeURIComponent(c)}.png?t=${Date.now()}">`;
+        champHTML += `<img src="https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${encodeURIComponent(c)}.png">`;
       });
     }
 
