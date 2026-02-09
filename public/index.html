@@ -3,14 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <title>솔랭 내기 송출 패널</title>
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@500;600&family=Orbitron:wght@600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+
+<!-- Supabase JS 쿼리스트링 추가 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?t=<?=Date.now()?>"></script>
+
 <style>
 body {
   margin:0;
   background:#000;
   color:#fff;
-  font-family:'Pretendard', sans-serif;
+  font-family:'Pretendard',sans-serif;
   display:flex;
   justify-content:center;
   align-items:flex-start;
@@ -21,91 +25,97 @@ body {
   display:flex;
   justify-content:center;
   align-items:flex-start;
-  gap:40px;
+  gap:60px;
 }
 
+/* 팀 영역 */
 .team {
   display:flex;
   flex-direction:column;
   align-items:center;
 }
 
-.red h1 { color:#ff5c5c; }
-.blue h1 { color:#4db8ff; }
+.red h1 { color:#ff5c5c; font-size:52px; } 
+.blue h1 { color:#4db8ff; font-size:52px; }
 
 .team h1 {
   text-align:center;
-  font-size:26px;
-  margin-bottom:6px;
-  letter-spacing:1.5px;
-  font-family:'Orbitron', sans-serif;
+  margin-bottom:10px;
+  letter-spacing:2px;
+  font-family:'Orbitron',sans-serif;
 }
 
+/* 팀 스코어 요약 */
 .summary {
   text-align:center;
-  font-size:13px;
-  margin-bottom:4px;
+  font-size:26px;
+  margin-bottom:10px;
   animation:scoreGlow 1.4s infinite;
 }
 
 @keyframes scoreGlow {
-  0%,100% { text-shadow:0 0 4px #fff; opacity:0.7; }
-  50% { text-shadow:0 0 12px #fff; opacity:1; }
+  0%   { text-shadow:0 0 6px #fff; opacity:0.7; }
+  50%  { text-shadow:0 0 16px #fff; opacity:1; }
+  100% { text-shadow:0 0 6px #fff; opacity:0.7; }
 }
 
+/* 멤버 카드 */
 .members {
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:4px;
+  gap:8px;
 }
 
 .member-card {
   background:rgba(255,255,255,0.05);
   border:2px solid rgba(255,255,255,0.2);
-  border-radius:10px;
-  padding:6px 10px;
-  width:220px;
-  min-height:90px;
+  border-radius:12px;
+  padding:8px 12px;
+  width:180px;
+  min-height:110px;
   text-align:center;
-  font-size:12px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  gap:2px;
-  transition: transform 0.2s;
+  font-size:14px;
+  position:relative;
+  transition: transform 0.3s;
 }
 
-.member-card:hover { transform:scale(1.03); }
+.member-card:hover {
+  transform:scale(1.05);
+}
 
+/* 이름 */
 .name {
-  font-weight:600;
+  font-weight:800;
   font-family:'Orbitron',sans-serif;
-  font-size:13px;
-  margin-bottom:2px;
+  font-size:18px;
+  margin-bottom:4px;
 }
 
+/* 승패 */
 .record {
   display:flex;
   justify-content:center;
-  gap:4px;
-  font-weight:500;
-  font-size:11px;
-  margin-bottom:2px;
+  gap:6px;
+  font-weight:700;
+  font-size:16px;
+  margin-bottom:4px;
 }
 
 .win { color:#ffd369; }
 .lose { color:#ff6b6b; }
 
+/* 최근 전적 - 원형/사각 */
 .recent {
   display:flex;
   justify-content:center;
-  gap:3px;
+  gap:6px;
+  margin-top:2px;
 }
 
 .recent-dot {
-  width:13px;
-  height:13px;
+  width:18px;
+  height:18px;
   border-radius:50%;
   display:inline-block;
 }
@@ -114,27 +124,30 @@ body {
 .recent-dot.lose { background:#ff6b6b; }
 .recent-dot.empty { background:#555; }
 
+/* 챔피언 아이콘 */
 .champions {
   display:flex;
   justify-content:center;
   flex-wrap:wrap;
-  gap:3px;
-  margin-top:2px;
+  gap:4px;
+  margin-top:4px;
 }
 
 .champions img {
-  width:20px;
-  height:20px;
-  border-radius:3px;
+  width:28px;
+  height:28px;
+  border-radius:4px;
 }
 
+/* 연승/연패 */
 .streak {
-  font-size:11px;
-  font-weight:600;
-  margin-left:3px;
+  margin-left:5px;
+  font-size:16px;
+  font-weight:700;
 }
 </style>
 </head>
+
 <body>
 <div class="container">
   <div class="team red">
@@ -142,6 +155,7 @@ body {
     <div class="summary" id="redSummary"></div>
     <div class="members" id="redPlayers"></div>
   </div>
+
   <div class="team blue">
     <h1 id="blueName">BLUE TEAM</h1>
     <div class="summary" id="blueSummary"></div>
@@ -150,61 +164,65 @@ body {
 </div>
 
 <script>
-const SUPABASE_URL="https://hsvknfmnsehwytnvaiwr.supabase.co";
-const SUPABASE_KEY="sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j?t=" + Date.now(); // 쿼리스트링 추가
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function getStreakClass(streak){
   const abs=Math.abs(streak);
-  if(abs>=7)return 7;
-  if(abs===6)return 6;
-  if(abs===5)return 5;
-  if(abs===4)return 4;
-  if(abs===3)return 3;
-  if(abs===2)return 2;
+  if(abs>=7) return 7;
+  if(abs===6) return 6;
+  if(abs===5) return 5;
+  if(abs===4) return 4;
+  if(abs===3) return 3;
+  if(abs===2) return 2;
   return 1;
 }
 
 async function render(){
   const {data:players} = await sb.from('players').select('*');
   const {data:setting} = await sb.from('settings').select('*').single();
-  document.getElementById('redName').textContent=setting.red_team_name;
-  document.getElementById('blueName').textContent=setting.blue_team_name;
+
+  document.getElementById('redName').textContent = setting.red_team_name;
+  document.getElementById('blueName').textContent = setting.blue_team_name;
+
   renderTeam(players.filter(p=>p.team==='red'),'redPlayers','redSummary');
   renderTeam(players.filter(p=>p.team==='blue'),'bluePlayers','blueSummary');
 }
 
-function renderTeam(list, containerId, summaryId){
-  const container=document.getElementById(containerId);
+function renderTeam(list,containerId,summaryId){
+  const container = document.getElementById(containerId);
   container.innerHTML='';
-  let totalWin=0,totalLose=0;
+  let totalW=0,totalL=0;
 
   list.forEach(p=>{
-    totalWin+=p.wins;
-    totalLose+=p.losses;
+    totalW += p.wins;
+    totalL += p.losses;
 
     let streakText='', streakClass='';
-    if(p.streak>0){ streakText=`⭐${p.streak}연승`; streakClass=`streak win streak-${getStreakClass(p.streak)}`;}
-    else if(p.streak<0){ streakText=`💀${Math.abs(p.streak)}연패`; streakClass=`streak lose streak-${getStreakClass(p.streak)}`;}
+    if(p.streak>0){ streakText = `⭐${p.streak}연승`; streakClass = `streak win streak-${getStreakClass(p.streak)}`; }
+    else if(p.streak<0){ streakText = `💀${Math.abs(p.streak)}연패`; streakClass = `streak lose streak-${getStreakClass(p.streak)}`; }
 
-    // 최근 10전
-    let recentHTML='';
+    let recentHTML = '';
     if(p.recent && p.recent.length){
-      const arr=p.recent.slice(-10);
+      const arr = p.recent.slice(-10);
       arr.forEach(r=>{
-        if(r==='win') recentHTML+='<span class="recent-dot win"></span>';
-        else if(r==='lose') recentHTML+='<span class="recent-dot lose"></span>';
-        else recentHTML+='<span class="recent-dot empty"></span>';
+        if(r==='win') recentHTML += '<span class="recent-dot win"></span>';
+        else if(r==='lose') recentHTML += '<span class="recent-dot lose"></span>';
+        else recentHTML += '<span class="recent-dot empty"></span>';
       });
-      while(recentHTML.split('<span').length-1<10){recentHTML+='<span class="recent-dot empty"></span>';}
-    } else { recentHTML='<span class="recent-dot empty"></span>'.repeat(10); }
+      while(recentHTML.split('<span').length-1<10){
+        recentHTML += '<span class="recent-dot empty"></span>';
+      }
+    } else {
+      recentHTML = '<span class="recent-dot empty"></span>'.repeat(10);
+    }
 
     // 챔피언 아이콘
     let champHTML='';
     if(p.champions && Array.isArray(p.champions)){
       p.champions.forEach(c=>{
-        const src=`https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${c}.png`;
-        champHTML+=`<img src="${src}" alt="${c}">`;
+        champHTML += `<img src="https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${encodeURIComponent(c)}.png?t=${Date.now()}">`;
       });
     }
 
@@ -218,11 +236,13 @@ function renderTeam(list, containerId, summaryId){
     `);
   });
 
-  const summaryEl=document.getElementById(summaryId);
-  summaryEl.innerHTML=`<span class="win">😁 ${totalWin}승</span> / <span class="lose">😡 ${totalLose}패</span>`;
+  const summaryEl = document.getElementById(summaryId);
+  summaryEl.innerHTML = `<span class="win">😁 ${totalW}승</span> / <span class="lose">😡 ${totalL}패</span>`;
 }
 
 render();
+
+// 실시간 반영
 sb.channel('realtime')
   .on('postgres_changes',{event:'*',schema:'public',table:'players'},render)
   .on('postgres_changes',{event:'*',schema:'public',table:'settings'},render)
@@ -230,6 +250,7 @@ sb.channel('realtime')
 </script>
 </body>
 </html>
+
 
 
 
