@@ -66,10 +66,10 @@ body {
 }
 
 .member-card {
-  background:rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.05);
   border:2px solid rgba(255,255,255,0.2);
   border-radius:12px;
-  padding:6px; /* 최소 여백만 */
+  padding:4px;        /* 최소 여백 */
   width:180px;
   text-align:center;
   font-size:14px;
@@ -78,6 +78,8 @@ body {
   display:flex;
   flex-direction:column;
   align-items:center;
+  gap:4px;            /* 내부 요소 간 간격 최소 */
+  line-height:1.1;    /* 글자 줄간격 최소 */
 }
 
 .member-card:hover {
