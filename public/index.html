@@ -63,77 +63,56 @@ body {
   gap:6px;
 }
 
+/* 멤버 카드 (길이 압축 버전) */
 .member-card {
-  background:rgba(255,255,255,0.05);
-  border:2px solid rgba(255,255,255,0.2);
-  border-radius:12px;
-  padding:6px 12px;
-  width:180px;
-  min-height:auto;
-  text-align:center;
-  font-size:14px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:flex-start;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 8px 10px; /* 상하 패딩을 줄임 */
+  width: 200px;      /* 가로를 살짝 늘려 세로 적체를 방지 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;          /* 요소 사이의 간격을 최소화 */
   transition: transform 0.3s;
 }
 
-.member-card:hover{ transform:scale(1.05); }
+/* 내부 요소들의 마진을 모두 0으로 초기화 */
+.name, .record, .recent, .champions {
+  margin: 0 !important; 
+  line-height: 1.2;
+}
 
-/* 이름 */
 .name {
-  font-weight:800;
-  font-family:'Orbitron',sans-serif;
-  font-size:18px;
-  margin-bottom:4px;
+  font-weight: 800;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px; /* 크기를 살짝 조절 */
 }
 
-/* 승패 */
 .record {
-  display:flex;
-  justify-content:center;
-  gap:6px;
-  font-weight:700;
-  font-size:16px;
-  margin-bottom:4px;
+  font-size: 14px;
 }
 
-.win{color:#ffd369;}
-.lose{color:#ff6b6b;}
-
-/* 최근 전적 - 원형/사각 */
+/* 최근 전적 아이콘 크기 축소 */
 .recent {
-  display:flex;
-  justify-content:center;
-  gap:6px;
-  margin-top:4px;
+  gap: 3px;
+  margin-top: 2px !important;
 }
 
 .recent-dot {
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  display:inline-block;
+  width: 12px;  /* 18px -> 12px로 축소 */
+  height: 12px;
 }
 
-.recent-dot.win { background:#ffd369; }
-.recent-dot.lose { background:#ff6b6b; }
-.recent-dot.empty { background:#555; }
-
-/* 챔피언 아이콘 */
+/* 챔피언 아이콘 크기 축소 */
 .champions {
-  display:flex;
-  justify-content:center;
-  flex-wrap:wrap;
-  gap:3px;
-  margin-top:6px;
+  gap: 2px;
+  margin-top: 4px !important;
 }
 
 .champions img {
-  width:32px;
-  height:32px;
-  border-radius:4px;
+  width: 28px;  /* 32px -> 28px로 축소 */
+  height: 28px;
 }
 
 /* 연승/연패 */
