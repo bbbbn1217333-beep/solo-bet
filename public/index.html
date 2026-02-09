@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>솔랭 내기 송출 패널</title>
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@500;600&family=Orbitron:wght@600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body {
@@ -24,7 +24,6 @@ body {
   gap:40px;
 }
 
-/* 팀 영역 */
 .team {
   display:flex;
   flex-direction:column;
@@ -36,17 +35,16 @@ body {
 
 .team h1 {
   text-align:center;
-  font-size:28px;
-  margin-bottom:8px;
+  font-size:26px;
+  margin-bottom:6px;
   letter-spacing:1.5px;
   font-family:'Orbitron', sans-serif;
 }
 
-/* 요약 */
 .summary {
   text-align:center;
-  font-size:14px;
-  margin-bottom:6px;
+  font-size:13px;
+  margin-bottom:4px;
   animation:scoreGlow 1.4s infinite;
 }
 
@@ -55,7 +53,6 @@ body {
   50% { text-shadow:0 0 12px #fff; opacity:1; }
 }
 
-/* 멤버 카드 */
 .members {
   display:flex;
   flex-direction:column;
@@ -66,52 +63,49 @@ body {
 .member-card {
   background:rgba(255,255,255,0.05);
   border:2px solid rgba(255,255,255,0.2);
-  border-radius:12px;
-  padding:8px 12px;
-  width:150px;
-  min-height:130px;
+  border-radius:10px;
+  padding:6px 10px;
+  width:220px;
+  min-height:90px;
   text-align:center;
+  font-size:12px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:2px;
+  transition: transform 0.2s;
+}
+
+.member-card:hover { transform:scale(1.03); }
+
+.name {
+  font-weight:600;
+  font-family:'Orbitron',sans-serif;
   font-size:13px;
-  position:relative;
-  transition: transform 0.3s;
+  margin-bottom:2px;
 }
 
-.member-card:hover {
-  transform:scale(1.05);
-}
-
-/* 이름 */
-.member-card .name {
-  font-weight:800;
-  margin-bottom:4px;
-  font-family:'Orbitron', sans-serif;
-  font-size:14px;
-}
-
-/* 승패 */
-.member-card .record {
+.record {
   display:flex;
   justify-content:center;
   gap:4px;
-  font-weight:600;
-  font-size:12px;
-  margin-bottom:4px;
+  font-weight:500;
+  font-size:11px;
+  margin-bottom:2px;
 }
 
 .win { color:#ffd369; }
 .lose { color:#ff6b6b; }
 
-/* 최근 전적 - 원형/사각 */
-.member-card .recent {
+.recent {
   display:flex;
   justify-content:center;
   gap:3px;
-  margin-top:4px;
 }
 
 .recent-dot {
-  width:12px;
-  height:12px;
+  width:13px;
+  height:13px;
   border-radius:50%;
   display:inline-block;
 }
@@ -120,28 +114,25 @@ body {
 .recent-dot.lose { background:#ff6b6b; }
 .recent-dot.empty { background:#555; }
 
-/* 챔피언 아이콘 */
-.member-card .champions {
+.champions {
   display:flex;
   justify-content:center;
   flex-wrap:wrap;
   gap:3px;
-  margin-top:4px;
+  margin-top:2px;
 }
 
-.member-card .champions img {
-  width:22px;
-  height:22px;
+.champions img {
+  width:20px;
+  height:20px;
   border-radius:3px;
 }
 
-/* 연승/연패 */
 .streak {
+  font-size:11px;
+  font-weight:600;
   margin-left:3px;
-  font-size:12px;
-  font-weight:700;
 }
-
 </style>
 </head>
 <body>
@@ -151,7 +142,6 @@ body {
     <div class="summary" id="redSummary"></div>
     <div class="members" id="redPlayers"></div>
   </div>
-
   <div class="team blue">
     <h1 id="blueName">BLUE TEAM</h1>
     <div class="summary" id="blueSummary"></div>
@@ -160,43 +150,39 @@ body {
 </div>
 
 <script>
-const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL="https://hsvknfmnsehwytnvaiwr.supabase.co";
+const SUPABASE_KEY="sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// 멤버 카드 스티릭 클래스
 function getStreakClass(streak){
   const abs=Math.abs(streak);
-  if(abs>=7) return 7;
-  if(abs===6) return 6;
-  if(abs===5) return 5;
-  if(abs===4) return 4;
-  if(abs===3) return 3;
-  if(abs===2) return 2;
+  if(abs>=7)return 7;
+  if(abs===6)return 6;
+  if(abs===5)return 5;
+  if(abs===4)return 4;
+  if(abs===3)return 3;
+  if(abs===2)return 2;
   return 1;
 }
 
-// 렌더 함수
 async function render(){
   const {data:players} = await sb.from('players').select('*');
   const {data:setting} = await sb.from('settings').select('*').single();
-  document.getElementById('redName').textContent = setting.red_team_name;
-  document.getElementById('blueName').textContent = setting.blue_team_name;
-
+  document.getElementById('redName').textContent=setting.red_team_name;
+  document.getElementById('blueName').textContent=setting.blue_team_name;
   renderTeam(players.filter(p=>p.team==='red'),'redPlayers','redSummary');
   renderTeam(players.filter(p=>p.team==='blue'),'bluePlayers','blueSummary');
 }
 
 function renderTeam(list, containerId, summaryId){
-  const container = document.getElementById(containerId);
+  const container=document.getElementById(containerId);
   container.innerHTML='';
   let totalWin=0,totalLose=0;
 
   list.forEach(p=>{
-    totalWin += p.wins;
-    totalLose += p.losses;
+    totalWin+=p.wins;
+    totalLose+=p.losses;
 
-    // 스티릭
     let streakText='', streakClass='';
     if(p.streak>0){ streakText=`⭐${p.streak}연승`; streakClass=`streak win streak-${getStreakClass(p.streak)}`;}
     else if(p.streak<0){ streakText=`💀${Math.abs(p.streak)}연패`; streakClass=`streak lose streak-${getStreakClass(p.streak)}`;}
@@ -204,23 +190,21 @@ function renderTeam(list, containerId, summaryId){
     // 최근 10전
     let recentHTML='';
     if(p.recent && p.recent.length){
-      const arr = p.recent.slice(-10);
+      const arr=p.recent.slice(-10);
       arr.forEach(r=>{
         if(r==='win') recentHTML+='<span class="recent-dot win"></span>';
         else if(r==='lose') recentHTML+='<span class="recent-dot lose"></span>';
         else recentHTML+='<span class="recent-dot empty"></span>';
       });
       while(recentHTML.split('<span').length-1<10){recentHTML+='<span class="recent-dot empty"></span>';}
-    } else {
-      recentHTML='<span class="recent-dot empty"></span>'.repeat(10);
-    }
+    } else { recentHTML='<span class="recent-dot empty"></span>'.repeat(10); }
 
     // 챔피언 아이콘
     let champHTML='';
     if(p.champions && Array.isArray(p.champions)){
       p.champions.forEach(c=>{
         const src=`https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${c}.png`;
-        champHTML += `<img src="${src}" alt="${c}">`;
+        champHTML+=`<img src="${src}" alt="${c}">`;
       });
     }
 
@@ -234,11 +218,10 @@ function renderTeam(list, containerId, summaryId){
     `);
   });
 
-  const summaryEl = document.getElementById(summaryId);
+  const summaryEl=document.getElementById(summaryId);
   summaryEl.innerHTML=`<span class="win">😁 ${totalWin}승</span> / <span class="lose">😡 ${totalLose}패</span>`;
 }
 
-// 실시간 반영
 render();
 sb.channel('realtime')
   .on('postgres_changes',{event:'*',schema:'public',table:'players'},render)
@@ -247,6 +230,7 @@ sb.channel('realtime')
 </script>
 </body>
 </html>
+
 
 
 
