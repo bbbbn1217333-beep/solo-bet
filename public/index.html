@@ -55,76 +55,72 @@ body {
   50%{text-shadow:0 0 16px #fff; opacity:1;}
 }
 
-/* 멤버 카드 */
+/* 부모 컨테이너도 간격을 더 좁힙니다 */
 .members {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:6px;
-}
-
-/* 1. 카드 본체: 높이를 직접 제한하거나 패딩을 극단적으로 줄임 */
-.member-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 4px 10px;        /* 위아래 패딩 4px로 극축소 */
-  width: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0px;                 /* 간격 0으로 설정 */
-  min-height: 0;            /* 최소 높이 해제 */
-  overflow: hidden;         /* 넘치는 부분 차단 */
+  gap: 4px; /* 카드 사이 간격 */
 }
 
-/* 2. 이름 영역: 줄간격(line-height)과 마진 제거 */
-.name {
-  font-weight: 800;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 16px;
-  margin: 0 !important;
-  line-height: 1.1;         /* 줄간격을 1.1로 조절 */
-  padding: 2px 0;
-}
-
-/* 3. 승패 기록: 폰트 크기 줄이고 마진 제거 */
-.record {
+.member-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 4px 8px;          /* 내부 패딩 최소화 */
+  width: 190px;
   display: flex;
-  justify-content: center;
-  gap: 4px;
-  font-weight: 700;
-  font-size: 13px;          /* 16px -> 13px */
-  margin: 0 !important;
-  line-height: 1;
+  flex-direction: column;
+  align-items: center;
+  /* 핵심: 높이 관련 설정을 모두 초기화 */
+  height: auto;
+  min-height: 0 !important; 
+  flex-shrink: 1;            /* 줄어들 수 있게 허용 */
 }
 
-/* 4. 최근 전적: 점(Dot) 크기 축소 */
+/* 모든 내부 요소의 여백 강제 제거 */
+.member-card > div {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.1 !important;
+}
+
+.name {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 1px !important;
+}
+
+.record {
+  font-size: 13px;
+  margin-bottom: 2px !important;
+}
+
+/* 최근 전적 아이콘 크기 - 여기가 제일 큽니다 */
 .recent {
   display: flex;
-  justify-content: center;
-  gap: 3px;
-  margin: 2px 0 !important; /* 위아래 여백 최소화 */
+  gap: 2px;
+  height: 10px; /* 높이 강제 고정 */
+  margin-bottom: 4px !important;
 }
 
 .recent-dot {
-  width: 10px;              /* 18px -> 10px (이게 크면 세로가 확 늘어남) */
-  height: 10px;
-  border-radius: 50%;
+  width: 8px;  /* 더 줄였습니다 */
+  height: 8px;
+  border-radius: 2px; /* 원형보다 사각형이 공간을 덜 차지해 보입니다 */
 }
 
-/* 5. 챔피언 아이콘: 가장 큰 범인! */
+/* 챔피언 아이콘 - 세로 길이를 늘리는 주범 */
 .champions {
   display: flex;
   justify-content: center;
   gap: 2px;
-  margin-top: 2px !important;
 }
 
 .champions img {
-  width: 24px;              /* 32px -> 24px (아이콘이 높이의 핵심입니다) */
-  height: 24px;
-  border-radius: 3px;
+  width: 22px; /* 32px -> 22px로 과감하게 축소 */
+  height: 22px;
+  object-fit: cover;
 }
 
 /* 6. 연승/연패 텍스트 */
