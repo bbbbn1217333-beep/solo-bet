@@ -64,64 +64,30 @@ body {
 }
 
 .member-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 4px 8px;          /* 내부 패딩 최소화 */
-  width: 190px;
+  all: unset; /* 브라우저 기본값 완전 초기화 */
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* 핵심: 높이 관련 설정을 모두 초기화 */
-  height: auto;
-  min-height: 0 !important; 
-  flex-shrink: 1;            /* 줄어들 수 있게 허용 */
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 4px !important;
+  width: 170px !important;
+  height: auto !important; /* 높이 자동 */
+  box-sizing: border-box;
 }
 
-/* 모든 내부 요소의 여백 강제 제거 */
-.member-card > div {
+.member-card * {
   margin: 0 !important;
   padding: 0 !important;
-  line-height: 1.1 !important;
+  line-height: 1 !important; /* 줄간격 강제 제거 */
 }
 
-.name {
-  font-size: 15px;
-  font-weight: 800;
-  margin-bottom: 1px !important;
-}
-
-.record {
-  font-size: 13px;
-  margin-bottom: 2px !important;
-}
-
-/* 최근 전적 아이콘 크기 - 여기가 제일 큽니다 */
-.recent {
-  display: flex;
-  gap: 2px;
-  height: 10px; /* 높이 강제 고정 */
-  margin-bottom: 4px !important;
-}
-
-.recent-dot {
-  width: 8px;  /* 더 줄였습니다 */
-  height: 8px;
-  border-radius: 2px; /* 원형보다 사각형이 공간을 덜 차지해 보입니다 */
-}
-
-/* 챔피언 아이콘 - 세로 길이를 늘리는 주범 */
-.champions {
-  display: flex;
-  justify-content: center;
-  gap: 2px;
-}
-
-.champions img {
-  width: 22px; /* 32px -> 22px로 과감하게 축소 */
-  height: 22px;
-  object-fit: cover;
-}
+.name { font-size: 15px; margin-bottom: 2px !important; }
+.record { font-size: 12px; margin-bottom: 3px !important; }
+.recent { height: 10px; margin-bottom: 3px !important; }
+.recent-dot { width: 8px; height: 8px; }
+.champions img { width: 22px; height: 22px; margin: 1px; }
 
 /* 6. 연승/연패 텍스트 */
 .streak {
