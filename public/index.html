@@ -46,16 +46,17 @@ body {
   border:2px solid rgba(255,255,255,0.2);
   border-radius:12px;
   width:180px;
-  height:90px; /* 세로길이 확실히 고정 */
+  /* height 제거 -> 내용물에 맞게 */
   text-align:center;
   position:relative;
   transition:transform 0.3s;
   display:flex;
   flex-direction:column;
   justify-content:center;
-  padding:4px 6px; /* 패딩 최소화 */
+  padding:4px 6px; /* 최소 패딩 */
   overflow:hidden;
 }
+
 .member-card:hover { transform:scale(1.05); }
 
 /* 이름 */
