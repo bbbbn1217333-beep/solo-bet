@@ -65,75 +65,77 @@ body {
   gap:8px;
 }
 
+/* 멤버 카드 - 이 코드가 최우선 적용되도록 수정했습니다 */
 .member-card {
-  background:rgba(255,255,255,0.05);
-  border:2px solid rgba(255,255,255,0.2);
-  border-radius:12px;
-  padding:8px 12px; /* 상하 여백 줄임 */
-  width:180px;
-  text-align:center;
-  font-size:14px;
-  position:relative;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  
+  /* 여백과 높이를 강제로 줄입니다 */
+  padding: 4px 10px !important; 
+  margin: 0 !important;
+  width: 180px;
+  height: auto !important;     /* 높이 자동 조절 */
+  min-height: 0 !important;    /* 110px의 흔적을 완전히 지움 */
+  
+  text-align: center;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px !important;         /* 요소들 사이 간격을 아주 좁게 */
   transition: transform 0.3s;
+  overflow: hidden;
 }
 
-.member-card:hover {
-  transform:scale(1.05);
-}
-
-/* 이름 */
+/* 내부 요소들의 기본 마진이 높이를 늘리지 않게 차단 */
 .name {
-  font-weight:800;
-  font-family:'Orbitron',sans-serif;
-  font-size:18px; /* 키움 */
-  margin-bottom:4px;
+  font-weight: 800;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px; 
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2;
 }
 
-/* 승패 */
 .record {
-  display:flex;
-  justify-content:center;
-  gap:6px;
-  font-weight:700;
-  font-size:16px; /* 키움 */
-  margin-bottom:4px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-.win { color:#ffd369; }
-.lose { color:#ff6b6b; }
-
-/* 최근 전적 - 원형/사각 */
+/* 최근 전적 아이콘 크기 축소 (세로 길이 감소 핵심) */
 .recent {
-  display:flex;
-  justify-content:center;
-  gap:6px;
-  margin-top:2px;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 2px 0 !important;
 }
 
 .recent-dot {
-  width:18px;  /* 키움 */
-  height:18px;
-  border-radius:50%;
-  display:inline-block;
+  width: 12px !important; 
+  height: 12px !important;
+  border-radius: 50%;
+  display: inline-block;
 }
 
-.recent-dot.win { background:#ffd369; }
-.recent-dot.lose { background:#ff6b6b; }
-.recent-dot.empty { background:#555; }
-
-/* 챔피언 아이콘 */
+/* 챔피언 아이콘 크기 축소 */
 .champions {
-  display:flex;
-  justify-content:center;
-  flex-wrap:wrap;
-  gap:4px;
-  margin-top:4px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 2px 0 0 0 !important;
 }
 
 .champions img {
-  width:28px;  /* 키움 */
-  height:28px;
-  border-radius:4px;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 4px;
 }
 
 /* 연승/연패 */
