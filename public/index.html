@@ -26,15 +26,9 @@ body {
 }
 
 /* 팀 영역 */
-.team {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-
+.team { display:flex; flex-direction:column; align-items:center; }
 .red h1{ color:#ff5c5c; }
 .blue h1{ color:#4db8ff; }
-
 .team h1 {
   text-align:center;
   font-size:48px;
@@ -42,53 +36,34 @@ body {
   letter-spacing:2px;
   font-family:'Orbitron',sans-serif;
 }
-
-.summary {
-  text-align:center;
-  font-size:24px;
-  margin-bottom:8px;
-  animation:scoreGlow 1.4s infinite;
-}
-
-@keyframes scoreGlow {
-  0%,100%{text-shadow:0 0 4px #fff;opacity:0.7;}
-  50%{text-shadow:0 0 12px #fff;opacity:1;}
-}
+.summary { text-align:center; font-size:24px; margin-bottom:8px; animation:scoreGlow 1.4s infinite; }
+@keyframes scoreGlow {0%,100%{text-shadow:0 0 4px #fff;opacity:0.7;}50%{text-shadow:0 0 12px #fff;opacity:1;}}
 
 /* 멤버 카드 */
-.members {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:6px;
-}
-
+.members { display:flex; flex-direction:column; align-items:center; gap:6px; }
 .member-card {
   background:rgba(255,255,255,0.05);
   border:2px solid rgba(255,255,255,0.2);
   border-radius:12px;
   width:180px;
-  min-height:110px; /* 세로 길이 압축 */
-  max-height:110px;
+  height:90px; /* 세로길이 확실히 고정 */
   text-align:center;
-  font-size:14px;
   position:relative;
   transition:transform 0.3s;
-  padding:6px 10px;
   display:flex;
   flex-direction:column;
   justify-content:center;
+  padding:4px 6px; /* 패딩 최소화 */
   overflow:hidden;
 }
-
 .member-card:hover { transform:scale(1.05); }
 
 /* 이름 */
 .member-card .name {
   font-weight:800;
   font-family:'Orbitron',sans-serif;
-  font-size:16px;
-  margin-bottom:4px;
+  font-size:14px; /* 조금 줄임 */
+  margin-bottom:2px;
   white-space:nowrap;
   text-overflow:ellipsis;
   overflow:hidden;
@@ -98,30 +73,22 @@ body {
 .member-card .record {
   display:flex;
   justify-content:center;
-  gap:4px;
+  gap:3px;
   font-weight:600;
-  font-size:14px;
-  margin-bottom:4px;
+  font-size:12px;
+  margin-bottom:2px;
 }
-
 .win { color:#ffd369; }
 .lose { color:#ff6b6b; }
 
-/* 최근 전적 - 원형 */
+/* 최근 전적 */
 .member-card .recent {
   display:flex;
   justify-content:center;
-  gap:3px;
-  margin-bottom:4px;
+  gap:2px;
+  margin-bottom:2px;
 }
-
-.recent-dot {
-  width:12px;
-  height:12px;
-  border-radius:50%;
-  display:inline-block;
-}
-
+.recent-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
 .recent-dot.win { background:#ffd369; }
 .recent-dot.lose { background:#ff6b6b; }
 .recent-dot.empty { background:#555; }
@@ -133,19 +100,10 @@ body {
   flex-wrap:wrap;
   gap:2px;
 }
-
-.member-card .champions img {
-  width:20px;
-  height:20px;
-  border-radius:4px;
-}
+.member-card .champions img { width:16px; height:16px; border-radius:3px; }
 
 /* 연승/연패 */
-.streak {
-  font-size:12px;
-  font-weight:700;
-  margin-left:4px;
-}
+.streak { font-size:10px; font-weight:700; margin-left:3px; }
 </style>
 </head>
 <body>
@@ -163,8 +121,8 @@ body {
 </div>
 
 <script>
-const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
+const SUPABASE_URL="https://hsvknfmnsehwytnvaiwr.supabase.co";
+const SUPABASE_KEY="sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function getStreakClass(streak){
@@ -182,8 +140,8 @@ async function render(){
 }
 
 function renderTeam(list,containerId,summaryId){
-  const container = document.getElementById(containerId);
-  container.innerHTML = '';
+  const container=document.getElementById(containerId);
+  container.innerHTML='';
   let w=0,l=0;
 
   list.forEach(p=>{
@@ -202,9 +160,7 @@ function renderTeam(list,containerId,summaryId){
         else recentHTML+='<span class="recent-dot empty"></span>';
       });
       while(recentHTML.split('<span').length-1<10){recentHTML+='<span class="recent-dot empty"></span>';}
-    } else {
-      recentHTML='<span class="recent-dot empty"></span>'.repeat(10);
-    }
+    } else { recentHTML='<span class="recent-dot empty"></span>'.repeat(10); }
 
     // 챔피언 아이콘
     let champsHTML='';
@@ -235,6 +191,7 @@ sb.channel('realtime')
 </script>
 </body>
 </html>
+
 
 
 
