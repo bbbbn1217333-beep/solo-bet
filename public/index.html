@@ -67,11 +67,11 @@ body {
   background:rgba(255,255,255,0.05);
   border:2px solid rgba(255,255,255,0.2);
   border-radius:12px;
-  padding:6px 10px;
-  width:140px;
-  min-height:110px;
+  padding:8px 12px;
+  width:150px;
+  min-height:130px;
   text-align:center;
-  font-size:12px;
+  font-size:13px;
   position:relative;
   transition: transform 0.3s;
 }
@@ -105,13 +105,13 @@ body {
 .member-card .recent {
   display:flex;
   justify-content:center;
-  gap:2px;
+  gap:3px;
   margin-top:4px;
 }
 
 .recent-dot {
-  width:10px;
-  height:10px;
+  width:12px;
+  height:12px;
   border-radius:50%;
   display:inline-block;
 }
@@ -125,13 +125,13 @@ body {
   display:flex;
   justify-content:center;
   flex-wrap:wrap;
-  gap:2px;
+  gap:3px;
   margin-top:4px;
 }
 
 .member-card .champions img {
-  width:18px;
-  height:18px;
+  width:22px;
+  height:22px;
   border-radius:3px;
 }
 
@@ -176,7 +176,7 @@ function getStreakClass(streak){
   return 1;
 }
 
-// 챔피언 리스트는 없어도 DB JSONB에서 가져와서 표시 가능
+// 렌더 함수
 async function render(){
   const {data:players} = await sb.from('players').select('*');
   const {data:setting} = await sb.from('settings').select('*').single();
@@ -247,6 +247,7 @@ sb.channel('realtime')
 </script>
 </body>
 </html>
+
 
 
 
