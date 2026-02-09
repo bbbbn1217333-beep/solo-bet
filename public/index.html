@@ -21,90 +21,127 @@ body {
   display:flex;
   justify-content:center;
   align-items:flex-start;
-  gap:60px;
-  overflow:hidden;
+  gap:40px;
 }
 
 /* 팀 영역 */
-.team { display:flex; flex-direction:column; align-items:center; }
-.red h1{ color:#ff5c5c; }
-.blue h1{ color:#4db8ff; }
+.team {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.red h1{ color:#ff5c5c; font-size:52px; }
+.blue h1{ color:#4db8ff; font-size:52px; }
+
 .team h1 {
   text-align:center;
-  font-size:48px;
-  margin-bottom:12px;
+  margin-bottom:14px;
   letter-spacing:2px;
   font-family:'Orbitron',sans-serif;
 }
-.summary { text-align:center; font-size:24px; margin-bottom:8px; animation:scoreGlow 1.4s infinite; }
-@keyframes scoreGlow {0%,100%{text-shadow:0 0 4px #fff;opacity:0.7;}50%{text-shadow:0 0 12px #fff;opacity:1;}}
+
+/* 요약 */
+.summary {
+  text-align:center;
+  font-size:28px;
+  margin-bottom:12px;
+  font-family:'Orbitron',sans-serif;
+  animation:scoreGlow 1.4s infinite;
+}
+
+@keyframes scoreGlow{
+  0%,100%{text-shadow:0 0 6px #fff; opacity:0.8;}
+  50%{text-shadow:0 0 16px #fff; opacity:1;}
+}
 
 /* 멤버 카드 */
-.members { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.members {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+}
+
 .member-card {
   background:rgba(255,255,255,0.05);
   border:2px solid rgba(255,255,255,0.2);
   border-radius:12px;
+  padding:6px 12px;
   width:180px;
-  /* height 제거 -> 내용물에 맞게 */
+  min-height:auto;
   text-align:center;
-  position:relative;
-  transition:transform 0.3s;
+  font-size:14px;
   display:flex;
   flex-direction:column;
-  justify-content:center;
-  padding:4px 6px; /* 최소 패딩 */
-  overflow:hidden;
+  align-items:center;
+  justify-content:flex-start;
+  transition: transform 0.3s;
 }
 
-.member-card:hover { transform:scale(1.05); }
+.member-card:hover{ transform:scale(1.05); }
 
 /* 이름 */
-.member-card .name {
+.name {
   font-weight:800;
   font-family:'Orbitron',sans-serif;
-  font-size:14px; /* 조금 줄임 */
-  margin-bottom:2px;
-  white-space:nowrap;
-  text-overflow:ellipsis;
-  overflow:hidden;
+  font-size:18px;
+  margin-bottom:4px;
 }
 
 /* 승패 */
-.member-card .record {
+.record {
   display:flex;
   justify-content:center;
-  gap:3px;
-  font-weight:600;
-  font-size:12px;
-  margin-bottom:2px;
+  gap:6px;
+  font-weight:700;
+  font-size:16px;
+  margin-bottom:4px;
 }
-.win { color:#ffd369; }
-.lose { color:#ff6b6b; }
 
-/* 최근 전적 */
-.member-card .recent {
+.win{color:#ffd369;}
+.lose{color:#ff6b6b;}
+
+/* 최근 전적 - 원형/사각 */
+.recent {
   display:flex;
   justify-content:center;
-  gap:2px;
-  margin-bottom:2px;
+  gap:6px;
+  margin-top:4px;
 }
-.recent-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+.recent-dot {
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  display:inline-block;
+}
+
 .recent-dot.win { background:#ffd369; }
 .recent-dot.lose { background:#ff6b6b; }
 .recent-dot.empty { background:#555; }
 
 /* 챔피언 아이콘 */
-.member-card .champions {
+.champions {
   display:flex;
   justify-content:center;
   flex-wrap:wrap;
-  gap:2px;
+  gap:3px;
+  margin-top:6px;
 }
-.member-card .champions img { width:16px; height:16px; border-radius:3px; }
+
+.champions img {
+  width:32px;
+  height:32px;
+  border-radius:4px;
+}
 
 /* 연승/연패 */
-.streak { font-size:10px; font-weight:700; margin-left:3px; }
+.streak {
+  margin-left:5px;
+  font-size:16px;
+  font-weight:700;
+}
 </style>
 </head>
 <body>
@@ -122,20 +159,28 @@ body {
 </div>
 
 <script>
-const SUPABASE_URL="https://hsvknfmnsehwytnvaiwr.supabase.co";
-const SUPABASE_KEY="sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
+const sb = supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// 챔피언 리스트는 DB에 JSONB로 저장되어야 함
 
 function getStreakClass(streak){
   const abs=Math.abs(streak);
-  return abs>=7?7:abs>=6?6:abs>=5?5:abs>=4?4:abs>=3?3:abs>=2?2:1;
+  if(abs>=7)return 7;
+  if(abs===6)return 6;
+  if(abs===5)return 5;
+  if(abs===4)return 4;
+  if(abs===3)return 3;
+  if(abs===2)return 2;
+  return 1;
 }
 
 async function render(){
   const {data:players} = await sb.from('players').select('*');
   const {data:setting} = await sb.from('settings').select('*').single();
-  document.getElementById('redName').textContent = setting.red_team_name;
-  document.getElementById('blueName').textContent = setting.blue_team_name;
+  document.getElementById('redName').textContent=setting.red_team_name;
+  document.getElementById('blueName').textContent=setting.blue_team_name;
   renderTeam(players.filter(p=>p.team==='red'),'redPlayers','redSummary');
   renderTeam(players.filter(p=>p.team==='blue'),'bluePlayers','blueSummary');
 }
@@ -144,12 +189,11 @@ function renderTeam(list,containerId,summaryId){
   const container=document.getElementById(containerId);
   container.innerHTML='';
   let w=0,l=0;
-
   list.forEach(p=>{
     w+=p.wins; l+=p.losses;
     let streakText='',streakClass='';
-    if(p.streak>0){ streakText=`⭐${p.streak}연승`; streakClass=`streak win streak-${getStreakClass(p.streak)}`; }
-    else if(p.streak<0){ streakText=`💀${Math.abs(p.streak)}연패`; streakClass=`streak lose streak-${getStreakClass(p.streak)}`; }
+    if(p.streak>0){streakText=`⭐${p.streak}연승`;streakClass=`streak win streak-${getStreakClass(p.streak)}`;}
+    else if(p.streak<0){streakText=`💀${Math.abs(p.streak)}연패`;streakClass=`streak lose streak-${getStreakClass(p.streak)}`;}
 
     // 최근 10전
     let recentHTML='';
@@ -160,14 +204,14 @@ function renderTeam(list,containerId,summaryId){
         else if(r==='lose') recentHTML+='<span class="recent-dot lose"></span>';
         else recentHTML+='<span class="recent-dot empty"></span>';
       });
-      while(recentHTML.split('<span').length-1<10){recentHTML+='<span class="recent-dot empty"></span>';}
-    } else { recentHTML='<span class="recent-dot empty"></span>'.repeat(10); }
+      while(recentHTML.split('<span').length-1<10) recentHTML+='<span class="recent-dot empty"></span>';
+    } else recentHTML='<span class="recent-dot empty"></span>'.repeat(10);
 
     // 챔피언 아이콘
-    let champsHTML='';
+    let champHTML='';
     if(p.champions && p.champions.length){
-      p.champions.slice(-10).forEach(c=>{
-        champsHTML+=`<img src="https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${c}.png">`;
+      p.champions.forEach(c=>{
+        champHTML+=`<img src="https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${c}.png" alt="${c}">`;
       });
     }
 
@@ -176,12 +220,12 @@ function renderTeam(list,containerId,summaryId){
         <div class="name">${p.name} ${streakText ? `<span class="${streakClass}">${streakText}</span>` : ''}</div>
         <div class="record"><span class="win">😁 ${p.wins}승</span> / <span class="lose">😡 ${p.losses}패</span></div>
         <div class="recent">${recentHTML}</div>
-        <div class="champions">${champsHTML}</div>
+        <div class="champions">${champHTML}</div>
       </div>
     `);
   });
-
-  document.getElementById(summaryId).innerHTML = `<span class="win">😁 ${w}승</span> / <span class="lose">😡 ${l}패</span>`;
+  const summaryEl=document.getElementById(summaryId);
+  summaryEl.innerHTML=`<span class="win">😁 ${w}승</span> / <span class="lose">😡 ${l}패</span>`;
 }
 
 render();
@@ -192,6 +236,7 @@ sb.channel('realtime')
 </script>
 </body>
 </html>
+
 
 
 
