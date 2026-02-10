@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이라네 솔랭 내기 시트지</title>
+<title>이라네 솔랭 내기 시트지 - 실시간 송출</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&family=Inter:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -90,25 +90,54 @@ const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const LOL_VER = "16.3.1"; 
+const CHAMP_DATA_URL = `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/data/ko_KR/champion.json`;
 
-// 한글 이름을 롤 공식 파일명으로 바꿔주는 매핑 (콘솔 로그 기준 추가)
-const champMap = {
-    '아리': 'Ahri', '트페': 'TwistedFate', '트위스티드페이트': 'TwistedFate', 
-    '카이사': 'KaiSa', '리신': 'LeeSin', '리 신': 'LeeSin', '오공': 'MonkeyKing',
-    '르블랑': 'LeBlanc', '카직스': 'Khazix', '이즈리얼': 'Ezreal', '럭스': 'Lux',
-    '제드': 'Zed', '야스오': 'Yasuo', '요네': 'Yone', '사일러스': 'Sylas'
-};
+let champMap = {}; // 동적으로 생성될 맵
+let players = [];
+let settings = {};
+let timeLeftText = "계산 중...";
 
+// 1. Data Dragon JSON 기반으로 맵 생성
+async function initChampMap() {
+    try {
+        const res = await fetch(CHAMP_DATA_URL);
+        const json = await res.json();
+        const data = json.data;
+        
+        // 라이엇 데이터 매핑
+        Object.values(data).forEach(champ => {
+            champMap[champ.name] = champ.id;
+        });
+
+        // 수동 예외 및 별명 추가 (JSON에 없는 줄임말 등)
+        const extras = {
+            "자헨": "Zaahen", "트페": "TwistedFate", "리신": "LeeSin", "마이": "MasterYi",
+            "미포": "MissFortune", "문도": "DrMundo", "아솔": "AurelionSol", "자르반": "JarvanIV",
+            "신짜오": "XinZhao", "탐켄치": "TahmKench", "피들": "FiddleSticks", "벨코즈": "Velkoz"
+        };
+        Object.assign(champMap, extras);
+        
+        console.log("Champion Map Loaded:", Object.keys(champMap).length, "champs");
+    } catch (e) {
+        console.error("ChampMap Load Error:", e);
+    }
+}
+
+// 2. 챔피언 이름 보정 함수
 const fixChamp = c => {
     if(!c || c === 'None' || c === 'Blank' || c === '') return 'None';
-    let name = c.trim();
-    if (champMap[name]) return champMap[name];
+    let raw = c.trim();
     
-    // 영문 입력 시 첫글자만 대문자로 변환
-    name = name.toLowerCase();
-    name = name.charAt(0).toUpperCase() + name.slice(1);
-    const specialCases = {'Kaisa':'KaiSa', 'Leesin':'LeeSin', 'Wukong':'MonkeyKing', 'Leblanc':'LeBlanc'};
-    return specialCases[name] || name;
+    // 맵에 있으면 해당 ID 반환
+    if (champMap[raw]) return champMap[raw];
+    
+    // 영문 입력 대응 (ID 대소문자 무시 검색)
+    const lower = raw.toLowerCase();
+    const foundId = Object.values(champMap).find(id => id.toLowerCase() === lower);
+    if (foundId) return foundId;
+
+    // 그 외는 첫글자 대문자 처리
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
 async function loadData() {
@@ -198,10 +227,10 @@ function renderMainScene(container, filterTeam) {
                                 <div class="history">
                                     ${(p.recent || []).map((r, i) => {
                                         const cName = fixChamp(p.champions[i]);
-                                        const imgSrc = cName === 'None' ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${cName}.png`;
+                                        const imgSrc = cName === 'None' ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cName}.png`;
                                         const badgeClass = (r === 'win' || r === 'lose') ? r : 'none';
                                         const badgeText = r === 'win' ? 'W' : (r === 'lose' ? 'L' : '...');
-                                        return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/16.3.1/img/profileicon/29.png'"><span class="wl-badge ${badgeClass}">${badgeText}</span></div>`;
+                                        return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><span class="wl-badge ${badgeClass}">${badgeText}</span></div>`;
                                     }).join('')}
                                 </div>
                             </div>`;
@@ -222,13 +251,9 @@ function renderScoreScene() {
     const bName = settings.blue_team_name || 'BLUE TEAM';
 
     let rClass = '', bClass = '';
-    if (rW === bW) {
-        rClass = bClass = 'draw';
-    } else if (rW > bW) {
-        rClass = 'winner';
-    } else {
-        bClass = 'winner';
-    }
+    if (rW === bW) { rClass = bClass = 'draw'; } 
+    else if (rW > bW) { rClass = 'winner'; } 
+    else { bClass = 'winner'; }
 
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
@@ -252,8 +277,15 @@ function renderScoreScene() {
         </div>`;
 }
 
-loadData();
-setInterval(updateTimer, 1000);
+// 실행 순서: 맵 초기화 -> 데이터 로드
+async function start() {
+    await initChampMap();
+    await loadData();
+    setInterval(updateTimer, 1000);
+}
+
+start();
+
 sb.channel('any').on('postgres_changes',{event:'*',schema:'public',table:'settings'},loadData)
                 .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
 
