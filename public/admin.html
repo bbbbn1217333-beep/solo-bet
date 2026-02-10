@@ -17,7 +17,7 @@
     body { margin:0; background:#0e0e0e; color:#fff; font-family:'Pretendard',sans-serif; padding:20px; padding-bottom: 120px; }
     .wrap { width:1450px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
     
-    /* 헤더 및 컨트롤 섹션 */
+    /* 헤더 */
     .admin-header { background:#1a1a1a; padding:25px; border-radius:15px; border:1px solid #333; }
     .top-controls { display:flex; gap:20px; align-items:center; margin-bottom:20px; }
     .top-controls input { padding:12px; background:#000; border:1px solid #444; color:#fff; border-radius:8px; font-size:16px; font-weight:800; }
@@ -25,19 +25,19 @@
     #redNameInput { border-left: 5px solid var(--red); color: var(--red); box-shadow: var(--neon-red); }
     #blueNameInput { border-left: 5px solid var(--blue); color: var(--blue); box-shadow: var(--neon-blue); }
     
-    /* 타이머 입력창 (종료 시점 설정) */
+    /* 타이머 (년/월/일 시:분) */
     .timer-input-wrap { display: flex; align-items: center; gap: 10px; background: #000; padding: 10px 15px; border-radius: 10px; border: 1px solid var(--gold); box-shadow: var(--neon-gold); }
     .timer-input-wrap span { color: var(--gold); font-weight: 800; font-size: 14px; }
-    #endDateTime { background: transparent; border: none; color: var(--gold); font-family: 'Pretendard'; font-weight: 800; font-size: 15px; outline: none; cursor: pointer; }
+    #endDateTime { background: transparent; border: none; color: var(--gold); font-family: 'Pretendard'; font-weight: 800; font-size: 15px; outline: none; }
 
     .count-label { font-size: 16px; color: var(--gold); font-weight: 800; text-shadow: 0 0 8px rgba(255, 211, 105, 0.6); }
     #teamCount { font-weight: 800; color: var(--gold); border: 2px solid var(--gold); background: #000; font-size: 18px; text-align: center; box-shadow: var(--neon-gold); }
 
-    /* 매뉴얼 섹션 */
+    /* 매뉴얼 */
     .menu-desc { font-size:14px; color:#ccc; line-height:1.7; background:#252525; padding:18px; border-radius:10px; border-left: 4px solid var(--gold); margin-top: 10px; }
     .menu-desc strong { color: var(--gold); font-size: 16px; text-shadow: 0 0 10px var(--gold); }
 
-    /* 팀 컨테이너 */
+    /* 팀 박스 */
     .teams-container { display:flex; gap:25px; }
     .team-box { flex:1; background:#1a1a1a; padding:20px; border-radius:15px; border-top:5px solid #444; }
     .team-box.red { border-color: var(--red); }
@@ -46,16 +46,25 @@
     .red-text { color: var(--red); text-shadow: var(--neon-red); }
     .blue-text { color: var(--blue); text-shadow: var(--neon-blue); }
 
-    /* 멤버 리스트 및 카드 (불빛 테두리 복구) */
+    /* 멤버 카드 */
     .member-list { display:flex; flex-direction:column; gap:20px; max-height:800px; overflow-y:auto; padding: 10px; }
-    .member-card { background:#1e1e1e; border-radius:12px; padding:20px; position:relative; }
-    .team-box.red .member-card { border: 1.5px solid var(--red); box-shadow: var(--neon-red); }
-    .team-box.blue .member-card { border: 1.5px solid var(--blue); box-shadow: var(--neon-blue); }
+    .member-card { background:#1e1e1e; border-radius:12px; padding:20px; border: 1.5px solid #333; }
+    .team-box.red .member-card { border-color: var(--red); box-shadow: var(--neon-red); }
+    .team-box.blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
 
+    /* 닉네임 입력창 (테두리 복구) */
     .name-row { display:flex; gap:12px; margin-bottom:18px; }
-    .name-row input { flex:1; padding:12px; background:#000; color:#fff; border-radius:8px; font-size:15px; font-weight: 700; border: 1px solid #444; }
+    .name-row input { flex:1; padding:12px; background:#000; color:#fff; border-radius:8px; font-size:15px; font-weight: 700; }
+    
+    /* 레드팀 입력창 불빛 */
+    .team-box.red .name-row input { border: 1px solid var(--red); box-shadow: 0 0 5px rgba(255, 59, 59, 0.4); }
+    .team-box.red .name-row input:focus { box-shadow: var(--neon-red); outline: none; }
+    
+    /* 블루팀 입력창 불빛 */
+    .team-box.blue .name-row input { border: 1px solid var(--blue); box-shadow: 0 0 5px rgba(77, 184, 255, 0.4); }
+    .team-box.blue .name-row input:focus { box-shadow: var(--neon-blue); outline: none; }
 
-    /* 히스토리 에디터 (1판, 2판 복구) */
+    /* 히스토리 (1판, 2판) */
     .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:12px; border-radius:10px; }
     .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding:10px 5px; background:#1e1e1e; border-radius:8px; border:1px solid #333; }
     .history-item span { font-size:13px; color: var(--gold); font-weight:900; text-shadow: 0 0 5px rgba(255, 211, 105, 0.5); }
@@ -65,13 +74,12 @@
         box-shadow: 0 0 8px rgba(255, 211, 105, 0.2);
     }
     
-    /* 토글 버튼 (승리/패배/진행) */
+    /* 버튼 */
     .btn-toggle { width:100%; padding:8px 0; font-size:12px; font-weight:900; border:none; border-radius:4px; cursor:pointer; }
     .btn-toggle.win { background: var(--gold); color: #000; }
     .btn-toggle.lose { background: var(--red); color: #fff; }
     .btn-toggle.ing { background: var(--ing); color: #ccc; }
 
-    /* 하단 고정 반영 버튼 (기존 문구 복구) */
     .btn-apply { 
         position: fixed; bottom: 30px; right: 30px; z-index: 1000;
         width: 280px; height: 70px; font-size:24px; font-weight:800; 
@@ -103,9 +111,9 @@
         
         <div class="menu-desc">
             <strong>📋 관리 매뉴얼</strong><br>
-            • <strong>종료 시점:</strong> 내기가 끝날 날짜와 시간을 선택하세요. 송출 화면에 카운트다운으로 표시됩니다.<br>
-            • <strong>승패 토글:</strong> 버튼 클릭 시 <strong>[승리 → 패배 → 진행]</strong> 순으로 변경됩니다.<br>
-            • <strong>진행 상태:</strong> '🕒 진행' 상태일 때는 승패 카운트(0승 0패 등)에 포함되지 않습니다.
+            • <strong>종료 시점:</strong> 종료될 날짜와 시간을 선택하세요. (송출 화면 카운트다운 자동 계산)<br>
+            • <strong>승패 토글:</strong> 클릭 시 <strong>[승리 → 패배 → 진행]</strong> 순으로 로테이션됩니다.<br>
+            • <strong>엔터 키:</strong> 입력 후 엔터를 치면 다음 칸으로 빠르게 이동합니다.
         </div>
     </div>
 
@@ -128,7 +136,7 @@ const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 현재 시간 기준 1시간 뒤를 기본 종료 시간으로 설정
+// 기본값: 현재 시간 1시간 뒤
 const now = new Date();
 now.setHours(now.getHours() + 1);
 now.setMinutes(0);
@@ -173,7 +181,6 @@ function createMemberCard(team) {
     return card;
 }
 
-// 엔터 키 이동
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         const targets = Array.from(document.querySelectorAll('.enter-target'));
@@ -207,32 +214,25 @@ async function applyToSupabase() {
             champs.push(item.querySelector('.champ-input').value.trim() || 'None');
         });
         players.push({ 
-            name, 
-            team: card.dataset.team, 
-            riot_id: card.querySelector('.nick-riot').value.trim(),
-            wins: recent.filter(r=>r==='win').length, 
-            losses: recent.filter(r=>r==='lose').length,
-            recent, 
-            champions: champs 
+            name, team: card.dataset.team, riot_id: card.querySelector('.nick-riot').value.trim(),
+            wins: recent.filter(r=>r==='win').length, losses: recent.filter(r=>r==='lose').length,
+            recent, champions: champs 
         });
     });
 
-    const endTime = document.getElementById('endDateTime').value;
-
     try {
-        // 기존 데이터를 최소화된 API 호출로 처리
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: redNameInput.value, 
             blue_team_name: blueNameInput.value, 
             member_count: Number(teamCount.value),
-            timer_end_at: endTime ? new Date(endTime).toISOString() : null
+            timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null
         });
         
         await sb.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         if(players.length > 0) await sb.from('players').insert(players);
         
-        alert('✅ 송출 화면에 데이터가 성공적으로 반영되었습니다!');
+        alert('✅ 데이터가 송출 화면에 성공적으로 반영되었습니다!');
     } catch (e) { alert('❌ 오류: ' + e.message); }
 }
 
