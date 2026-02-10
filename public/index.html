@@ -7,12 +7,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-/* 기본 배경 및 씬 설정 */
+/* 배경 및 기본 설정 */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
 
-/* 레이아웃 및 텍스트 */
+/* 레이아웃 */
 .container{display:flex; gap:60px; justify-content:center; margin-top:20px;}
 .team{display:flex; flex-direction:column; align-items:center;}
 .team h1{font-family:'Orbitron',sans-serif; font-size:50px; margin-bottom:4px;}
@@ -39,7 +39,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
 .wl-badge.none { color: #888; border-color: #444; }
 
-/* 배지 애니메이션 (왕관/해골) */
+/* 배지 애니메이션 */
 .badge{position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:22px; z-index:3;}
 .badge.crown{color:#ffb703;}
 .badge.crown::before{content:''; position:absolute; inset:-12px; background:radial-gradient(circle, rgba(255,183,3,.55), transparent 65%); filter:blur(10px); animation:crownFlame 1.2s infinite; z-index:-1;}
@@ -47,7 +47,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .badge.skull::before{content:''; position:absolute; inset:-16px; background:radial-gradient(circle, rgba(176,0,0,.6), transparent 65%); filter:blur(14px); animation:skullFog 1.6s infinite; z-index:-1;}
 @keyframes skullFog{0%{opacity:.35;transform:scale(.95)}50%{opacity:.75;transform:scale(1.4)}100%{opacity:.35;transform:scale(.95)}}
 
-/* 스코어보드 전용 */
+/* 스코어보드 설정 */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369;}
@@ -60,12 +60,20 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .score-box{display:flex; flex-direction:column; align-items:center;}
 .score-num{font-size:150px; font-weight:900; line-height:1; color:#fff;}
 
-/* 숫자 글로우 애니메이션 (동점/승리 시 적용) */
-.score-box.glow .score-num { color: #ffd369; animation: glowNum 1.2s infinite alternate; }
-@keyframes glowNum { 
+/* [승리 시] 황금색 글로우 */
+.score-box.winner .score-num { color: #ffd369; animation: glowGold 1.2s infinite alternate; }
+@keyframes glowGold { 
     0% { transform: scale(1); text-shadow:0 0 20px #ffd369; } 
     100% { transform: scale(1.1); text-shadow:0 0 60px #ffd369, 0 0 100px #ffd369; } 
 }
+
+/* [동점 시] 하얀색 글로우 */
+.score-box.draw .score-num { color: #ffffff; animation: glowWhite 1.2s infinite alternate; }
+@keyframes glowWhite { 
+    0% { transform: scale(1); text-shadow:0 0 20px #ffffff; } 
+    100% { transform: scale(1.1); text-shadow:0 0 60px #ffffff, 0 0 100px #ffffff; } 
+}
+
 .sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
 </style>
 </head>
@@ -83,7 +91,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const LOL_VER = "16.3.1";
 let players = [];
-// 기본값을 아예 비워두고 로드된 데이터만 출력되도록 설정
 let settings = { red_team_name: '', blue_team_name: '', timer_end_at: null };
 let timeLeftText = "시간 계산 중...";
 
@@ -93,16 +100,11 @@ const fixChamp = c => {
     return names[c] || c;
 };
 
-// 데이터 로드 (가장 확실한 방식)
 async function loadData() {
     try {
-        // settings 데이터 로드
         const { data: sData } = await sb.from('settings').select('*');
-        if (sData && sData.length > 0) {
-            settings = sData[0]; // 무조건 첫번째 행 데이터 사용
-        }
+        if (sData && sData.length > 0) settings = sData[0];
 
-        // players 데이터 로드
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         if (pData) {
             players = pData.map(p => {
@@ -120,7 +122,7 @@ async function loadData() {
             });
         }
         renderAll();
-    } catch (e) { console.log("로드 에러:", e); }
+    } catch (e) { console.log(e); }
 }
 
 function updateTimer() {
@@ -158,7 +160,6 @@ function renderMainScene(container, filterTeam) {
                 const teamPlayers = players.filter(p => p.team === t);
                 const tW = teamPlayers.reduce((a, b) => a + (b.wins || 0), 0);
                 const tL = teamPlayers.reduce((a, b) => a + (b.losses || 0), 0);
-                // 실시간 settings의 필드를 그대로 가져옴
                 const teamName = t === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
                 
                 return `
@@ -201,9 +202,15 @@ function renderScoreScene() {
     const rName = settings.red_team_name || 'RED TEAM';
     const bName = settings.blue_team_name || 'BLUE TEAM';
 
-    // 동점 혹은 승리 여부에 따라 글로우 클래스 추가
-    const rGlow = (rW >= bW) ? 'glow' : '';
-    const bGlow = (bW >= rW) ? 'glow' : '';
+    // 동점/승리 상태에 따른 클래스 부여
+    let rClass = '', bClass = '';
+    if (rW === bW) {
+        rClass = bClass = 'draw'; // 동점일 때 하얀색
+    } else if (rW > bW) {
+        rClass = 'winner'; // 레드팀 승리 시 황금색
+    } else {
+        bClass = 'winner'; // 블루팀 승리 시 황금색
+    }
 
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
@@ -215,11 +222,11 @@ function renderScoreScene() {
                 <span class="team-name" style="color:#4db8ff">${bName.toUpperCase()}</span>
             </div>
             <div class="score-wrap">
-                <div class="score-box ${rGlow}">
+                <div class="score-box ${rClass}">
                     <div class="score-num">${rW}</div>
                     <div class="sub-info">패배 : ${rL}</div>
                 </div>
-                <div class="score-box ${bGlow}">
+                <div class="score-box ${bClass}">
                     <div class="score-num">${bW}</div>
                     <div class="sub-info">패배 : ${bL}</div>
                 </div>
@@ -229,13 +236,9 @@ function renderScoreScene() {
 
 loadData();
 setInterval(updateTimer, 1000);
+sb.channel('any').on('postgres_changes',{event:'*',schema:'public',table:'settings'},loadData)
+                .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
 
-// 실시간 감시 통합
-sb.channel('realtime-all').on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => loadData())
-                          .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => loadData())
-                          .subscribe();
-
-// 장면 전환 (10초)
 let sIdx = 0;
 setInterval(() => {
     const scenes = document.querySelectorAll('.scene');
