@@ -2,90 +2,239 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>솔랭 내기 관리자 패널</title>
+<title>이라네 솔랭 내기 시트지 관리자용</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-body{margin:0;background:#0e0e0e;color:#fff;font-family:'Pretendard',sans-serif;display:flex;justify-content:center;padding:20px;}
-.wrap{max-width:1000px;width:100%;display:flex;flex-direction:column;align-items:center;gap:20px;}
-.top{display:flex;gap:10px;width:100%;justify-content:center;align-items:center;}
-.top label{font-size:16px;margin-right:4px;}
-.top input{flex:1;padding:10px;background:#111;border:1px solid #444;color:#fff;border-radius:8px;font-size:16px;text-align:center;font-family:'Pretendard',sans-serif;outline:none;}
-.teams{display:flex;gap:80px;width:100%;justify-content:center;}
-.team{display:flex;flex-direction:column;align-items:center;}
-.team h2{font-family:'Orbitron',sans-serif;font-size:28px;color:#ff3b3b;margin-bottom:10px;}
-.members{display:flex;flex-direction:column;gap:10px;width:200px;}
-.member-card{background:#111;border:2px solid #444;border-radius:12px;padding:12px;width:100%;font-family:'Pretendard',sans-serif;font-size:16px;color:#fff;text-align:center;outline:none;}
-.member-card::placeholder{color:#bbb;font-weight:500;}
-.actions{margin-top:20px;text-align:center;}
-button{padding:12px 30px;background:#ff3b3b;border:none;color:#fff;font-size:16px;border-radius:6px;cursor:pointer;}
+    :root { 
+        --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; 
+        --neon-red: 0 0 12px rgba(255, 59, 59, 0.7);
+        --neon-blue: 0 0 12px rgba(77, 184, 255, 0.7);
+        --neon-gold: 0 0 10px rgba(255, 211, 105, 0.5);
+    }
+    body { margin:0; background:#0e0e0e; color:#fff; font-family:'Pretendard',sans-serif; padding:20px; padding-bottom: 120px; }
+    .wrap { width:1450px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
+    
+    /* 헤더 */
+    .admin-header { background:#1a1a1a; padding:25px; border-radius:15px; border:1px solid #333; }
+    .top-controls { display:flex; gap:20px; align-items:center; margin-bottom:20px; }
+    .top-controls input { padding:12px; background:#000; border:1px solid #444; color:#fff; border-radius:8px; font-size:16px; font-weight:800; }
+    
+    #redNameInput { border-left: 5px solid var(--red); color: var(--red); box-shadow: var(--neon-red); }
+    #blueNameInput { border-left: 5px solid var(--blue); color: var(--blue); box-shadow: var(--neon-blue); }
+    
+    .count-label { font-size: 16px; color: var(--gold); font-weight: 800; text-shadow: 0 0 8px rgba(255, 211, 105, 0.6); }
+    #teamCount { font-weight: 800; color: var(--gold); border: 2px solid var(--gold); background: #000; font-size: 18px; text-align: center; box-shadow: var(--neon-gold); }
+
+    .menu-desc { font-size:14px; color:#ccc; line-height:1.7; background:#252525; padding:18px; border-radius:10px; border-left: 4px solid var(--gold); }
+    .menu-desc strong { color: var(--gold); font-size: 16px; text-shadow: 0 0 10px var(--gold); }
+
+    .teams-container { display:flex; gap:25px; }
+    .team-box { flex:1; background:#1a1a1a; padding:20px; border-radius:15px; border-top:5px solid #444; }
+    .team-box.red { border-color: var(--red); }
+    .team-box.blue { border-color: var(--blue); }
+    .team-box h2 { font-family:'Orbitron',sans-serif; margin-top:0; font-size:28px; text-align:center; }
+    .red-text { color: var(--red); }
+    .blue-text { color: var(--blue); }
+
+    .member-list { display:flex; flex-direction:column; gap:20px; max-height:800px; overflow-y:auto; padding: 10px; }
+    .member-card { background:#1e1e1e; border-radius:12px; padding:20px; position:relative; }
+    .team-box.red .member-card { border: 1.5px solid var(--red); box-shadow: var(--neon-red); }
+    .team-box.blue .member-card { border: 1.5px solid var(--blue); box-shadow: var(--neon-blue); }
+
+    .name-row { display:flex; gap:12px; margin-bottom:18px; }
+    .name-row input { flex:1; padding:12px; background:#000; color:#fff; border-radius:8px; font-size:15px; font-weight: 700; }
+    .team-box.red .name-row input { border: 1px solid var(--red); box-shadow: 0 0 5px rgba(255, 59, 59, 0.4); }
+    .team-box.blue .name-row input { border: 1px solid var(--blue); box-shadow: 0 0 5px rgba(77, 184, 255, 0.4); }
+
+    .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:12px; border-radius:10px; }
+    .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding:10px 5px; background:#1e1e1e; border-radius:8px; border:1px solid #333; }
+    .history-item span { font-size:13px; color: var(--gold); font-weight:900; text-shadow: 0 0 5px rgba(255, 211, 105, 0.5); }
+
+    .champ-input { 
+        width:92%; background:#000; border: 1px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:11.5px; font-weight: 600;
+        box-shadow: 0 0 8px rgba(255, 211, 105, 0.2);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    
+    .btn-toggle { width:100%; padding:8px 0; font-size:12px; font-weight:900; border:none; border-radius:4px; cursor:pointer; }
+    .btn-toggle.win { background: var(--gold); color: #000; }
+    .btn-toggle.lose { background: var(--red); color: #fff; }
+
+    .btn-apply { 
+        position: fixed; bottom: 30px; right: 30px; z-index: 1000;
+        width: 280px; height: 70px; font-size:24px; font-weight:800; 
+        background: var(--red); color:#fff; border:none; border-radius:15px; 
+        cursor:pointer; box-shadow: 0 0 25px rgba(255, 59, 59, 0.6); transition: 0.2s;
+    }
+    .btn-apply:hover { background:#ff1a1a; transform: scale(1.05); }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
 </style>
 </head>
 <body>
+
 <div class="wrap">
-  <div class="top">
-    <label>팀 이름</label>
-    <input id="redTeamName" placeholder="팀 이름">
-    <input id="blueTeamName" placeholder="팀 이름">
-    <label>멤버 구성 수</label>
-    <input id="teamCount" type="number" min="1" max="33" value="5">
-  </div>
-  <div class="teams">
-    <div class="team">
-      <h2 id="redTeamHeader">팀 이름</h2>
-      <div class="members" id="redPlayers"></div>
+    <div class="admin-header">
+        <div class="top-controls">
+            <input id="redNameInput" oninput="updateTeamNames()" value="레드 팀">
+            <input id="blueNameInput" oninput="updateTeamNames()" value="블루 팀">
+            <label class="count-label">👨‍👩‍👧‍👦 참여 인원 (1~33): </label>
+            <input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuild()" style="width:80px;">
+        </div>
+        <div class="menu-desc">
+            <strong>💡 관리자 패널 사용법</strong><br>
+            1. <strong>방송 닉네임</strong>은 화면에 표시될 이름, <strong>롤 닉네임</strong>은 데이터를 불러올 실제 닉네임입니다.<br>
+            2. <strong>최근 10판 설정</strong>: 챔피언 이름을 입력하고 승리/패배 버튼을 클릭하여 상태를 변경하세요.<br>
+            3. <strong>빠른 이동</strong>: 입력창에서 엔터(Enter)를 누르면 다음 플레이어 또는 다음 항목으로 자동 포커스됩니다.
+        </div>
     </div>
-    <div class="team">
-      <h2 id="blueTeamHeader" style="color:#4db8ff;">팀 이름</h2>
-      <div class="members" id="bluePlayers"></div>
+
+    <div class="teams-container">
+        <div class="team-box red">
+            <h2 id="redTitle" class="red-text">레드 팀</h2>
+            <div id="redPlayers" class="member-list"></div>
+        </div>
+        <div class="team-box blue">
+            <h2 id="blueTitle" class="blue-text">블루 팀</h2>
+            <div id="bluePlayers" class="member-list"></div>
+        </div>
     </div>
-  </div>
-  <div class="actions">
-    <button onclick="applyAll()">적용</button>
-  </div>
 </div>
 
+<button class="btn-apply" onclick="applyToSupabase()">송출 화면 반영</button>
+
 <script>
-const SUPABASE_URL="https://hsvknfmnsehwytnvaiwr.supabase.co";
-const SUPABASE_KEY="sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+// Supabase 설정
+const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const redWrap=document.getElementById('redPlayers');
-const blueWrap=document.getElementById('bluePlayers');
-const teamCountInput=document.getElementById('teamCount');
-const redHeader=document.getElementById('redTeamHeader');
-const blueHeader=document.getElementById('blueTeamHeader');
-const redNameInput=document.getElementById('redTeamName');
-const blueNameInput=document.getElementById('blueTeamName');
-
-function createInputs(){
-  const count=Number(teamCountInput.value);
-  redWrap.innerHTML='';
-  blueWrap.innerHTML='';
-  for(let i=0;i<count;i++){
-    const r=document.createElement('input'); r.placeholder=`멤버 ${i+1}`; r.className='member-card'; r.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault(); const n=document.createElement('input'); n.placeholder=`멤버 ${i+2}`; n.className='member-card'; redWrap.appendChild(n); } }); redWrap.appendChild(r);
-    const b=document.createElement('input'); b.placeholder=`멤버 ${i+1}`; b.className='member-card'; b.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault(); const n=document.createElement('input'); n.placeholder=`멤버 ${i+2}`; n.className='member-card'; blueWrap.appendChild(n); } }); blueWrap.appendChild(b);
-  }
+function updateTeamNames() {
+    document.getElementById('redTitle').innerText = document.getElementById('redNameInput').value;
+    document.getElementById('blueTitle').innerText = document.getElementById('blueNameInput').value;
 }
 
-redNameInput.addEventListener('input',()=>{ redHeader.textContent=redNameInput.value||'팀 이름'; });
-blueNameInput.addEventListener('input',()=>{ blueHeader.textContent=blueNameInput.value||'팀 이름'; });
-teamCountInput.addEventListener('change', createInputs);
-createInputs();
-
-async function applyAll(){
-  const redNames=[...redWrap.querySelectorAll('input')].map(i=>i.value.trim()).filter(Boolean);
-  const blueNames=[...blueWrap.querySelectorAll('input')].map(i=>i.value.trim()).filter(Boolean);
-  if(!redNames.length||!blueNames.length){alert('플레이어를 입력하세요'); return;}
-  await sb.from('settings').upsert({id:1,red_team_name:redNameInput.value||'팀 이름',blue_team_name:blueNameInput.value||'팀 이름'});
-  await sb.from('players').delete().neq('id',0);
-  const players=[
-    ...redNames.map(name=>({name,team:'red',wins:0,losses:0,streak:0,recent:[] })),
-    ...blueNames.map(name=>({name,team:'blue',wins:0,losses:0,streak:0,recent:[] }))
-  ];
-  await sb.from('players').insert(players);
-  alert('적용 완료');
+function createMemberCard(team) {
+    const card = document.createElement('div');
+    card.className = 'member-card';
+    let historyHTML = '';
+    for(let i=1; i<=10; i++) {
+        historyHTML += `
+            <div class="history-item">
+                <span>${i}판</span>
+                <input type="text" class="champ-input enter-target" placeholder="챔피언">
+                <button class="btn-toggle win" onclick="toggleResult(this)">😁 승리</button>
+            </div>
+        `;
+    }
+    card.innerHTML = `
+        <div class="name-row">
+            <input class="nick-disp enter-target" placeholder="방송 닉네임">
+            <input class="nick-riot enter-target" placeholder="롤 닉네임">
+        </div>
+        <div class="history-editor">${historyHTML}</div>
+    `;
+    card.dataset.team = team;
+    return card;
 }
+
+function toggleResult(btn) {
+    if(btn.innerText.includes('승리')) {
+        btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
+    } else {
+        btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
+    }
+}
+
+// 엔터 키로 다음 입력창 이동
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        const targets = Array.from(document.querySelectorAll('.enter-target'));
+        const currIdx = targets.indexOf(e.target);
+        if (currIdx > -1 && currIdx < targets.length - 1) {
+            targets[currIdx + 1].focus();
+        }
+    }
+});
+
+function rebuild() {
+    const redWrap = document.getElementById('redPlayers');
+    const blueWrap = document.getElementById('bluePlayers');
+    const count = Number(document.getElementById('teamCount').value);
+    redWrap.innerHTML = ''; blueWrap.innerHTML = '';
+    for(let i=0; i<count; i++) {
+        redWrap.appendChild(createMemberCard('red'));
+        blueWrap.appendChild(createMemberCard('blue'));
+    }
+}
+
+// [핵심] Supabase로 데이터 일괄 송출 (최적화 버전)
+async function applyToSupabase() {
+    const players = [];
+    const redTeamName = document.getElementById('redNameInput').value;
+    const blueTeamName = document.getElementById('blueNameInput').value;
+    const memberCount = Number(document.getElementById('teamCount').value);
+
+    // 모든 멤버 카드 데이터 수집
+    document.querySelectorAll('.member-card').forEach(card => {
+        const name = card.querySelector('.nick-disp').value.trim();
+        const riotId = card.querySelector('.nick-riot').value.trim();
+        
+        // 방송 닉네임이 있는 경우만 수집
+        if(!name) return;
+
+        const historyItems = card.querySelectorAll('.history-item');
+        const recent = [], champs = [];
+        
+        historyItems.forEach(item => {
+            recent.push(item.querySelector('.btn-toggle').innerText.includes('승리') ? 'win' : 'lose');
+            champs.push(item.querySelector('.champ-input').value.trim());
+        });
+
+        players.push({ 
+            name, 
+            riot_id: riotId, 
+            team: card.dataset.team, 
+            wins: recent.filter(r => r === 'win').length, 
+            losses: recent.filter(r => r === 'lose').length, 
+            recent, 
+            champions: champs 
+        });
+    });
+
+    try {
+        // 1. 설정 정보 업데이트 (API Call 1)
+        const { error: setErr } = await sb.from('settings').upsert({ 
+            id: 1, 
+            red_team_name: redTeamName, 
+            blue_team_name: blueTeamName, 
+            member_count: memberCount 
+        });
+        if (setErr) throw setErr;
+
+        // 2. 기존 플레이어 삭제 (API Call 2)
+        // 안전하게 전체 삭제 후 재삽입하는 방식을 사용하여 실시간 동기화 오류 방지
+        const { error: delErr } = await sb.from('players').delete().neq('name', '___dummy___');
+        if (delErr) throw delErr;
+
+        // 3. 새 플레이어 목록 일괄 삽입 (API Call 3)
+        if (players.length > 0) {
+            const { error: insErr } = await sb.from('players').insert(players);
+            if (insErr) throw insErr;
+        }
+
+        alert('✅ 송출 화면에 데이터가 성공적으로 반영되었습니다!');
+    } catch (e) { 
+        console.error(e);
+        alert('❌ 오류 발생: ' + e.message); 
+    }
+}
+
+// 페이지 로드 시 초기 리스트 생성
+rebuild();
 </script>
 </body>
 </html>
