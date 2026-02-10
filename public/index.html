@@ -89,7 +89,6 @@ const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 챔피언 이미지 버전 16.3.1로 수정
 const LOL_VER = "16.3.1"; 
 let players = [];
 let settings = { red_team_name: '', blue_team_name: '', timer_end_at: null };
@@ -172,7 +171,14 @@ function renderMainScene(container, filterTeam) {
                         ${teamPlayers.map(p => {
                             const level = Math.min(Math.abs(p.streak), 5);
                             const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
-                            const streakText = p.streak !== 0 ? Math.abs(p.streak) + (p.streak > 0 ? '승중' : '패중') : '';
+                            
+                            // 문구 조건부 수정 (1일 때는 ~중, 2이상일 때는 연~)
+                            let streakText = '';
+                            if (p.streak > 0) {
+                                streakText = p.streak === 1 ? '1승중' : p.streak + '연승';
+                            } else if (p.streak < 0) {
+                                streakText = Math.abs(p.streak) === 1 ? '1패중' : Math.abs(p.streak) + '연패';
+                            }
 
                             return `
                             <div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${6+level*2}px ${streakCol}">
@@ -183,7 +189,7 @@ function renderMainScene(container, filterTeam) {
                                 <div class="history">
                                     ${(p.recent || []).map((r, i) => {
                                         const cName = fixChamp(p.champions[i]);
-                                        const imgSrc = cName === 'None' ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cName}.png`;
+                                        const imgSrc = cName === 'None' ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${cName}.png`;
                                         const badgeClass = (r === 'win' || r === 'lose') ? r : 'none';
                                         const badgeText = r === 'win' ? 'W' : (r === 'lose' ? 'L' : '...');
                                         return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/29.png'"><span class="wl-badge ${badgeClass}">${badgeText}</span></div>`;
