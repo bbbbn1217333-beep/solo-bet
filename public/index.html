@@ -6,38 +6,87 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-    /* 기존 스타일 전체 복구 */
-    body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
-    .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none;}
-    .scene.active{opacity:1; z-index:1; display:block;}
-    .container{display:flex; gap:60px; justify-content:center; margin-top:20px;}
-    .team h1{font-family:'Orbitron',sans-serif; font-size:50px; margin-bottom:4px;}
-    .red h1{color:#ff5c5c} .blue h1{color:#4db8ff;}
-    .summary{font-size:26px; font-weight:800; margin-bottom:12px;}
-    .summary .win{color:#ffd369; text-shadow:0 0 12px #ffd369;}
-    .summary .lose{color:#ff6b6b; text-shadow:0 0 12px #ff6b6b;}
-    .member-card{position:relative; width:260px; padding:18px 10px 12px; background:rgba(255,255,255,.06); border-radius:14px; border:2px solid rgba(120,120,120,.35); text-align:center; margin-bottom:10px;}
-    .wl-badge { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
-    .wl-badge.win { color: #ffd369; border-color: #ffd369; }
-    .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
-    .wl-badge.ing { color: #777; border-color: #444; }
+    body { margin:0; background:transparent; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden; }
+    
+    /* 장면 전환 */
+    .scene { position:absolute; inset:0; opacity:0; transition:opacity .8s ease; display:none; padding: 40px; }
+    .scene.active { opacity:1; z-index:1; display:block; }
+    
+    /* 레이아웃 */
+    .container { display:flex; gap:80px; justify-content:center; align-items: flex-start; margin-top:40px; }
+    .team { display: flex; flex-direction: column; align-items: center; }
+    
+    /* 팀 타이틀 & 종합 스코어 */
+    .team h1 { font-family:'Orbitron',sans-serif; font-size:65px; margin: 0 0 10px 0; letter-spacing: 3px; font-weight: 800; }
+    .red h1 { color:#ff5c5c; text-shadow: 0 0 20px rgba(255,92,92,0.5); }
+    .blue h1 { color:#4db8ff; text-shadow: 0 0 20px rgba(77,184,255,0.5); }
+    
+    .summary { font-size:32px; font-weight:800; margin-bottom:30px; background: rgba(0,0,0,0.4); padding: 5px 20px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); }
+    .summary .win { color:#ffd369; text-shadow:0 0 15px #ffd369; }
+    .summary .lose { color:#ff6b6b; text-shadow:0 0 15px #ff6b6b; }
+    
+    /* 멤버 카드 */
+    .member-list { display: grid; grid-template-columns: repeat(1, 1fr); gap: 15px; }
+    .member-card { 
+        position:relative; width:320px; padding:20px; 
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%); 
+        border-radius:18px; border:2px solid rgba(255,255,255,0.15); 
+        text-align:center; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    
+    .nick-name { font-size:24px; font-weight:800; margin-bottom: 8px; }
+    .nick-riot { font-size:14px; color: #aaa; margin-bottom: 12px; }
+    .member-score { font-size:18px; font-weight: 800; margin-bottom: 15px; }
+    
+    /* 챔피언 아이콘 & 배지 */
+    .champ-wrap { display:flex; justify-content:center; gap:8px; }
+    .champ-box { position:relative; width:42px; height:42px; border-radius: 8px; overflow: visible; border: 1px solid rgba(255,255,255,0.2); }
+    .champ-box img { width:100%; height:100%; border-radius:6px; object-fit: cover; }
+    
+    .wl-badge { 
+        position: absolute; bottom: -5px; right: -5px; 
+        width: 18px; height: 18px; border-radius: 4px; 
+        font-size: 11px; font-weight: 900; display: flex; 
+        align-items: center; justify-content: center; color: #fff;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .wl-badge.win { background: #ffd369; color: #000; box-shadow: 0 0 8px #ffd369; }
+    .wl-badge.lose { background: #ff4d4d; box-shadow: 0 0 8px #ff4d4d; }
+    .wl-badge.ing { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; } /* 에메랄드 */
 
-    /* 타이머 및 스코어보드 UI 복구 */
-    .score-board{margin-top:100px; text-align:center; font-family:'Orbitron',sans-serif;}
-    .timer{font-size:38px; font-weight:800; margin-bottom:20px;}
-    .timer .clock{display:inline-block; animation:shakeClock 0.8s infinite;}
-    @keyframes shakeClock{0%{transform:translateX(0);}25%{transform:translateX(-4px);}50%{transform:translateX(4px);}75%{transform:translateX(-4px);}100%{transform:translateX(0);}}
-    .vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
-    .vs .vs-text { font-weight:900; color:#fff; text-shadow:0 0 4px #fff; animation:vsGlow 1.2s infinite alternate;}
-    @keyframes vsGlow{0%{transform:rotate(-3deg);} 50%{text-shadow:0 0 14px #ffea00; transform:rotate(3deg);} 100%{transform:rotate(-3deg);}}
-    .score-wrap{display:flex; justify-content:center; gap:140px;}
-    .score{font-size:130px; text-shadow:0 0 18px #fff;}
-    .score.win { animation: glowEffect 1.2s infinite alternate; color: #ffd369; }
-    @keyframes glowEffect { 0% { transform: scale(1); text-shadow:0 0 10px #ffd369;} 100% { transform: scale(1.15); text-shadow:0 0 30px #ffd369;}}
-    .summary-small { font-size: 20px; font-weight: 800; color: #ff6b6b; margin-top: -20px; }
+    /* 스코어보드 전용 UI */
+    .score-board { margin-top:120px; text-align:center; font-family:'Orbitron',sans-serif; }
+    .timer { font-size:45px; font-weight:800; margin-bottom:40px; color: #ffd369; text-shadow: 0 0 20px rgba(255,211,105,0.4); }
+    .timer .clock { display:inline-block; animation:shakeClock 0.8s infinite; margin-right: 15px; }
+    
+    @keyframes shakeClock { 
+        0% {transform: rotate(0deg);} 25% {transform: rotate(-10deg);} 
+        50% {transform: rotate(10deg);} 75% {transform: rotate(-10deg);} 100% {transform: rotate(0deg);} 
+    }
+
+    .vs-area { display:flex; justify-content:center; align-items:center; gap:50px; margin-bottom: 40px; }
+    .vs-team-name { font-size: 60px; font-weight: 900; }
+    .vs-text { font-size:70px; font-weight:900; color:#fff; text-shadow:0 0 10px #fff; animation:vsGlow 1.2s infinite alternate; }
+    
+    @keyframes vsGlow { 
+        0% { transform:scale(0.9); text-shadow:0 0 10px #fff; } 
+        100% { transform:scale(1.1); text-shadow:0 0 30px #ffea00, 0 0 50px #ffea00; } 
+    }
+
+    .score-wrap { display:flex; justify-content:center; gap:180px; }
+    .score-box { display: flex; flex-direction: column; align-items: center; }
+    .score-num { font-size:180px; font-weight: 900; text-shadow:0 0 30px rgba(255,255,255,0.3); line-height: 1; }
+    .score-box.win .score-num { color: #ffd369; animation: winnerGlow 1.5s infinite alternate; }
+    
+    @keyframes winnerGlow {
+        0% { text-shadow: 0 0 20px #ffd369; transform: scale(1); }
+        100% { text-shadow: 0 0 50px #ffd369, 0 0 80px #ffd369; transform: scale(1.05); }
+    }
+    .sub-info { font-size: 28px; font-weight: 800; color: #ff6b6b; margin-top: 10px; }
 </style>
 </head>
 <body>
+
 <div class="scene active" id="scene-all"></div>
 <div class="scene" id="scene-red"></div>
 <div class="scene" id="scene-blue"></div>
@@ -48,94 +97,144 @@ const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let players = [], settings = { red_team_name: 'RED', blue_team_name: 'BLUE' };
-let seconds = 12 * 60 + 34; // 기본값
+let players = [], settings = {};
+let timeLeft = "";
+
+// 챔피언 이미지 깨짐 방지 (최신 버전 자동 체크가 안 될 경우 고정 버전 사용)
+const LOL_VER = "16.3.1"; 
 
 async function loadData() {
     const { data: sData } = await sb.from('settings').select('*').single();
-    const { data: pData } = await sb.from('players').select('*');
-    if(sData) {
-        settings = sData;
-        // 관리자 패널에서 반영 누를 때마다 타이머를 초기화하고 싶다면 여기서 세팅
-    }
+    const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+    
+    if(sData) settings = sData;
     if(pData) players = pData;
+
     renderAll();
 }
 
 function renderAll() {
-    renderScene(document.getElementById('scene-all'));
-    renderScene(document.getElementById('scene-red'), 'red');
-    renderScene(document.getElementById('scene-blue'), 'blue');
-    renderScoreBoard();
+    renderMainScene(document.getElementById('scene-all'), null);
+    renderMainScene(document.getElementById('scene-red'), 'red');
+    renderMainScene(document.getElementById('scene-blue'), 'blue');
+    renderScoreScene();
 }
 
-function renderScene(container, team = null) {
-    const list = team ? players.filter(p => p.team === team) : players;
-    container.innerHTML = `<div class="container">${['red','blue'].map(t => {
-        if(team && team !== t) return '';
-        const arr = players.filter(p => p.team === t);
-        const win = arr.reduce((a, b) => a + b.wins, 0);
-        const lose = arr.reduce((a, b) => a + b.losses, 0);
-        return `<div class="team ${t}">
-            <h1>${(t === 'red' ? settings.red_team_name : settings.blue_team_name).toUpperCase()}</h1>
-            <div class="summary"><span class="win">😁 ${win}승</span> / <span class="lose">😡 ${lose}패</span></div>
-            <div class="members">${arr.map(p => `
-                <div class="member-card">
-                    <div style="font-size:18px; font-weight:800;">${p.name}</div>
-                    <div style="font-size:14px; margin:5px 0;"><span style="color:#ffd369">😁 ${p.wins}승</span> / <span style="color:#ff6b6b">😡 ${p.losses}패</span></div>
-                    <div style="display:flex; justify-content:center; gap:5px;">${p.recent.map((r, i) => `
-                        <div style="position:relative; width:22px; height:22px;">
-                            <img src="https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/${p.champions[i]}.png" style="width:100%; border-radius:4px;">
-                            <span class="wl-badge ${r}">${r === 'win' ? 'W' : r === 'lose' ? 'L' : '...'}</span>
-                        </div>`).join('')}</div>
-                </div>`).join('')}</div>
+function renderMainScene(container, filterTeam) {
+    const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
+    
+    container.innerHTML = `
+        <div class="container">
+            ${teams.map(t => {
+                const teamPlayers = players.filter(p => p.team === t);
+                const totalWins = teamPlayers.reduce((sum, p) => sum + (p.wins || 0), 0);
+                const totalLosses = teamPlayers.reduce((sum, p) => sum + (p.losses || 0), 0);
+                const teamName = t === 'red' ? settings.red_team_name : settings.blue_team_name;
+                
+                return `
+                <div class="team ${t}">
+                    <h1>${teamName}</h1>
+                    <div class="summary">
+                        <span class="win">😁 ${totalWins}승</span> / <span class="lose">😡 ${totalLosses}패</span>
+                    </div>
+                    <div class="member-list">
+                        ${teamPlayers.map(p => `
+                            <div class="member-card">
+                                <div class="nick-name">${p.name}</div>
+                                <div class="nick-riot">${p.riot_id || ''}</div>
+                                <div class="member-score">
+                                    <span style="color:#ffd369">W ${p.wins}</span> / <span style="color:#ff6b6b">L ${p.losses}</span>
+                                </div>
+                                <div class="champ-wrap">
+                                    ${(p.recent || []).map((res, i) => {
+                                        const champ = p.champions[i] === 'None' ? 'Blank' : p.champions[i];
+                                        const badgeClass = res === 'win' ? 'win' : res === 'lose' ? 'lose' : 'ing';
+                                        const badgeText = res === 'win' ? 'W' : res === 'lose' ? 'L' : '...';
+                                        
+                                        // 챔피언 이름에 공백이 있을 경우 처리
+                                        const champName = champ.replace(/\s+/g, '');
+                                        const imgSrc = champ === 'Blank' 
+                                            ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' 
+                                            : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${champName}.png`;
+
+                                        return `
+                                        <div class="champ-box">
+                                            <img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'">
+                                            <span class="wl-badge ${badgeClass}">${badgeText}</span>
+                                        </div>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }).join('')}
         </div>`;
-    }).join('')}</div>`;
 }
 
-function renderScoreBoard() {
-    const rW = players.filter(p=>p.team==='red').reduce((a,b)=>a+b.wins,0);
-    const rL = players.filter(p=>p.team==='red').reduce((a,b)=>a+b.losses,0);
-    const bW = players.filter(p=>p.team==='blue').reduce((a,b)=>a+b.wins,0);
-    const bL = players.filter(p=>p.team==='blue').reduce((a,b)=>a+b.losses,0);
+function renderScoreScene() {
+    const rW = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.wins||0),0);
+    const rL = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.losses||0),0);
+    const bW = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.wins||0),0);
+    const bL = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.losses||0),0);
 
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
-            <div class="timer"><span class="clock">⏰</span> <span class="time-text">00:00</span></div>
-            <div class="vs">
-                <span style="color:#ff5c5c">${settings.red_team_name}</span>
+            <div class="timer"><span class="clock">⏰</span> <span id="timer-text">${timeLeft}</span></div>
+            <div class="vs-area">
+                <span class="vs-team-name" style="color:#ff5c5c">${settings.red_team_name}</span>
                 <span class="vs-text">VS</span>
-                <span style="color:#4db8ff">${settings.blue_team_name}</span>
+                <span class="vs-team-name" style="color:#4db8ff">${settings.blue_team_name}</span>
             </div>
             <div class="score-wrap">
-                <div class="score ${rW > bW ? 'win' : ''}">${rW}<div class="summary-small">패배 : ${rL}</div></div>
-                <div class="score ${bW > rW ? 'win' : ''}">${bW}<div class="summary-small">패배 : ${bL}</div></div>
+                <div class="score-box ${rW > bW ? 'win' : ''}">
+                    <div class="score-num">${rW}</div>
+                    <div class="sub-info">LOSE : ${rL}</div>
+                </div>
+                <div class="score-box ${bW > rW ? 'win' : ''}">
+                    <div class="score-num">${bW}</div>
+                    <div class="sub-info">LOSE : ${bL}</div>
+                </div>
             </div>
         </div>`;
 }
 
-// 타이머 작동 로직
-setInterval(() => {
-    if(seconds > 0) seconds--;
-    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-    const s = String(seconds % 60).padStart(2, '0');
-    const timeText = document.querySelector('.time-text');
-    if(timeText) timeText.textContent = `남은시간 : ${m}:${s}`;
-}, 1000);
+// 타이머 실시간 계산
+function updateTimer() {
+    if (!settings.timer_end_at) {
+        timeLeft = "시간 미설정";
+        return;
+    }
+    const end = new Date(settings.timer_end_at).getTime();
+    const now = new Date().getTime();
+    const diff = end - now;
 
-sb.channel('db').on('postgres_changes',{event:'*',schema:'public',table:'settings'},() => {
-    // 세팅 변경 시 타이머 재설정 (관리자 패널 로직과 연동)
-    loadData();
-    // 실제 운영 시에는 DB의 updated_at을 보고 시간을 동기화하는 로직이 필요하나, 일단 로컬 초기값 유지
-}).on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
+    if (diff <= 0) {
+        timeLeft = "내기 종료";
+    } else {
+        const h = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
+        const m = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+        const s = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
+        timeLeft = `남은시간 : ${h}:${m}:${s}`;
+    }
+    const el = document.getElementById('timer-text');
+    if(el) el.textContent = timeLeft;
+}
 
-let idx = 0;
+setInterval(updateTimer, 1000);
+
+// 실시간 DB 구독
+sb.channel('any').on('postgres_changes',{event:'*',schema:'public',table:'settings'},loadData)
+                .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
+
+// 장면 전환 루프
+let sceneIdx = 0;
 setInterval(() => {
     const scenes = document.querySelectorAll('.scene');
-    scenes[idx].classList.remove('active');
-    idx = (idx + 1) % 4;
-    scenes[idx].classList.add('active');
-}, 8000);
+    scenes.forEach(s => s.classList.remove('active'));
+    sceneIdx = (sceneIdx + 1) % scenes.length;
+    scenes[sceneIdx].classList.add('active');
+}, 10000); // 10초마다 전환
 
 loadData();
 </script>
