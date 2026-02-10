@@ -8,7 +8,14 @@
 
 <style>
 /* --- 기존 UI 스타일 100% 복구 --- */
-body{margin:0; background:transparent; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
+/* 투명 배경을 검은색으로 고정 */
+body { 
+    margin: 0; 
+    background: #000; /* transparent에서 #000으로 변경 */
+    color: #fff; 
+    font-family: 'Pretendard', sans-serif; 
+    overflow: hidden; 
+}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
 
