@@ -74,6 +74,9 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
     100% { transform: scale(1.1); text-shadow:0 0 60px #ffffff, 0 0 100px #ffffff; } 
 }
 
+/* [패배 시] 빨간색 표시 */
+.score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }
+
 .sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
 </style>
 </head>
@@ -92,7 +95,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const LOL_VER = "16.3.1"; 
 const CHAMP_DATA_URL = `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/data/ko_KR/champion.json`;
 
-let champMap = {}; // 동적으로 생성될 맵
+let champMap = {}; 
 let players = [];
 let settings = {};
 let timeLeftText = "계산 중...";
@@ -104,39 +107,30 @@ async function initChampMap() {
         const json = await res.json();
         const data = json.data;
         
-        // 라이엇 데이터 매핑
         Object.values(data).forEach(champ => {
             champMap[champ.name] = champ.id;
         });
 
-        // 수동 예외 및 별명 추가 (JSON에 없는 줄임말 등)
+        // 수동 예외 및 별명 보강 (자헨 등)
         const extras = {
             "자헨": "Zaahen", "트페": "TwistedFate", "리신": "LeeSin", "마이": "MasterYi",
             "미포": "MissFortune", "문도": "DrMundo", "아솔": "AurelionSol", "자르반": "JarvanIV",
             "신짜오": "XinZhao", "탐켄치": "TahmKench", "피들": "FiddleSticks", "벨코즈": "Velkoz"
         };
         Object.assign(champMap, extras);
-        
-        console.log("Champion Map Loaded:", Object.keys(champMap).length, "champs");
-    } catch (e) {
-        console.error("ChampMap Load Error:", e);
-    }
+    } catch (e) { console.error("ChampMap Error:", e); }
 }
 
 // 2. 챔피언 이름 보정 함수
 const fixChamp = c => {
     if(!c || c === 'None' || c === 'Blank' || c === '') return 'None';
     let raw = c.trim();
-    
-    // 맵에 있으면 해당 ID 반환
     if (champMap[raw]) return champMap[raw];
     
-    // 영문 입력 대응 (ID 대소문자 무시 검색)
     const lower = raw.toLowerCase();
     const foundId = Object.values(champMap).find(id => id.toLowerCase() === lower);
     if (foundId) return foundId;
 
-    // 그 외는 첫글자 대문자 처리
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
@@ -251,9 +245,17 @@ function renderScoreScene() {
     const bName = settings.blue_team_name || 'BLUE TEAM';
 
     let rClass = '', bClass = '';
-    if (rW === bW) { rClass = bClass = 'draw'; } 
-    else if (rW > bW) { rClass = 'winner'; } 
-    else { bClass = 'winner'; }
+    
+    // 승패/무승부에 따른 클래스 분기
+    if (rW === bW) {
+        rClass = bClass = 'draw';
+    } else if (rW > bW) {
+        rClass = 'winner';
+        bClass = 'loser'; 
+    } else {
+        rClass = 'loser'; 
+        bClass = 'winner';
+    }
 
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
@@ -277,7 +279,6 @@ function renderScoreScene() {
         </div>`;
 }
 
-// 실행 순서: 맵 초기화 -> 데이터 로드
 async function start() {
     await initChampMap();
     await loadData();
