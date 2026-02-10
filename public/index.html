@@ -23,10 +23,16 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 
 /* 멤버 카드 */
 .members{display:flex; flex-direction:column; gap:10px;}
-.member-card{position:relative; width:260px; padding:18px 10px 12px; background:rgba(255,255,255,.06); border-radius:14px; border:2px solid rgba(120,120,120,.35); text-align:center; overflow:visible;}
+.member-card{position:relative; width:280px; padding:18px 10px 12px; background:rgba(255,255,255,.06); border-radius:14px; border:2px solid rgba(120,120,120,.35); text-align:center; overflow:visible;}
+
+/* 닉네임 라인 (폰트 유지) */
+.name-line{display:flex; justify-content:center; align-items:baseline; gap:6px; margin-bottom:4px;}
 .name{font-family:'Orbitron',sans-serif; font-size:18px; font-weight:800;}
-.streak{font-size:16px; font-weight:800; margin-left:6px;}
+.tier{font-size:13px; font-weight:800; color:#aaa; font-family:'Pretendard',sans-serif;} /* 티어도 기존 폰트 */
+.streak{font-size:16px; font-weight:800; margin-left:2px;}
 .streak.win{color:#ffd369} .streak.lose{color:#ff6b6b;}
+
+/* 전적 숫자 폰트 (기존 Pretendard 유지) */
 .record{font-size:15px; font-weight:800; margin-bottom:8px;}
 .record .win{color:#ffd369;} .record .lose{color:#ff6b6b;}
 
@@ -59,23 +65,11 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .score-wrap{display:flex; justify-content:center; gap:140px;}
 .score-box{display:flex; flex-direction:column; align-items:center;}
 .score-num{font-size:150px; font-weight:900; line-height:1; color:#fff;}
-
-/* [승리 시] 황금색 글로우 */
 .score-box.winner .score-num { color: #ffd369; animation: glowGold 1.2s infinite alternate; }
-@keyframes glowGold { 
-    0% { transform: scale(1); text-shadow:0 0 20px #ffd369; } 
-    100% { transform: scale(1.1); text-shadow:0 0 60px #ffd369, 0 0 100px #ffd369; } 
-}
-
-/* [동점 시] 하얀색 글로우 */
+@keyframes glowGold { 0% { transform: scale(1); text-shadow:0 0 20px #ffd369; } 100% { transform: scale(1.1); text-shadow:0 0 60px #ffd369, 0 0 100px #ffd369; } }
 .score-box.draw .score-num { color: #ffffff; animation: glowWhite 1.2s infinite alternate; }
-@keyframes glowWhite { 
-    0% { transform: scale(1); text-shadow:0 0 20px #ffffff; } 
-    100% { transform: scale(1.1); text-shadow:0 0 60px #ffffff, 0 0 100px #ffffff; } 
-}
-
-/* [패배 시] 빨간색 표시 */
-.score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }
+@keyframes glowWhite { 0% { transform: scale(1); text-shadow:0 0 20px #ffffff; } 100% { transform: scale(1.1); text-shadow:0 0 60px #ffffff, 0 0 100px #ffffff; } }
+.score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); } /* 지고있는팀 빨간색 */
 
 .sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
 </style>
@@ -100,37 +94,24 @@ let players = [];
 let settings = {};
 let timeLeftText = "계산 중...";
 
-// 1. Data Dragon JSON 기반으로 맵 생성
 async function initChampMap() {
     try {
         const res = await fetch(CHAMP_DATA_URL);
         const json = await res.json();
         const data = json.data;
-        
-        Object.values(data).forEach(champ => {
-            champMap[champ.name] = champ.id;
-        });
-
-        // 수동 예외 및 별명 보강 (자헨 등)
-        const extras = {
-            "자헨": "Zaahen", "트페": "TwistedFate", "리신": "LeeSin", "마이": "MasterYi",
-            "미포": "MissFortune", "문도": "DrMundo", "아솔": "AurelionSol", "자르반": "JarvanIV",
-            "신짜오": "XinZhao", "탐켄치": "TahmKench", "피들": "FiddleSticks", "벨코즈": "Velkoz"
-        };
+        Object.values(data).forEach(champ => { champMap[champ.name] = champ.id; });
+        const extras = { "자헨": "Zaahen", "트페": "TwistedFate", "리신": "LeeSin", "마이": "MasterYi", "미포": "MissFortune", "문도": "DrMundo", "아솔": "AurelionSol", "자르반": "JarvanIV", "신짜오": "XinZhao", "탐켄치": "TahmKench", "피들": "FiddleSticks", "벨코즈": "Velkoz" };
         Object.assign(champMap, extras);
     } catch (e) { console.error("ChampMap Error:", e); }
 }
 
-// 2. 챔피언 이름 보정 함수
 const fixChamp = c => {
     if(!c || c === 'None' || c === 'Blank' || c === '') return 'None';
     let raw = c.trim();
     if (champMap[raw]) return champMap[raw];
-    
     const lower = raw.toLowerCase();
     const foundId = Object.values(champMap).find(id => id.toLowerCase() === lower);
     if (foundId) return foundId;
-
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
@@ -206,17 +187,20 @@ function renderMainScene(container, filterTeam) {
                             const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                             
                             let streakText = '';
-                            if (p.streak > 0) {
-                                streakText = p.streak === 1 ? '1승중' : p.streak + '연승';
-                            } else if (p.streak < 0) {
-                                streakText = Math.abs(p.streak) === 1 ? '1패중' : Math.abs(p.streak) + '연패';
-                            }
+                            if (p.streak > 0) { streakText = p.streak === 1 ? '1승중' : p.streak + '연승'; }
+                            else if (p.streak < 0) { streakText = Math.abs(p.streak) === 1 ? '1패중' : Math.abs(p.streak) + '연패'; }
+
+                            const tierText = p.tier ? `[${p.tier}]` : '';
 
                             return `
                             <div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${6+level*2}px ${streakCol}">
                                 ${p.streak >= 3 ? '<div class="badge crown">👑</div>' : ''}
                                 ${p.streak <= -3 ? '<div class="badge skull">💀</div>' : ''}
-                                <div class="name">${p.name}<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${streakText}</span></div>
+                                <div class="name-line">
+                                    <span class="name">${p.name}</span>
+                                    <span class="tier">${tierText}</span>
+                                    <span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${streakText}</span>
+                                </div>
                                 <div class="record"><span class="win">😁 ${p.wins}승</span> / <span class="lose">😡 ${p.losses}패</span></div>
                                 <div class="history">
                                     ${(p.recent || []).map((r, i) => {
@@ -240,23 +224,10 @@ function renderScoreScene() {
     const rL = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.losses || 0), 0);
     const bW = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.wins || 0), 0);
     const bL = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.losses || 0), 0);
-
     const rName = settings.red_team_name || 'RED TEAM';
     const bName = settings.blue_team_name || 'BLUE TEAM';
-
     let rClass = '', bClass = '';
-    
-    // 승패/무승부에 따른 클래스 분기
-    if (rW === bW) {
-        rClass = bClass = 'draw';
-    } else if (rW > bW) {
-        rClass = 'winner';
-        bClass = 'loser'; 
-    } else {
-        rClass = 'loser'; 
-        bClass = 'winner';
-    }
-
+    if (rW === bW) { rClass = bClass = 'draw'; } else if (rW > bW) { rClass = 'winner'; bClass = 'loser'; } else { rClass = 'loser'; bClass = 'winner'; }
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
             <div class="timer-label">팀 종합 스코어</div>
@@ -279,24 +250,13 @@ function renderScoreScene() {
         </div>`;
 }
 
-async function start() {
-    await initChampMap();
-    await loadData();
-    setInterval(updateTimer, 1000);
-}
-
+async function start() { await initChampMap(); await loadData(); setInterval(updateTimer, 1000); }
 start();
-
-sb.channel('any').on('postgres_changes',{event:'*',schema:'public',table:'settings'},loadData)
-                .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
-
+sb.channel('any').on('postgres_changes',{event:'*',schema:'public',table:'settings'},loadData).on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
 let sIdx = 0;
 setInterval(() => {
-    const scenes = document.querySelectorAll('.scene');
-    if(scenes.length === 0) return;
-    scenes.forEach(s => s.classList.remove('active'));
-    sIdx = (sIdx + 1) % scenes.length;
-    scenes[sIdx].classList.add('active');
+    const scenes = document.querySelectorAll('.scene'); if(scenes.length === 0) return;
+    scenes.forEach(s => s.classList.remove('active')); sIdx = (sIdx + 1) % scenes.length; scenes[sIdx].classList.add('active');
 }, 10000);
 </script>
 </body>
