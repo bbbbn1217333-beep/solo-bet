@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이라네 솔랭 내기 시트지 - 실시간 송출</title>
+<title>이라네 솔랭 내기 시트지</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&family=Inter:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -33,7 +33,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 /* 챔피언 및 전적 */
 .history{display:flex; justify-content:center; gap:6px; margin-top:10px;}
 .champ{position:relative; width:22px; height:22px;}
-.champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2);}
+.champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
 .wl-badge { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
@@ -89,15 +89,17 @@ const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const LOL_VER = "16.3.1";
+// 챔피언 이미지 버전 16.3.1로 수정
+const LOL_VER = "16.3.1"; 
 let players = [];
 let settings = { red_team_name: '', blue_team_name: '', timer_end_at: null };
 let timeLeftText = "시간 계산 중...";
 
 const fixChamp = c => {
     if(!c || c === 'None' || c === 'Blank') return 'None';
-    const names = { 'KaiSa': 'Kaisa', 'LeSin': 'LeeSin', 'KhaZix': 'Khazix' };
-    return names[c] || c;
+    let name = c.charAt(0).toUpperCase() + c.slice(1);
+    const names = { 'Kaisa': 'KaiSa', 'Leesin': 'LeeSin', 'Khazix': 'KhaZix', 'Fiddlesticks': 'FiddleSticks' };
+    return names[name] || name;
 };
 
 async function loadData() {
@@ -133,7 +135,7 @@ function updateTimer() {
         const now = new Date().getTime();
         const diff = end - now;
         if (diff <= 0) {
-            timeLeftText = "내기 종료";
+            timeLeftText = "솔랭 내기 종료!!!";
         } else {
             const h = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
             const m = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
@@ -170,11 +172,13 @@ function renderMainScene(container, filterTeam) {
                         ${teamPlayers.map(p => {
                             const level = Math.min(Math.abs(p.streak), 5);
                             const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
+                            const streakText = p.streak !== 0 ? Math.abs(p.streak) + (p.streak > 0 ? '승중' : '패중') : '';
+
                             return `
                             <div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${6+level*2}px ${streakCol}">
                                 ${p.streak >= 3 ? '<div class="badge crown">👑</div>' : ''}
                                 ${p.streak <= -3 ? '<div class="badge skull">💀</div>' : ''}
-                                <div class="name">${p.name}<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${p.streak !== 0 ? Math.abs(p.streak)+(p.streak>0?'연승':'연패') : ''}</span></div>
+                                <div class="name">${p.name}<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${streakText}</span></div>
                                 <div class="record"><span class="win">😁 ${p.wins}승</span> / <span class="lose">😡 ${p.losses}패</span></div>
                                 <div class="history">
                                     ${(p.recent || []).map((r, i) => {
@@ -182,7 +186,7 @@ function renderMainScene(container, filterTeam) {
                                         const imgSrc = cName === 'None' ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cName}.png`;
                                         const badgeClass = (r === 'win' || r === 'lose') ? r : 'none';
                                         const badgeText = r === 'win' ? 'W' : (r === 'lose' ? 'L' : '...');
-                                        return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><span class="wl-badge ${badgeClass}">${badgeText}</span></div>`;
+                                        return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/29.png'"><span class="wl-badge ${badgeClass}">${badgeText}</span></div>`;
                                     }).join('')}
                                 </div>
                             </div>`;
@@ -202,14 +206,13 @@ function renderScoreScene() {
     const rName = settings.red_team_name || 'RED TEAM';
     const bName = settings.blue_team_name || 'BLUE TEAM';
 
-    // 동점/승리 상태에 따른 클래스 부여
     let rClass = '', bClass = '';
     if (rW === bW) {
-        rClass = bClass = 'draw'; // 동점일 때 하얀색
+        rClass = bClass = 'draw';
     } else if (rW > bW) {
-        rClass = 'winner'; // 레드팀 승리 시 황금색
+        rClass = 'winner';
     } else {
-        bClass = 'winner'; // 블루팀 승리 시 황금색
+        bClass = 'winner';
     }
 
     document.getElementById('scene-score').innerHTML = `
