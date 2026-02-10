@@ -37,6 +37,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wl-badge { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
+.wl-badge.none { color: #888; border-color: #444; } /* 0승 0패용 */
 
 /* 왕관 & 해골 이펙트 */
 .badge{position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:22px; z-index:3;}
@@ -48,6 +49,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 
 /* 스코어보드 (4번째 컷신) */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
+.timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369;}
 .vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
 .vs .team-name { font-weight: 800; }
@@ -56,7 +58,6 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 
 .score-wrap{display:flex; justify-content:center; gap:140px;}
 .score-box{display:flex; flex-direction:column; align-items:center;}
-/* 숫자 부분만 글로우 효과 적용 */
 .score-num{font-size:150px; font-weight:900; line-height:1; color:#fff;}
 .score-box.winner .score-num { color: #ffd369; animation: glowNum 1.2s infinite alternate; }
 @keyframes glowNum { 
@@ -79,7 +80,7 @@ const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const LOL_VER = "16.3.1";
-let players = [], settings = {};
+let players = [], settings = { red_team_name: '이라팀', blue_team_name: '임아니팀' };
 let timeLeftText = "시간 계산 중...";
 
 const fixChamp = c => {
@@ -88,17 +89,19 @@ const fixChamp = c => {
     return names[c] || c;
 };
 
-// 데이터 로드
+// 데이터 로드 (관리자 패널 연동 핵심)
 async function loadData() {
     const { data: sData } = await sb.from('settings').select('*').single();
     const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
     
-    if (sData) settings = sData;
+    if (sData) {
+        settings = sData; // 관리자 패널의 팀명과 타이머 시간 반영
+    }
+    
     if (pData) {
         players = pData.map(p => {
             let streak = 0;
             const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
-            // 전적이 있을 때만 연승/연패 계산 (0승 0패 시 0으로 처리)
             if (recent.length > 0) {
                 const lastResult = recent[0];
                 for(let res of recent) {
@@ -113,9 +116,9 @@ async function loadData() {
     renderAll();
 }
 
-// 타이머 업데이트 함수
+// 타이머 업데이트 (남은 시간 연동)
 function updateTimer() {
-    if (!settings.timer_end_at) {
+    if (!settings || !settings.timer_end_at) {
         timeLeftText = "시간 미설정";
     } else {
         const end = new Date(settings.timer_end_at).getTime();
@@ -150,11 +153,11 @@ function renderMainScene(container, filterTeam) {
                 const teamPlayers = players.filter(p => p.team === t);
                 const tW = teamPlayers.reduce((a, b) => a + (b.wins || 0), 0);
                 const tL = teamPlayers.reduce((a, b) => a + (b.losses || 0), 0);
-                const teamName = t === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
+                const teamName = t === 'red' ? (settings.red_team_name) : (settings.blue_team_name);
                 
                 return `
                 <div class="team ${t}">
-                    <h1>${teamName.toUpperCase()}</h1>
+                    <h1>${(teamName || '').toUpperCase()}</h1>
                     <div class="summary"><span class="win">😁 ${tW}승</span> / <span class="lose">😡 ${tL}패</span></div>
                     <div class="members">
                         ${teamPlayers.map(p => {
@@ -171,7 +174,10 @@ function renderMainScene(container, filterTeam) {
                                     ${(p.recent || []).map((r, i) => {
                                         const cName = fixChamp(p.champions[i]);
                                         const imgSrc = cName === 'None' ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cName}.png`;
-                                        return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><span class="wl-badge ${r}">${r==='win'?'W':'L'}</span></div>`;
+                                        // 승패 데이터 없을 때 처리
+                                        const badgeClass = (r === 'win' || r === 'lose') ? r : 'none';
+                                        const badgeText = r === 'win' ? 'W' : (r === 'lose' ? 'L' : '...');
+                                        return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><span class="wl-badge ${badgeClass}">${badgeText}</span></div>`;
                                     }).join('')}
                                 </div>
                             </div>`;
@@ -190,6 +196,7 @@ function renderScoreScene() {
 
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
+            <div class="timer-label">팀 종합 스코어</div>
             <div class="timer"><span class="clock">⏰</span> <span id="timer-display">${timeLeftText}</span></div>
             <div class="vs">
                 <span class="team-name" style="color:#ff5c5c">${(settings.red_team_name || 'RED').toUpperCase()}</span>
@@ -199,23 +206,22 @@ function renderScoreScene() {
             <div class="score-wrap">
                 <div class="score-box ${rW > bW ? 'winner' : ''}">
                     <div class="score-num">${rW}</div>
-                    <div class="sub-info">LOSE : ${rL}</div>
+                    <div class="sub-info">패배 : ${rL}</div>
                 </div>
                 <div class="score-box ${bW > rW ? 'winner' : ''}">
                     <div class="score-num">${bW}</div>
-                    <div class="sub-info">LOSE : ${bL}</div>
+                    <div class="sub-info">패배 : ${bL}</div>
                 </div>
             </div>
         </div>`;
 }
 
-// 초기 로드 및 구독
+// 실시간 감시 및 초기화
 loadData();
 setInterval(updateTimer, 1000);
 sb.channel('any').on('postgres_changes',{event:'*',schema:'public',table:'settings'},loadData)
                 .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
 
-// 장면 전환
 let sIdx = 0;
 setInterval(() => {
     const scenes = document.querySelectorAll('.scene');
