@@ -46,7 +46,7 @@
     .blue-text { color: var(--blue); text-shadow: var(--neon-blue); }
 
     .member-list { display:flex; flex-direction:column; gap:20px; max-height:800px; overflow-y:auto; padding: 10px; }
-    .member-card { background:#1e1e1e; border-radius:12px; padding:20px; border: 1.5px solid #333; transition: 0.3s; }
+    .member-card { background:#1e1e1e; border-radius:12px; padding:20px; border: 1.5px solid #333; }
     .team-box.red .member-card { border-color: var(--red); box-shadow: var(--neon-red); }
     .team-box.blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
 
@@ -56,37 +56,29 @@
     .team-box.red .name-row input { border: 1px solid var(--red); box-shadow: 0 0 5px rgba(255, 59, 59, 0.4); }
     .team-box.blue .name-row input { border: 1px solid var(--blue); box-shadow: 0 0 5px rgba(77, 184, 255, 0.4); }
 
-    /* 히스토리 에디터 (챔피언 구역) - 기존 테두리 UI 복구 */
-    .history-editor { 
-        display:grid; 
-        grid-template-columns: repeat(5, 1fr); 
-        gap:10px; 
-        background:#0c0c0c; 
-        padding:15px; 
-        border-radius:10px; 
-        border: 1px solid #333; /* 기존의 어두운 테두리 복구 */
-    }
+    /* 히스토리 에디터 (챔피언 구역) */
+    .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:15px; border-radius:10px; border: 1px solid #333; }
+    
+    /* 개별 판수 박스 불빛 복구 */
     .history-item { 
-        display:flex; 
-        flex-direction:column; 
-        gap:6px; 
-        align-items:center; 
-        padding:10px 5px; 
-        background:#1e1e1e; 
-        border-radius:8px; 
-        border:1px solid #333; 
+        display:flex; flex-direction:column; gap:6px; align-items:center; padding:10px 5px; 
+        background:#1e1e1e; border-radius:8px; 
+        border:1px solid rgba(255, 211, 105, 0.3); /* 금색 테두리 추가 */
+        box-shadow: 0 0 5px rgba(255, 211, 105, 0.1); 
     }
     .history-item span { font-size:13px; color: var(--gold); font-weight:900; text-shadow: 0 0 5px rgba(255, 211, 105, 0.5); }
 
+    /* 챔피언 입력창 상시 불빛 복구 */
     .champ-input { 
         width:92%; background:#000; border: 1px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:11.5px; font-weight: 600;
-        box-shadow: 0 0 8px rgba(255, 211, 105, 0.2);
+        box-shadow: var(--neon-gold); /* 상시 불빛 적용 */
     }
+    .champ-input:focus { outline:none; transform: scale(1.05); transition: 0.2s; }
     
     /* 버튼 */
     .btn-toggle { width:100%; padding:8px 0; font-size:12px; font-weight:900; border:none; border-radius:4px; cursor:pointer; }
-    .btn-toggle.win { background: var(--gold); color: #000; }
-    .btn-toggle.lose { background: var(--red); color: #fff; }
+    .btn-toggle.win { background: var(--gold); color: #000; box-shadow: var(--neon-gold); }
+    .btn-toggle.lose { background: var(--red); color: #fff; box-shadow: var(--neon-red); }
     .btn-toggle.ing { background: var(--ing); color: #ccc; }
 
     .btn-apply { 
@@ -120,9 +112,9 @@
         
         <div class="menu-desc">
             <strong>📋 관리 매뉴얼</strong><br>
-            • <strong>종료 시점:</strong> 종료 시점을 정하면 송출 화면에 실시간 카운트다운이 표시됩니다.<br>
-            • <strong>승패 토글:</strong> 클릭 시 <strong>[승리 → 패배 → 진행]</strong> 순으로 바뀝니다.<br>
-            • <strong>진행 상태:</strong> '🕒 진행' 상태는 승률 계산에 포함되지 않습니다.
+            • <strong>종료 시점:</strong> 종료 시각을 설정하면 송출 화면 카운트다운에 반영됩니다.<br>
+            • <strong>승패 토글:</strong> 클릭 시 <strong>[승리 → 패배 → 진행]</strong> 순으로 로테이션됩니다.<br>
+            • <strong>UI 복구:</strong> 챔피언 입력창과 각 판수별 박스의 금색 네온 UI가 복구되었습니다.
         </div>
     </div>
 
@@ -145,7 +137,6 @@ const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 현재시간 기준 1시간 뒤 자동 세팅
 const now = new Date();
 now.setHours(now.getHours() + 1);
 now.setMinutes(0);
@@ -241,7 +232,7 @@ async function applyToSupabase() {
         await sb.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         if(players.length > 0) await sb.from('players').insert(players);
         
-        alert('✅ 데이터 송출이 완료되었습니다!');
+        alert('✅ 모든 데이터와 UI 설정이 송출 화면에 반영되었습니다!');
     } catch (e) { alert('❌ 오류: ' + e.message); }
 }
 
