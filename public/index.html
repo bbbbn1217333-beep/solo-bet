@@ -81,8 +81,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const LOL_VER = "16.3.1";
 let players = [];
-// 기본값을 설정해두고 데이터 로드 시 덮어씁니다.
-let settings = { red_team_name: '이라팀', blue_team_name: '임아니팀', timer_end_at: null };
+let settings = { red_team_name: '이라팀', blue_team_name: '상대팀', timer_end_at: null };
 let timeLeftText = "시간 계산 중...";
 
 const fixChamp = c => {
@@ -91,38 +90,38 @@ const fixChamp = c => {
     return names[c] || c;
 };
 
-// 데이터 로드 핵심 함수
+// 데이터 로드 함수 (개별 호출 및 에러 핸들링 강화)
 async function loadData() {
-    // 1. 설정 데이터(팀명, 타이머) 가져오기
-    const { data: sData, error: sError } = await sb.from('settings').select('*').limit(1).single();
-    if (!sError && sData) {
-        settings = sData;
-    }
+    try {
+        // 1. 설정 데이터 가져오기 (single() 대신 select().limit(1) 사용하여 안정성 확보)
+        const { data: sData, error: sError } = await sb.from('settings').select('*');
+        if (!sError && sData && sData.length > 0) {
+            settings = sData[0]; // 첫 번째 행 사용
+        }
 
-    // 2. 플레이어 데이터 가져오기
-    const { data: pData, error: pError } = await sb.from('players').select('*').order('created_at', { ascending: true });
-    if (!pError && pData) {
-        players = pData.map(p => {
-            let streak = 0;
-            const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
-            if (recent.length > 0) {
-                const lastResult = recent[0];
-                for(let res of recent) {
-                    if(res === lastResult) streak++;
-                    else break;
+        // 2. 플레이어 데이터 가져오기
+        const { data: pData, error: pError } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        if (!pError && pData) {
+            players = pData.map(p => {
+                let streak = 0;
+                const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
+                if (recent.length > 0) {
+                    const lastResult = recent[0];
+                    for(let res of recent) {
+                        if(res === lastResult) streak++;
+                        else break;
+                    }
+                    streak = lastResult === 'win' ? streak : -streak;
                 }
-                streak = lastResult === 'win' ? streak : -streak;
-            }
-            return { ...p, streak };
-        });
-    }
-
-    // 데이터 로드 후 즉시 렌더링
-    renderAll();
+                return { ...p, streak };
+            });
+        }
+        renderAll();
+    } catch (e) { console.error("Update Error:", e); }
 }
 
 function updateTimer() {
-    if (!settings.timer_end_at) {
+    if (!settings || !settings.timer_end_at) {
         timeLeftText = "시간 미설정";
     } else {
         const end = new Date(settings.timer_end_at).getTime();
@@ -157,8 +156,8 @@ function renderMainScene(container, filterTeam) {
                 const teamPlayers = players.filter(p => p.team === t);
                 const tW = teamPlayers.reduce((a, b) => a + (b.wins || 0), 0);
                 const tL = teamPlayers.reduce((a, b) => a + (b.losses || 0), 0);
-                // settings에 데이터가 있으면 쓰고 없으면 기본값 사용
-                const teamName = t === 'red' ? (settings.red_team_name || '이라팀') : (settings.blue_team_name || '임아니팀');
+                // 실시간 settings 데이터 반영
+                const teamName = t === 'red' ? (settings.red_team_name || '이라팀') : (settings.blue_team_name || '상대팀');
                 
                 return `
                 <div class="team ${t}">
@@ -199,7 +198,7 @@ function renderScoreScene() {
     const bL = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.losses || 0), 0);
 
     const rName = settings.red_team_name || '이라팀';
-    const bName = settings.blue_team_name || '임아니팀';
+    const bName = settings.blue_team_name || '상대팀';
 
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
@@ -223,22 +222,24 @@ function renderScoreScene() {
         </div>`;
 }
 
-// 초기화 및 실시간 구독
+// 초기 로드
 loadData();
+
+// 1초마다 타이머 계산
 setInterval(updateTimer, 1000);
 
-// 실시간 감시 (채널명 명시)
-sb.channel('db-changes')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, (payload) => {
-      console.log('Settings changed!', payload);
+// 실시간 구독 (settings와 players 테이블 감시)
+sb.channel('db-all')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
+      console.log('Settings changed');
       loadData();
   })
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
       loadData();
   })
   .subscribe();
 
-// 장면 전환
+// 10초마다 장면 전환
 let sIdx = 0;
 setInterval(() => {
     const scenes = document.querySelectorAll('.scene');
