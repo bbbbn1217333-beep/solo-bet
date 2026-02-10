@@ -6,33 +6,35 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-    /* 기존 스타일 유지 + ing 스타일 추가 */
+    /* 기존 스타일 전체 복구 */
     body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
     .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none;}
     .scene.active{opacity:1; z-index:1; display:block;}
     .container{display:flex; gap:60px; justify-content:center; margin-top:20px;}
-    .team{display:flex; flex-direction:column; align-items:center;}
     .team h1{font-family:'Orbitron',sans-serif; font-size:50px; margin-bottom:4px;}
     .red h1{color:#ff5c5c} .blue h1{color:#4db8ff;}
     .summary{font-size:26px; font-weight:800; margin-bottom:12px;}
     .summary .win{color:#ffd369; text-shadow:0 0 12px #ffd369;}
     .summary .lose{color:#ff6b6b; text-shadow:0 0 12px #ff6b6b;}
     .member-card{position:relative; width:260px; padding:18px 10px 12px; background:rgba(255,255,255,.06); border-radius:14px; border:2px solid rgba(120,120,120,.35); text-align:center; margin-bottom:10px;}
-    .history{display:flex; justify-content:center; gap:6px; margin-top:10px;}
-    .champ{position:relative; width:22px; height:22px;}
-    .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2);}
     .wl-badge { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 9px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
     .wl-badge.win { color: #ffd369; border-color: #ffd369; }
     .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
-    .wl-badge.ing { color: #777; border-color: #444; } /* 진행중 뱃지 */
-    .name{font-family:'Orbitron',sans-serif; font-size:18px; font-weight:800;}
-    .record{font-size:15px; font-weight:800; margin-bottom:8px;}
-    .record .win{color:#ffd369;} .record .lose{color:#ff6b6b;}
-    .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
+    .wl-badge.ing { color: #777; border-color: #444; }
+
+    /* 타이머 및 스코어보드 UI 복구 */
+    .score-board{margin-top:100px; text-align:center; font-family:'Orbitron',sans-serif;}
+    .timer{font-size:38px; font-weight:800; margin-bottom:20px;}
+    .timer .clock{display:inline-block; animation:shakeClock 0.8s infinite;}
+    @keyframes shakeClock{0%{transform:translateX(0);}25%{transform:translateX(-4px);}50%{transform:translateX(4px);}75%{transform:translateX(-4px);}100%{transform:translateX(0);}}
+    .vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
+    .vs .vs-text { font-weight:900; color:#fff; text-shadow:0 0 4px #fff; animation:vsGlow 1.2s infinite alternate;}
+    @keyframes vsGlow{0%{transform:rotate(-3deg);} 50%{text-shadow:0 0 14px #ffea00; transform:rotate(3deg);} 100%{transform:rotate(-3deg);}}
     .score-wrap{display:flex; justify-content:center; gap:140px;}
     .score{font-size:130px; text-shadow:0 0 18px #fff;}
-    .score.win { animation: glow 1.2s infinite alternate; }
-    @keyframes glow { from { transform: scale(1); } to { transform: scale(1.1); } }
+    .score.win { animation: glowEffect 1.2s infinite alternate; color: #ffd369; }
+    @keyframes glowEffect { 0% { transform: scale(1); text-shadow:0 0 10px #ffd369;} 100% { transform: scale(1.15); text-shadow:0 0 30px #ffd369;}}
+    .summary-small { font-size: 20px; font-weight: 800; color: #ff6b6b; margin-top: -20px; }
 </style>
 </head>
 <body>
@@ -47,20 +49,16 @@ const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let players = [], settings = { red_team_name: 'RED', blue_team_name: 'BLUE' };
+let seconds = 12 * 60 + 34; // 기본값
 
 async function loadData() {
     const { data: sData } = await sb.from('settings').select('*').single();
     const { data: pData } = await sb.from('players').select('*');
-    if(sData) settings = sData;
-    if(pData) {
-        players = pData.map(p => {
-            let streak = 0;
-            const valid = p.recent.filter(r => r !== 'ing'); // 진행중 제외하고 계산
-            const last = valid[0];
-            for(let r of valid) { if(r === last) streak++; else break; }
-            return { ...p, streak: last === 'win' ? streak : -streak };
-        });
+    if(sData) {
+        settings = sData;
+        // 관리자 패널에서 반영 누를 때마다 타이머를 초기화하고 싶다면 여기서 세팅
     }
+    if(pData) players = pData;
     renderAll();
 }
 
@@ -68,7 +66,7 @@ function renderAll() {
     renderScene(document.getElementById('scene-all'));
     renderScene(document.getElementById('scene-red'), 'red');
     renderScene(document.getElementById('scene-blue'), 'blue');
-    renderScore();
+    renderScoreBoard();
 }
 
 function renderScene(container, team = null) {
@@ -83,11 +81,11 @@ function renderScene(container, team = null) {
             <div class="summary"><span class="win">😁 ${win}승</span> / <span class="lose">😡 ${lose}패</span></div>
             <div class="members">${arr.map(p => `
                 <div class="member-card">
-                    <div class="name">${p.name}</div>
-                    <div class="record"><span class="win">😁 ${p.wins}승</span> / <span class="lose">😡 ${p.losses}패</span></div>
-                    <div class="history">${p.recent.map((r, i) => `
-                        <div class="champ">
-                            <img src="https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/${p.champions[i]}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/14.3.1/img/profileicon/29.png'">
+                    <div style="font-size:18px; font-weight:800;">${p.name}</div>
+                    <div style="font-size:14px; margin:5px 0;"><span style="color:#ffd369">😁 ${p.wins}승</span> / <span style="color:#ff6b6b">😡 ${p.losses}패</span></div>
+                    <div style="display:flex; justify-content:center; gap:5px;">${p.recent.map((r, i) => `
+                        <div style="position:relative; width:22px; height:22px;">
+                            <img src="https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/${p.champions[i]}.png" style="width:100%; border-radius:4px;">
                             <span class="wl-badge ${r}">${r === 'win' ? 'W' : r === 'lose' ? 'L' : '...'}</span>
                         </div>`).join('')}</div>
                 </div>`).join('')}</div>
@@ -95,21 +93,41 @@ function renderScene(container, team = null) {
     }).join('')}</div>`;
 }
 
-function renderScore() {
+function renderScoreBoard() {
     const rW = players.filter(p=>p.team==='red').reduce((a,b)=>a+b.wins,0);
+    const rL = players.filter(p=>p.team==='red').reduce((a,b)=>a+b.losses,0);
     const bW = players.filter(p=>p.team==='blue').reduce((a,b)=>a+b.wins,0);
+    const bL = players.filter(p=>p.team==='blue').reduce((a,b)=>a+b.losses,0);
+
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
+            <div class="timer"><span class="clock">⏰</span> <span class="time-text">00:00</span></div>
+            <div class="vs">
+                <span style="color:#ff5c5c">${settings.red_team_name}</span>
+                <span class="vs-text">VS</span>
+                <span style="color:#4db8ff">${settings.blue_team_name}</span>
+            </div>
             <div class="score-wrap">
-                <div class="score ${rW>bW?'win':''}">${rW}</div>
-                <div style="font-size:50px">VS</div>
-                <div class="score ${bW>rW?'win':''}">${bW}</div>
+                <div class="score ${rW > bW ? 'win' : ''}">${rW}<div class="summary-small">패배 : ${rL}</div></div>
+                <div class="score ${bW > rW ? 'win' : ''}">${bW}<div class="summary-small">패배 : ${bL}</div></div>
             </div>
         </div>`;
 }
 
-sb.channel('db-changes').on('postgres_changes',{event:'*',schema:'public',table:'settings'},loadData)
-.on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
+// 타이머 작동 로직
+setInterval(() => {
+    if(seconds > 0) seconds--;
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    const timeText = document.querySelector('.time-text');
+    if(timeText) timeText.textContent = `남은시간 : ${m}:${s}`;
+}, 1000);
+
+sb.channel('db').on('postgres_changes',{event:'*',schema:'public',table:'settings'},() => {
+    // 세팅 변경 시 타이머 재설정 (관리자 패널 로직과 연동)
+    loadData();
+    // 실제 운영 시에는 DB의 updated_at을 보고 시간을 동기화하는 로직이 필요하나, 일단 로컬 초기값 유지
+}).on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
 
 let idx = 0;
 setInterval(() => {
