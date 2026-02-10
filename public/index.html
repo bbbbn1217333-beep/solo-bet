@@ -52,7 +52,7 @@
     }
     .wl-badge.win { background: #ffd369; color: #000; box-shadow: 0 0 8px #ffd369; }
     .wl-badge.lose { background: #ff4d4d; box-shadow: 0 0 8px #ff4d4d; }
-    .wl-badge.ing { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; } /* 에메랄드 */
+    .wl-badge.ing { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
 
     /* 스코어보드 전용 UI */
     .score-board { margin-top:120px; text-align:center; font-family:'Orbitron',sans-serif; }
@@ -100,7 +100,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let players = [], settings = {};
 let timeLeft = "";
 
-// 챔피언 이미지 깨짐 방지 (최신 버전 자동 체크가 안 될 경우 고정 버전 사용)
+// 챔피언 코드(버전)를 요청하신 16.3.1로 업데이트했습니다.
 const LOL_VER = "16.3.1"; 
 
 async function loadData() {
@@ -151,7 +151,6 @@ function renderMainScene(container, filterTeam) {
                                         const badgeClass = res === 'win' ? 'win' : res === 'lose' ? 'lose' : 'ing';
                                         const badgeText = res === 'win' ? 'W' : res === 'lose' ? 'L' : '...';
                                         
-                                        // 챔피언 이름에 공백이 있을 경우 처리
                                         const champName = champ.replace(/\s+/g, '');
                                         const imgSrc = champ === 'Blank' 
                                             ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' 
@@ -199,23 +198,22 @@ function renderScoreScene() {
         </div>`;
 }
 
-// 타이머 실시간 계산
 function updateTimer() {
     if (!settings.timer_end_at) {
         timeLeft = "시간 미설정";
-        return;
-    }
-    const end = new Date(settings.timer_end_at).getTime();
-    const now = new Date().getTime();
-    const diff = end - now;
-
-    if (diff <= 0) {
-        timeLeft = "내기 종료";
     } else {
-        const h = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
-        const m = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
-        const s = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
-        timeLeft = `남은시간 : ${h}:${m}:${s}`;
+        const end = new Date(settings.timer_end_at).getTime();
+        const now = new Date().getTime();
+        const diff = end - now;
+
+        if (diff <= 0) {
+            timeLeft = "내기 종료";
+        } else {
+            const h = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
+            const m = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            const s = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
+            timeLeft = `남은시간 : ${h}:${m}:${s}`;
+        }
     }
     const el = document.getElementById('timer-text');
     if(el) el.textContent = timeLeft;
@@ -223,18 +221,16 @@ function updateTimer() {
 
 setInterval(updateTimer, 1000);
 
-// 실시간 DB 구독
 sb.channel('any').on('postgres_changes',{event:'*',schema:'public',table:'settings'},loadData)
                 .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
 
-// 장면 전환 루프
 let sceneIdx = 0;
 setInterval(() => {
     const scenes = document.querySelectorAll('.scene');
     scenes.forEach(s => s.classList.remove('active'));
     sceneIdx = (sceneIdx + 1) % scenes.length;
     scenes[sceneIdx].classList.add('active');
-}, 10000); // 10초마다 전환
+}, 10000);
 
 loadData();
 </script>
