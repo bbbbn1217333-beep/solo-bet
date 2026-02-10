@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이라네 솔랭 내기 시트지</title>
+<title>이라네 솔랭 내기 시트지 - 실시간 송출</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&family=Inter:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -94,11 +94,31 @@ let players = [];
 let settings = { red_team_name: '', blue_team_name: '', timer_end_at: null };
 let timeLeftText = "시간 계산 중...";
 
+// 강화된 챔피언 이름 변환 로직
 const fixChamp = c => {
-    if(!c || c === 'None' || c === 'Blank') return 'None';
-    let name = c.charAt(0).toUpperCase() + c.slice(1);
-    const names = { 'Kaisa': 'KaiSa', 'Leesin': 'LeeSin', 'Khazix': 'KhaZix', 'Fiddlesticks': 'FiddleSticks' };
-    return names[name] || name;
+    if(!c || c === 'None' || c === 'Blank' || c === '') return 'None';
+    
+    // 1. 소문자 변환 후 첫글자 대문자화
+    let name = c.trim().toLowerCase();
+    name = name.charAt(0).toUpperCase() + name.slice(1);
+
+    // 2. 특수 케이스 수동 매핑 (롤 파일명 규칙)
+    const specialCases = {
+        'Kaisa': 'KaiSa',
+        'Leesin': 'LeeSin',
+        'Khazix': 'KhaZix',
+        'Fiddlesticks': 'FiddleSticks',
+        'Leblanc': 'LeBlanc',
+        'Wukong': 'MonkeyKing',
+        'Belveth': 'BelVeth',
+        'Reksai': 'RekSai',
+        'Ksante': 'KSante',
+        'Dr.mundo': 'DrMundo',
+        'Chogath': 'Chogath',
+        'Velkoz': 'Velkoz',
+        'Nunu': 'Nunu'
+    };
+    return specialCases[name] || name;
 };
 
 async function loadData() {
@@ -172,7 +192,6 @@ function renderMainScene(container, filterTeam) {
                             const level = Math.min(Math.abs(p.streak), 5);
                             const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                             
-                            // 문구 조건부 수정 (1일 때는 ~중, 2이상일 때는 연~)
                             let streakText = '';
                             if (p.streak > 0) {
                                 streakText = p.streak === 1 ? '1승중' : p.streak + '연승';
@@ -192,7 +211,7 @@ function renderMainScene(container, filterTeam) {
                                         const imgSrc = cName === 'None' ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${cName}.png`;
                                         const badgeClass = (r === 'win' || r === 'lose') ? r : 'none';
                                         const badgeText = r === 'win' ? 'W' : (r === 'lose' ? 'L' : '...');
-                                        return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/29.png'"><span class="wl-badge ${badgeClass}">${badgeText}</span></div>`;
+                                        return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/16.3.1/img/profileicon/29.png'"><span class="wl-badge ${badgeClass}">${badgeText}</span></div>`;
                                     }).join('')}
                                 </div>
                             </div>`;
