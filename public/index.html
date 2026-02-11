@@ -138,7 +138,7 @@ function updateTimer(endTime) {
     if (!endTime) return;
     const diff = new Date(endTime).getTime() - new Date().getTime();
     const el = document.getElementById('timer-display');
-    if (diff <= 0) { el.textContent = "내기 종료"; return; }
+    if (diff <= 0) { el.textContent = "솔랭 내기 종료"; return; }
     const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
     const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
     const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
