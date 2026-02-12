@@ -218,10 +218,11 @@ async function loadData() {
 function setupRealtime() {
     sb.channel('db_changes')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
-        // [수정] trigger_cutscene이 true라면 복잡한 비교 없이 바로 실행
-        if (payload.new.trigger_cutscene === true) {
-            // wins가 늘었으면 승리, 아니면 패배로 판정 (old 데이터가 없으면 기본 승리로 표시)
-            const isWin = payload.old ? (payload.new.wins > payload.old.wins) : true;
+        // [핵심수정] payload.old를 믿지 않고, payload.new의 trigger_cutscene이 true인지만 확인합니다.
+        if (payload.new && payload.new.trigger_cutscene === true) {
+            // 최근 기록(recent)의 마지막 결과가 win이면 승리 컷씬, 아니면 패배 컷씬을 보여줍니다.
+            const lastRes = (payload.new.recent || []).filter(x => x !== 'none').pop();
+            const isWin = lastRes === 'win';
             triggerCutscene(payload.new, isWin, payload.new.last_kda || "0/0/0");
         }
         loadData();
