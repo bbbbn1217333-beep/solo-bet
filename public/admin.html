@@ -291,6 +291,7 @@ async function applyToSupabase() {
         });
     });
     // ... (이하 동일)
+    }
     try {
         await sb.from('settings').upsert({ id: 1, red_team_name: redNameInput.value, blue_team_name: blueNameInput.value, member_count: Number(teamCount.value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
         await sb.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
