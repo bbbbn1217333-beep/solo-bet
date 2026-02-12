@@ -7,7 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-    /* 매니저님의 기존 CSS 스타일 그대로 유지 (생략 없음) */
     :root { 
         --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; 
         --emerald: #2ecc71; 
@@ -82,8 +81,8 @@
         <div class="menu-desc">
             <strong>💡 이라네 시트지 필독 관리 매뉴얼</strong>
             • <span class="neon-point">데이터 반영:</span> 우측 하단 붉은색 [송출 화면 반영] 버튼을 눌러야 실제 시트지에 적용됩니다.<br>
-            • <span class="neon-point">강제 수정:</span> 티어나 LP 옆 '수정'을 체크하면 **Cron-job 자동 업데이트보다 이 값이 우선**됩니다.<br>
-            • <span class="neon-point">데이터 보존:</span> 롤 닉네임을 변경하지 않으면 기존에 불러온 PUUID는 안전하게 유지됩니다.
+            • <span class="neon-point">실시간 연동:</span> 데이터가 수정되면 송출 화면이 새로고침 없이 즉시 업데이트됩니다.<br>
+            • <span class="neon-point">컷씬 제어:</span> 승/패 기록이 있는 사람 중 첫 번째 사람의 컷씬만 자동으로 터집니다.
         </div>
     </div>
 
@@ -112,16 +111,7 @@ const TIER_MAP = {
     "UNRANKED": "언랭크"
 };
 
-// 전역 변수: PUUID 보존을 위해 기존 데이터 저장
 let cachedPlayers = [];
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        const focusable = Array.from(document.querySelectorAll('input, select'));
-        const index = focusable.indexOf(e.target);
-        if (index > -1 && index < focusable.length - 1) { e.preventDefault(); focusable[index + 1].focus(); }
-    }
-});
 
 function updateTeamNames() {
     document.getElementById('redTitle').innerText = document.getElementById('redNameInput').value || '레드 팀';
@@ -138,7 +128,7 @@ function createMemberCard(team, data = null) {
     const card = document.createElement('div');
     card.className = 'member-card';
     card.dataset.team = team;
-    card.dataset.puuid = data?.puuid || ""; // PUUID 유지용
+    card.dataset.puuid = data?.puuid || ""; 
 
     let historyHTML = '';
     for(let i=0; i<10; i++) {
@@ -221,7 +211,9 @@ async function loadData() {
 
 async function applyToSupabase() {
     const playersUpdateList = [];
-    // 1. 현재 화면의 데이터를 배열에 수집
+    let cutsceneAssigned = false; // 1명만 컷씬 주인공으로 배정하기 위한 변수
+
+    // 1. 현재 화면의 데이터를 수집
     document.querySelectorAll('.member-card').forEach(card => {
         const name = card.querySelector('.nick-disp').value.trim();
         if(!name) return;
@@ -244,6 +236,14 @@ async function applyToSupabase() {
             finalTierStr = (tEng === "UNRANKED" || !lpVal || lpVal === "0") ? tKor : `${tKor} - ${lpVal}LP`;
         }
 
+        // [중요] 컷씬 배정 로직 (승/패 기록이 있는 사람 중 첫 번째 1명만)
+        let triggerThisPlayer = false;
+        const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
+        if (!cutsceneAssigned && lastValidRes) {
+            triggerThisPlayer = true;
+            cutsceneAssigned = true;
+        }
+
         playersUpdateList.push({ 
             name, 
             team: card.dataset.team, 
@@ -255,12 +255,12 @@ async function applyToSupabase() {
             losses: card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
             recent, 
             champions: champs,
-            trigger_cutscene: false 
+            trigger_cutscene: triggerThisPlayer // 주인공만 true
         });
     });
 
     try {
-        // 2. 설정 데이터 먼저 업데이트
+        // 2. 설정 업데이트 (Upsert)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -269,19 +269,14 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 3. [중요] 기존 데이터를 지우고 새로 넣는 대신, 
-        // 데이터가 있을 때만 삭제를 실행하여 증발 방지
+        // 3. [핵심 최적화] 지우고 새로 넣는 대신 UPSERT 사용
+        // name을 기준으로 동일인이면 업데이트, 없으면 추가
         if(playersUpdateList.length > 0) {
-            // 삭제와 삽입을 순차적으로 확실히 기다립니다.
-            const { error: delError } = await sb.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-            if (delError) throw delError;
-
-            const { error: insError } = await sb.from('players').insert(playersUpdateList);
-            if (insError) throw insError;
+            const { error: upsertError } = await sb.from('players').upsert(playersUpdateList, { onConflict: 'name' });
+            if (upsertError) throw upsertError;
         }
         
-        alert('✅ 송출 화면에 완벽하게 반영되었습니다!');
-        // 4. 반영 후 새로고침하지 않고 데이터만 최신화 (초기화 현상 방지)
+        alert('✅ 송출 화면에 실시간 반영되었습니다!');
         cachedPlayers = [...playersUpdateList]; 
     } catch (e) { 
         console.error(e);
