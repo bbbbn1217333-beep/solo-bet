@@ -16,35 +16,40 @@ export default async function handler(req, res) {
             const acc = await accRes.json();
             if (!acc.puuid) continue;
 
-            // 2. Spectator-v4: 실시간 게임 확인 (챔피언 아이콘 자동갱신용)
+            // 2. Spectator-v4: 실시간 게임 확인 (챔피언 아이콘 실시간 반영)
             const activeRes = await fetch(`https://kr.api.riotgames.com/lol/spectator/v4/active-games/by-summoner/${acc.puuid}?api_key=${RIOT_API}`);
             if (activeRes.status === 200) {
                 const active = await activeRes.json();
                 const p = active.participants.find(x => x.puuid === acc.puuid);
-                if (p && player.champions[0] !== p.championId) {
-                    let tempChamps = [...player.champions];
-                    tempChamps[0] = p.championId; // 현재 챔피언 ID 임시 저장
+                // ID가 숫자로 오므로 문자열 비교를 위해 .toString() 권장
+                if (p && player.champions[0] !== p.championId.toString()) {
+                    let tempChamps = [...(player.champions || [])];
+                    tempChamps[0] = p.championId.toString(); 
                     await supabase.from('players').update({ champions: tempChamps }).eq('id', player.id);
                 }
             }
 
-            // 3. Match-v5: 최근 매치 ID 확인 (리소스 방어 로직)
+            // 3. Match-v5: 최근 매치 ID 확인 (리소스 방어)
             const matchIds = await (await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${acc.puuid}/ids?start=0&count=1&type=ranked&api_key=${RIOT_API}`)).json();
             const currentMatchId = matchIds[0];
 
-            // 매치 ID가 변경되었을 때만(게임 종료) 상세 데이터 업데이트
             if (currentMatchId && currentMatchId !== player.last_match_id) {
                 const detail = await (await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${currentMatchId}?api_key=${RIOT_API}`)).json();
                 
-                // 무효판 처리 (5분 미만 게임)
+                // [수정] 무효판 처리: 5분 미만 게임 시 챔피언 아이콘을 'None'으로 돌림
                 if (detail.info.gameDuration < 300) {
-                    await supabase.from('players').update({ last_match_id: currentMatchId }).eq('id', player.id);
+                    let resetChamps = [...(player.champions || [])];
+                    resetChamps[0] = 'None'; 
+                    await supabase.from('players').update({ 
+                        last_match_id: currentMatchId, 
+                        champions: resetChamps 
+                    }).eq('id', player.id);
                     continue; 
                 }
 
                 const p = detail.info.participants.find(x => x.puuid === acc.puuid);
                 
-                // 전적 밀어내기 (W/L 자동 갱신)
+                // 전적 및 챔피언 목록 갱신 (W/L 및 이름 자동 밀어내기)
                 let newRecent = [p.win ? 'win' : 'lose', ...(player.recent || []).slice(0, 9)];
                 let newChamps = [p.championName, ...(player.champions || []).slice(0, 9)];
                 
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
                 const solo = lg.find(v => v.queueType === 'RANKED_SOLO_5x5');
                 const newTier = solo ? `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP` : player.tier;
 
-                // 최종 DB 업데이트 (송출 패널이 이걸 감지해서 컷신을 띄움)
+                // 데이터베이스 최종 업데이트
                 await supabase.from('players').update({
                     wins: p.win ? player.wins + 1 : player.wins,
                     losses: !p.win ? player.losses + 1 : player.losses,
