@@ -19,7 +19,17 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .summary .lose{color:#ff6b6b; text-shadow:0 0 12px #ff6b6b;}
 .members{display:flex; flex-direction:column; gap:2px;}
 .member-card{position:relative; width:330px; padding:12px 10px 8px; background:rgba(255,255,255,.06); border-radius:8px; border:2px solid rgba(120,120,120,.35); text-align:center; overflow:visible; margin-top: 10px;}
-.status-icon { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 24px; z-index: 10; filter: drop-shadow(0 0 5px rgba(0,0,0,0.8));}
+
+/* 👑 왕관 & 💀 해골 애니메이션 효과 추가 */
+.status-icon { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 26px; z-index: 10; }
+.crown-glow { animation: floatCrown 2s infinite ease-in-out, glowGoldIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ffd369); }
+.skull-shake { animation: shakeSkull 0.5s infinite linear, glowRedIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ff4d4d); }
+
+@keyframes floatCrown { 0%, 100% { top: -22px; } 50% { top: -28px; } }
+@keyframes glowGoldIcon { 0% { filter: drop-shadow(0 0 5px #ffd369); } 100% { filter: drop-shadow(0 0 15px #ffd369) brightness(1.2); } }
+@keyframes shakeSkull { 0% { transform: translateX(-50%) rotate(0deg); } 25% { transform: translateX(-52%) rotate(-5deg); } 75% { transform: translateX(-48%) rotate(5deg); } 100% { transform: translateX(-50%) rotate(0deg); } }
+@keyframes glowRedIcon { 0% { filter: drop-shadow(0 0 5px #ff4d4d); } 100% { filter: drop-shadow(0 0 15px #ff4d4d) brightness(1.2); } }
+
 .info-line{display:flex; justify-content:center; align-items:baseline; gap:6px; margin-bottom:8px; white-space:nowrap;}
 .name{font-family:'Orbitron',sans-serif; font-size:15px; font-weight:800; flex-shrink: 0;}
 .tier{font-size:13px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}
@@ -161,7 +171,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
         if (validChamps.length > 0) lastChamp = fixChamp(validChamps[validChamps.length - 1]);
     }
 
-    // [수정] 10승 0패 앞에 이모티콘 😁 😡 다시 추가
     targetScene.innerHTML = `
         <div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}">
             <h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1>
@@ -279,7 +288,12 @@ function renderMainScene(container, filterTeam) {
                     const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                     const tierInfo = getTierInfo(p.tier);
                     let displayTier = (p.tier || 'UNRANKED').toUpperCase().includes('UNRANKED') ? 'UNRANKED' : p.tier;
-                    let icon = (p.streak >= 3) ? '<span class="status-icon">👑</span>' : (p.streak <= -3 ? '<span class="status-icon">💀</span>' : '');
+                    
+                    // [복구] 3연승 이상 👑(왕관 글로우), 3연패 이상 💀(해골 셰이크)
+                    let icon = '';
+                    if(p.streak >= 3) icon = '<span class="status-icon crown-glow">👑</span>';
+                    else if(p.streak <= -3) icon = '<span class="status-icon skull-shake">💀</span>';
+                    
                     let streakText = p.streak > 0 ? (p.streak === 1 ? '1승중' : p.streak + '연승') : (p.streak < 0 ? (p.streak === -1 ? '1패중' : Math.abs(p.streak) + '연패') : '');
                     return `
                     <div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">
