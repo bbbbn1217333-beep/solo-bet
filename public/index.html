@@ -192,7 +192,7 @@ function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
     
     const teamDisplayName = player.team === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
     
-    // 연승/연패 문구 생성 (1승중, 2연승 등)
+    // 연승/연패 문구 생성
     let streakText = "";
     if (player.streak !== 0) {
         const absStreak = Math.abs(player.streak);
@@ -216,8 +216,11 @@ function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
             <div class="res-nick">
                 <span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${teamDisplayName}</span>
                 <span style="vertical-align: middle;">${player.name}</span>
-                <span style="font-size: 24px; color: #aaa; margin-left: 10px; vertical-align: middle;">(${player.wins}승 ${player.losses}패)</span>
-                ${streakText ? `<span class="streak ${player.streak > 0 ? 'win' : 'lose'}" style="font-size: 20px; vertical-align: middle; margin-left: 8px;">${streakText}</span>` : ''}
+                <span style="font-size: 24px; vertical-align: middle; margin-left: 12px;">
+                    <span style="color:#ffd369">😁 ${player.wins}승</span> 
+                    <span style="color:#ff6b6b; margin-left: 8px;">😡 ${player.losses}패</span>
+                </span>
+                ${streakText ? `<span class="streak ${player.streak > 0 ? 'win' : 'lose'}" style="font-size: 20px; vertical-align: middle; margin-left: 12px;">${streakText}</span>` : ''}
             </div>
             <div class="res-tier tier ${tierInfo.class}">${tierInfo.name}${lpDisplay}</div>
             <div class="res-champ">
