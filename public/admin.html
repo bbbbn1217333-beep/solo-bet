@@ -18,6 +18,7 @@
     body { margin:0; background:#0e0e0e; color:#fff; font-family:'Pretendard',sans-serif; padding:20px; padding-bottom: 120px; }
     .wrap { width:1450px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
     
+    /* 헤더 */
     .admin-header { background:#1a1a1a; padding:25px; border-radius:15px; border:1px solid #333; }
     .top-controls { display:flex; gap:20px; align-items:flex-end; margin-bottom:20px; }
     
@@ -36,9 +37,11 @@
     .btn-load-data { height:46px; padding:0 20px; background:#333; color:#fff; border:1px solid #555; border-radius:8px; cursor:pointer; font-weight:800; transition:0.2s; }
     .btn-load-data:hover { background:var(--gold); color:#000; border-color:var(--gold); box-shadow: var(--neon-gold); }
 
-    .menu-desc { font-size:14px; color:#ccc; line-height:1.7; background:#252525; padding:18px; border-radius:10px; border: 1px solid var(--gold); box-shadow: inset 0 0 10px rgba(255,211,105,0.1), var(--neon-gold); margin-top: 10px; }
-    .menu-desc strong { color: var(--gold); font-size: 16px; text-shadow: 0 0 10px var(--gold); }
+    /* 매뉴얼 */
+    .menu-desc { font-size:13.5px; color:#ccc; line-height:1.8; background:#252525; padding:18px; border-radius:10px; border: 1px solid var(--gold); box-shadow: inset 0 0 10px rgba(255,211,105,0.1), var(--neon-gold); margin-top: 10px; }
+    .menu-desc strong { color: var(--gold); font-size: 15px; text-shadow: 0 0 10px var(--gold); }
 
+    /* 팀 박스 및 카드 */
     .teams-container { display:flex; gap:25px; }
     .team-box { flex:1; background:#1a1a1a; padding:20px; border-radius:15px; border-top:5px solid #444; }
     .team-box.red { border-color: var(--red); }
@@ -50,19 +53,27 @@
     .member-list { display:flex; flex-direction:column; gap:20px; max-height:800px; overflow-y:auto; padding: 10px; }
     .member-card { background:#1e1e1e; border-radius:12px; padding:20px; border: 2px solid #333; position: relative; }
     
-    .name-row { display:flex; gap:15px; margin-bottom:15px; align-items: flex-end; }
+    /* 입력창 라벨 위치 조정 */
+    .input-group { display:flex; flex-direction:column; gap:4px; flex:1; }
+    .input-group label { font-size:11px; font-weight:800; color:#aaa; margin-left:2px; margin-bottom: 2px; }
+    
+    .name-row { display:flex; gap:12px; margin-bottom:15px; align-items: flex-end; }
     .name-row input, .name-row select { padding:10px; background:#000; color:#fff; border-radius:6px; font-size:13px; font-weight: 700; border: 2px solid #444; outline:none; transition: 0.2s; }
     
     .team-box.red .nick-disp, .team-box.red .nick-riot { border-color: var(--red); box-shadow: var(--neon-red); }
     .team-box.blue .nick-disp, .team-box.blue .nick-riot { border-color: var(--blue); box-shadow: var(--neon-blue); }
-    .tier-select, .lp-input { border-color: var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; }
+    .tier-select { border-color: var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; }
+    
+    /* LP 칸 너비 축소 */
+    .lp-input { width: 50px !important; border-color: var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; text-align: center; }
 
-    .score-input-wrap { display:flex; flex-direction:column; gap:5px; width:55px; margin-left: 5px; }
-    .score-input-wrap label { font-size:11px; font-weight:900; text-align:center; }
-    .score-input { width: 100%; padding:10px 0 !important; text-align:center; border-radius:6px; font-size:16px !important; outline: none; }
+    .score-input-wrap { display:flex; flex-direction:column; gap:4px; width:50px; margin-left: 2px; }
+    .score-input-wrap label { font-size:11px; font-weight:900; text-align:center; margin-bottom: 2px; }
+    .score-input { width: 100%; padding:10px 0 !important; text-align:center; border-radius:6px; font-size:16px !important; outline: none; box-sizing: border-box; }
     .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; }
     .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red) !important; }
 
+    /* 히스토리 에디터 */
     .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:15px; border-radius:10px; border: 1px solid #333; }
     .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding:10px 5px; background:#1e1e1e; border-radius:8px; border: 1px solid #444; }
     .history-item span { font-size:12px; color: var(--gold); font-weight:900; }
@@ -74,6 +85,7 @@
     .btn-toggle.ing { background: var(--emerald); color: #fff; }
 
     .btn-apply { position: fixed; bottom: 30px; right: 30px; z-index: 1000; width: 280px; height: 70px; font-size:24px; font-weight:800; background: var(--red); color:#fff; border:none; border-radius:15px; cursor:pointer; box-shadow: 0 0 25px rgba(255, 59, 59, 0.6); transition: 0.2s; }
+    .btn-apply:hover { background:#ff1a1a; transform: scale(1.05); }
 </style>
 </head>
 <body>
@@ -87,7 +99,14 @@
             <div class="header-group"><label>👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuild()"></div>
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
         </div>
-        <div class="menu-desc"><strong>📋 관리 매뉴얼</strong><br>• 티어 선택 시 <strong>한글</strong>로 표시되며, 송출 화면에도 한글 티어명이 반영됩니다.</div>
+        <div class="menu-desc">
+            <strong>📋 관리 매뉴얼</strong><br>
+            • <strong>데이터 싱크:</strong> [데이터 불러오기]는 수동 저장된 값을 불러옵니다. 방송 시작 전 반드시 눌러주세요.<br>
+            • <strong>티어 반영:</strong> 선택한 한글 티어명은 송출 화면 하단에 그대로 표시됩니다.<br>
+            • <strong>수동 스코어:</strong> 상단 [승리/패배] 칸에 숫자를 직접 입력하면 하단 10판 결과보다 우선하여 반영됩니다.<br>
+            • <strong>엔터 단축키:</strong> 닉네임 입력 후 엔터를 치면 티어 -> LP -> 챔피언 순으로 커서가 자동 이동합니다.<br>
+            • <strong>주의사항:</strong> 모든 수정 사항은 우측 하단 <strong>[송출 화면 반영]</strong>을 눌러야 시청자에게 보입니다.
+        </div>
     </div>
 
     <div class="teams-container">
@@ -152,7 +171,6 @@ function createMemberCard(team, data = null) {
     let currentLP = "";
     if (data?.tier) {
         const parts = data.tier.split(' - ');
-        // 저장된 데이터가 한글일 경우를 대비해 역추적
         const foundEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === parts[0]);
         currentTierEng = foundEng || "UNRANKED";
         currentLP = parts[1] ? parts[1].replace('LP', '') : "";
@@ -165,8 +183,8 @@ function createMemberCard(team, data = null) {
             <div class="input-group"><label>방송 닉네임</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
             <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id || ''}"></div>
             <div class="input-group" style="flex:1.5"><label>티어 선택</label><select class="tier-select">${tierOptions}</select></div>
-            <div class="input-group" style="width:70px; flex:none;"><label>LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
-            <div class="score-input-wrap" style="margin-left:15px;"><label style="color:var(--gold)">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
+            <div class="input-group" style="width:50px; flex:none;"><label>LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
+            <div class="score-input-wrap" style="margin-left:12px;"><label style="color:var(--gold)">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
             <div class="score-input-wrap"><label style="color:var(--red)">패배</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
@@ -213,8 +231,6 @@ async function applyToSupabase() {
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
             champs.push(item.querySelector('.champ-input').value.trim() || 'None');
         });
-        
-        // 중요: 송출 화면에 한글로 보여주기 위해 TIER_MAP에서 한글 이름을 가져와서 저장
         const tierEng = card.querySelector('.tier-select').value;
         const tierKor = TIER_MAP[tierEng]; 
         const lpVal = card.querySelector('.lp-input').value.trim();
@@ -232,7 +248,7 @@ async function applyToSupabase() {
         await sb.from('settings').upsert({ id: 1, red_team_name: redNameInput.value, blue_team_name: blueNameInput.value, member_count: Number(teamCount.value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
         await sb.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         if(players.length > 0) await sb.from('players').insert(players);
-        alert('✅ 한글 티어 데이터가 송출 화면에 반영되었습니다!');
+        alert('✅ 데이터가 송출 화면에 반영되었습니다!');
     } catch (e) { alert('❌ 오류: ' + e.message); }
 }
 loadData();
