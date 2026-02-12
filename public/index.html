@@ -218,8 +218,10 @@ async function loadData() {
 function setupRealtime() {
     sb.channel('db_changes')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
+        // [수정] trigger_cutscene이 true라면 복잡한 비교 없이 바로 실행
         if (payload.new.trigger_cutscene === true) {
-            const isWin = payload.new.wins > (payload.old.wins || 0);
+            // wins가 늘었으면 승리, 아니면 패배로 판정 (old 데이터가 없으면 기본 승리로 표시)
+            const isWin = payload.old ? (payload.new.wins > payload.old.wins) : true;
             triggerCutscene(payload.new, isWin, payload.new.last_kda || "0/0/0");
         }
         loadData();
@@ -232,9 +234,7 @@ function updateTimer() {
     const numEl = document.getElementById('timer-nums');
     const displayEl = document.getElementById('timer-display');
     if (!numEl || !displayEl || !settings.timer_end_at) return;
-    
     const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
-    
     if (diff <= 0) {
         displayEl.innerHTML = `<span class="clock clock-shake">⏰</span> 솔랭 내기 종료!!!`;
     } else {
@@ -270,9 +270,7 @@ function renderMainScene(container, filterTeam) {
                     const level = Math.min(Math.abs(p.streak), 5);
                     const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                     const tierInfo = getTierInfo(p.tier);
-                    
                     let displayTier = (p.tier || 'UNRANKED').toUpperCase().includes('UNRANKED') ? 'UNRANKED' : p.tier;
-
                     let inGameStyle = p.status === 'IN_GAME' ? 'border: 3px solid #00FFAA; box-shadow: 0 0 20px #00FFAA;' : '';
                     let currentChampImg = '';
                     if (p.status === 'IN_GAME' && p.current_champ) {
@@ -281,17 +279,14 @@ function renderMainScene(container, filterTeam) {
                                             <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cImg}.png" style="width:100%;">
                                            </div>`;
                     }
-
                     let icon = '';
                     if(p.streak >= 3) icon = '<span class="status-icon">👑</span>';
                     else if(p.streak <= -3) icon = '<span class="status-icon">💀</span>';
-
                     let streakText = '';
                     if (p.streak === 1) streakText = '1승중';
                     else if (p.streak > 1) streakText = p.streak + '연승';
                     else if (p.streak === -1) streakText = '1패중';
                     else if (p.streak < -1) streakText = Math.abs(p.streak) + '연패';
-
                     return `
                     <div class="member-card" style="${inGameStyle} border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">
                         ${icon} ${currentChampImg}
@@ -305,7 +300,6 @@ function renderMainScene(container, filterTeam) {
                             ${(p.recent || []).map((r, i) => {
                                 const cName = fixChamp(p.champions[i]);
                                 const imgSrc = (cName === 'None' || !cName) ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cName}.png`;
-                                // [수정] r이 'none'일 때 뱃지 텍스트를 '...'으로 변경
                                 let badgeText = r === 'win' ? 'W' : (r === 'lose' ? 'L' : '...');
                                 return `<div class="champ"><img src="${imgSrc}"><span class="wl-badge ${r}">${badgeText}</span></div>`;
                             }).join('')}
