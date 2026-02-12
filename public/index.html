@@ -275,13 +275,18 @@ function renderMainScene(container, filterTeam) {
                     const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                     const tierInfo = getTierInfo(p.tier);
                     
-                    // [기능] 게임 중일 때 현재 챔피언 강조 표시
+                    // [수정] 티어 포맷 유지: 언랭크일 때만 깔끔하게 출력, 나머지는 DB 값 그대로 사용
+                    let displayTier = p.tier || 'UNRANKED';
+                    if (displayTier.toLowerCase().includes('unranked')) {
+                        displayTier = 'UNRANKED';
+                    }
+
                     let inGameStyle = p.status === 'IN_GAME' ? 'border: 3px solid #00FFAA; box-shadow: 0 0 20px #00FFAA;' : '';
                     let currentChampImg = '';
                     if (p.status === 'IN_GAME' && p.current_champ) {
                         const cImg = fixChamp(p.current_champ);
                         currentChampImg = `<div style="position:absolute; right:-10px; top:-10px; width:50px; height:50px; border:2px solid #00FFAA; border-radius:50%; overflow:hidden; z-index:20;">
-                                            <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cImg}.png" style="width:100%;">
+                                            <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cImg}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'" style="width:100%;">
                                            </div>`;
                     }
 
@@ -294,15 +299,16 @@ function renderMainScene(container, filterTeam) {
                         ${icon} ${currentChampImg}
                         <div class="info-line">
                             <span class="name">${p.name}</span>
-                            <span class="tier ${tierInfo.class}">${p.tier.replace(/[-\s]|0lp/gi, '') || 'UNRANKED'}</span>
+                            <span class="tier ${tierInfo.class}">${displayTier}</span>
                             <div class="record"><span class="win">😁${p.wins}승</span> <span class="lose">😡${p.losses}패</span></div>
                             ${p.streak !== 0 ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${p.streak > 0 ? p.streak+'연승' : Math.abs(p.streak)+'연패'}</span>` : ''}
                         </div>
                         <div class="history">
                             ${(p.recent || []).map((r, i) => {
                                 const cName = fixChamp(p.champions[i]);
+                                // [수정] 라이엇 DDragon 서버 사용
                                 const imgSrc = (cName === 'None' || !cName) ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cName}.png`;
-                                return `<div class="champ"><img src="${imgSrc}"><span class="wl-badge ${r}">${r==='win'?'W':'L'}</span></div>`;
+                                return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><span class="wl-badge ${r}">${r==='win'?'W':'L'}</span></div>`;
                             }).join('')}
                         </div>
                     </div>`;
@@ -311,7 +317,7 @@ function renderMainScene(container, filterTeam) {
         </div>`;
     }).join('')}</div>`;
 }
-
+    
 function renderScoreScene() {
     const rW = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.wins || 0), 0);
     const rL = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.losses || 0), 0);
