@@ -7,7 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-
 /* 배경 및 기본 설정 */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
@@ -16,9 +15,12 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 /* 레이아웃 */
 .container{display:flex; gap:60px; justify-content:center; margin-top:20px;}
 .team{display:flex; flex-direction:column; align-items:center;}
-.team h1{font-family:'Orbitron',sans-serif; font-size:50px; margin-bottom:4px;}
+
+/* 팀 헤더: 이름과 요약을 한 줄로 정렬 */
+.team-header { display: flex; align-items: baseline; gap: 15px; margin-bottom: 12px; }
+.team h1{font-family:'Orbitron',sans-serif; font-size:38px; margin: 0;} /* 크기 축소 (50px -> 38px) */
 .red h1{color:#ff5c5c} .blue h1{color:#4db8ff;}
-.summary{font-size:26px; font-weight:800; margin-bottom:12px;}
+.summary{font-size:22px; font-weight:800;} /* 크기 축소 (26px -> 22px) */
 .summary .win{color:#ffd369; text-shadow:0 0 12px #ffd369;}
 .summary .lose{color:#ff6b6b; text-shadow:0 0 12px #ff6b6b;}
 
@@ -26,14 +28,14 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .members{display:flex; flex-direction:column; gap:10px;}
 .member-card{position:relative; width:280px; padding:18px 10px 12px; background:rgba(255,255,255,.06); border-radius:14px; border:2px solid rgba(120,120,120,.35); text-align:center; overflow:visible;}
 
-/* 닉네임 라인 (폰트 유지) */
+/* 닉네임 라인 */
 .name-line{display:flex; justify-content:center; align-items:baseline; gap:6px; margin-bottom:4px;}
 .name{font-family:'Orbitron',sans-serif; font-size:18px; font-weight:800;}
-.tier{font-size:13px; font-weight:800; color:#aaa; font-family:'Pretendard',sans-serif;} /* 티어도 기존 폰트 */
+.tier{font-size:13px; font-weight:800; color:#aaa; font-family:'Pretendard',sans-serif;}
 .streak{font-size:16px; font-weight:800; margin-left:2px;}
 .streak.win{color:#ffd369} .streak.lose{color:#ff6b6b;}
 
-/* 전적 숫자 폰트 (기존 Pretendard 유지) */
+/* 전적 숫자 */
 .record{font-size:15px; font-weight:800; margin-bottom:8px;}
 .record .win{color:#ffd369;} .record .lose{color:#ff6b6b;}
 
@@ -70,10 +72,9 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 @keyframes glowGold { 0% { transform: scale(1); text-shadow:0 0 20px #ffd369; } 100% { transform: scale(1.1); text-shadow:0 0 60px #ffd369, 0 0 100px #ffd369; } }
 .score-box.draw .score-num { color: #ffffff; animation: glowWhite 1.2s infinite alternate; }
 @keyframes glowWhite { 0% { transform: scale(1); text-shadow:0 0 20px #ffffff; } 100% { transform: scale(1.1); text-shadow:0 0 60px #ffffff, 0 0 100px #ffffff; } }
-.score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); } /* 지고있는팀 빨간색 */
+.score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }
 
 .sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
-
 </style>
 </head>
 <body>
@@ -181,8 +182,10 @@ function renderMainScene(container, filterTeam) {
                 
                 return `
                 <div class="team ${t}">
-                    <h1>${teamName.toUpperCase()}</h1>
-                    <div class="summary"><span class="win">😁 ${tW}승</span> / <span class="lose">😡 ${tL}패</span></div>
+                    <div class="team-header">
+                        <h1>${teamName.toUpperCase()}</h1>
+                        <div class="summary"><span class="win">😁 ${tW}승</span> / <span class="lose">😡 ${tL}패</span></div>
+                    </div>
                     <div class="members">
                         ${teamPlayers.map(p => {
                             const level = Math.min(Math.abs(p.streak), 5);
