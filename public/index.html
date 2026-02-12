@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&family=Inter:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* 기존 매니저님의 스타일 그대로 유지 */
+/* 스타일은 기존과 동일하므로 생략 (위의 스타일 시트를 그대로 사용하세요) */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -74,6 +74,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .res-kda-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .kda-main { font-size: 30px; font-weight: 800; color: #fff; font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 .kda-sub { font-size: 24px; font-weight: 800; color: #ffd369; font-family: 'Orbitron', sans-serif; opacity: 1; }
+.res-streak { font-size: 22px; font-weight: 900; margin-bottom: 15px; }
 </style>
 </head>
 <body>
@@ -89,7 +90,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; // 챔피언 데이터 버전
+const LOL_VER = "16.3.1"; // 롤 버전 수정완료
 
 let champMap = {}; 
 let players = [];
@@ -98,7 +99,6 @@ let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
 
-// 티어 클래스 변환
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.toLowerCase().includes('unranked')) return { name: 'UNRANKED', class: 'unranked' };
     const t = tierStr.toLowerCase();
@@ -115,7 +115,6 @@ function getTierInfo(tierStr) {
     return { name: tierStr, class: 'unranked' };
 }
 
-// 챔피언 맵 로드
 async function initChampMap() {
     try {
         const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/data/ko_KR/champion.json`);
@@ -124,7 +123,6 @@ async function initChampMap() {
     } catch (e) { console.error(e); }
 }
 
-// 챔피언 이름 변환
 const fixChamp = c => {
     if(!c || c === 'None' || c === 'Blank' || c === '') return 'None';
     let raw = c.trim();
@@ -132,7 +130,7 @@ const fixChamp = c => {
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
-// 🎬 컷씬 트리거 (수정완료: 승패 및 이미지 정확도 개선)
+// 🎬 컷씬 트리거 (버전 수정 & 연승 문구 추가 완료)
 async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     if (!normalCycle) return;
     normalCycle = false;
@@ -141,19 +139,28 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     const [k, d, a] = kdaText.split('/').map(Number);
     const kdaCalc = d === 0 ? "PERFECT" : ((k + a) / d).toFixed(2);
     
+    // 연승/연패 계산
+    let streakCount = 0;
+    const recent = (player.recent || []).filter(r => r === 'win' || r === 'lose');
+    if (recent.length > 0) {
+        const lastResult = recent[recent.length - 1];
+        for (let i = recent.length - 1; i >= 0; i--) {
+            if (recent[i] === lastResult) streakCount++;
+            else break;
+        }
+    }
+    const streakMsg = isWin ? `${streakCount}연승 중!` : `${streakCount}연패 중...`;
+    const streakColor = isWin ? '#ffd369' : '#ff5c5c';
+
     document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
     const targetScene = isWin ? document.getElementById('scene-game-win') : document.getElementById('scene-game-lose');
     const tierInfo = getTierInfo(player.tier);
     const teamDisplayName = player.team === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
     
-    // 마지막 판의 챔피언 찾기
     let lastChamp = 'None';
     if (player.champions && player.champions.length > 0) {
-        // 'None'이 아닌 마지막 챔피언을 찾음
         const validChamps = player.champions.filter(c => c !== 'None' && c !== '');
-        if (validChamps.length > 0) {
-            lastChamp = fixChamp(validChamps[validChamps.length - 1]);
-        }
+        if (validChamps.length > 0) lastChamp = fixChamp(validChamps[validChamps.length - 1]);
     }
 
     targetScene.innerHTML = `
@@ -162,17 +169,18 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
             <div class="res-nick">
                 <span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${teamDisplayName}</span>
                 <span style="vertical-align: middle;">${player.name}</span>
-                <span style="font-size: 24px; vertical-align: middle; margin-left: 12px;">
-                    <span style="color:#ffd369">😁 ${player.wins}승</span> 
-                    <span style="color:#ff6b6b; margin-left: 8px;">😡 ${player.losses}패</span>
-                </span>
             </div>
+            <div class="res-streak" style="color:${streakColor}">${streakMsg}</div>
             <div class="res-tier tier ${tierInfo.class}">${player.tier}</div>
             <div class="res-champ">
                 <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${lastChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'">
                 <div class="res-kda-box">
                     <span class="kda-main">${kdaText}</span>
                     <span class="kda-sub">K/D/A : ${kdaCalc}</span>
+                    <div style="margin-top:5px; font-size:18px;">
+                        <span style="color:#ffd369">😁 ${player.wins}승</span> 
+                        <span style="color:#ff6b6b; margin-left: 8px;">😡 ${player.losses}패</span>
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -188,7 +196,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     }, 8000);
 }
 
-// 데이터 로드
 async function loadData() {
     try {
         const { data: sData } = await sb.from('settings').select('*');
@@ -214,16 +221,13 @@ async function loadData() {
     } catch (e) { console.log(e); }
 }
 
-// 실시간 감시 (수정완료: INSERT 기반 컷씬 판단)
 function setupRealtime() {
     sb.channel('db_changes')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players' }, (payload) => {
         if (payload.new && payload.new.trigger_cutscene === true) {
             const recent = payload.new.recent || [];
-            // 마지막 승패 결과 확인
             const lastRes = recent.filter(x => x === 'win' || x === 'lose').pop();
             if (lastRes) {
-                // 승리 여부를 정확하게 전달
                 triggerCutscene(payload.new, lastRes === 'win', payload.new.last_kda || "0/0/0");
             }
         }
