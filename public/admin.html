@@ -10,70 +10,76 @@
     :root { 
         --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; 
         --emerald: #2ecc71; 
-        --neon-red: 0 0 15px rgba(255, 59, 59, 0.8), 0 0 5px rgba(255, 59, 59, 0.5);
-        --neon-blue: 0 0 15px rgba(77, 184, 255, 0.8), 0 0 5px rgba(77, 184, 255, 0.5);
-        --neon-gold: 0 0 20px rgba(255, 211, 105, 0.8), 0 0 8px rgba(255, 211, 105, 0.6);
-        --neon-emerald: 0 0 15px rgba(46, 204, 113, 0.7);
+        --neon-red: 0 0 15px rgba(255, 59, 59, 0.8);
+        --neon-blue: 0 0 15px rgba(77, 184, 255, 0.8);
+        --neon-gold: 0 0 20px rgba(255, 211, 105, 0.8);
     }
     body { margin:0; background:#0e0e0e; color:#fff; font-family:'Pretendard',sans-serif; padding:20px; padding-bottom: 120px; }
     .wrap { width:1450px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
     
-    /* 헤더 및 상단 팀명칭 테두리 불빛 강화 */
+    /* 헤더 및 상단 컨트롤 */
     .admin-header { background:#1a1a1a; padding:25px; border-radius:15px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); }
     .top-controls { display:flex; gap:20px; align-items:flex-end; margin-bottom:20px; }
     
     .header-group { display:flex; flex-direction:column; gap:8px; }
-    .header-group label { font-size:12px; font-weight:900; color:var(--gold); text-shadow: 0 0 8px rgba(255,211,105,0.6); margin-left:2px; }
+    /* 팀 명칭 라벨 색상 수정 */
+    .label-red { font-size:12px; font-weight:900; color:var(--red) !important; text-shadow: 0 0 8px rgba(255,59,59,0.5); margin-left:2px; }
+    .label-blue { font-size:12px; font-weight:900; color:var(--blue) !important; text-shadow: 0 0 8px rgba(77,184,255,0.5); margin-left:2px; }
+    .label-gold { font-size:12px; font-weight:900; color:var(--gold); text-shadow: 0 0 8px rgba(255,211,105,0.5); margin-left:2px; }
     
-    /* 팀 명칭 입력창 간판 불빛 */
-    .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:900; outline:none; transition:0.2s; }
-    #redNameInput, #blueNameInput { border: 2px solid var(--gold) !important; color: #fff; box-shadow: var(--neon-gold) !important; text-shadow: 0 0 5px #fff; }
+    .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:900; outline:none; border: 2px solid var(--gold); color: #fff; box-shadow: var(--neon-gold); }
     
-    #teamCount { font-weight: 900; color: var(--gold); border: 2px solid var(--gold); background: #000; font-size: 18px; text-align: center; box-shadow: var(--neon-gold); width:80px; }
+    /* 목표 종료 시간 칸 크기 확대 (옆 칸들과 통일) */
+    .timer-input-wrap { display: flex; align-items: center; background: #000; padding: 0 15px; border-radius: 8px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); height: 46px; width: 280px; box-sizing: border-box; }
+    #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; }
 
-    .timer-input-wrap { display: flex; align-items: center; gap: 10px; background: #000; padding: 10px 15px; border-radius: 10px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); height: 46px; width: 250px; box-sizing: border-box; }
-    #endDateTime { background: transparent; border: none; color: var(--gold); font-family: 'Pretendard'; font-weight: 900; font-size: 15px; outline: none; color-scheme: dark; width: 100%; }
+    #teamCount { width:80px; text-align: center; }
+    .btn-load-data { height:46px; padding:0 20px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); }
 
-    .btn-load-data { height:46px; padding:0 20px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; transition:0.2s; box-shadow: var(--neon-emerald); }
+    /* 매뉴얼 및 네온 키워드 */
+    .menu-desc { font-size:14px; color:#ccc; line-height:1.8; background:#111; padding:22px; border-radius:10px; border: 2px solid var(--gold); box-shadow: inset 0 0 15px rgba(255,211,105,0.1), var(--neon-gold); margin-top: 10px; font-weight: 800; }
+    .menu-desc strong { color: var(--gold); font-size: 18px; text-shadow: 0 0 10px var(--gold); display: block; margin-bottom: 8px; font-weight: 900; }
+    .neon-point { color: var(--gold); text-shadow: 0 0 10px var(--gold); font-weight: 900; }
 
-    /* 매뉴얼 글로우 및 폰트 굵게 보강 */
-    .menu-desc { font-size:14px; color:#fff; line-height:1.8; background:#111; padding:22px; border-radius:10px; border: 3px solid var(--gold); box-shadow: inset 0 0 20px rgba(255,211,105,0.3), 0 0 25px rgba(255,211,105,0.5); margin-top: 10px; font-weight: 800; }
-    .menu-desc strong { color: var(--gold); font-size: 18px; text-shadow: 0 0 15px var(--gold); display: block; margin-bottom: 8px; font-weight: 900; }
-
-    /* 팀 박스 UI */
+    /* 팀 박스 */
     .teams-container { display:flex; gap:25px; }
     .team-box { flex:1; background:#1a1a1a; padding:20px; border-radius:15px; border-top: 5px solid; }
     .team-box.red { border-color: var(--red); box-shadow: 0 -5px 15px rgba(255, 59, 59, 0.3); }
     .team-box.blue { border-color: var(--blue); box-shadow: 0 -5px 15px rgba(77, 184, 255, 0.3); }
-    .team-box h2 { font-family:'Orbitron',sans-serif; margin-top:0; font-size:28px; text-align:center; font-weight: 900; }
     
-    /* 멤버 카드 및 히스토리 간판 불빛 */
-    .member-card { background:#151515; border-radius:12px; padding:20px; position: relative; border: 2px solid; margin-bottom: 10px; }
-    .red .member-card { border-color: var(--red) !important; box-shadow: var(--neon-red) !important; }
-    .blue .member-card { border-color: var(--blue) !important; box-shadow: var(--neon-blue) !important; }
+    .member-list { display:flex; flex-direction:column; gap:20px; max-height:800px; overflow-y:auto; padding: 10px; }
+    
+    /* 멤버 카드 및 입력창 */
+    .member-card { background:#151515; border-radius:12px; padding:20px; border: 2px solid; margin-bottom: 10px; }
+    .red .member-card { border-color: var(--red); box-shadow: var(--neon-red); }
+    .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
     
     .name-row { display:flex; gap:10px; margin-bottom:15px; align-items: flex-end; }
-    .name-row input, .name-row select { padding:10px; background:#000; border-radius:6px; font-size:13px; font-weight: 800; outline:none; }
     
-    .red .nick-disp, .red .nick-riot { border: 2px solid var(--red); color: #fff; }
-    .blue .nick-disp, .blue .nick-riot { border: 2px solid var(--blue); color: #fff; }
+    /* 닉네임 폰트 기존 복구 및 굵게 */
+    .nick-disp, .nick-riot { padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; }
+    .red .nick-disp, .red .nick-riot { border: 2px solid var(--red); }
+    .blue .nick-disp, .blue .nick-riot { border: 2px solid var(--blue); }
     
-    .tier-select { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; }
-    .lp-input { width: 48px !important; border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; text-align: center; font-weight: 900; }
+    .tier-select { padding:10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; }
+    
+    /* LP칸 축소 (4자리 최적화) */
+    .lp-input { width: 55px !important; padding:10px 0 !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
 
-    /* 스코어 글자 굵게 */
+    /* 승리 패배 칸 크기 복구 및 글자 굵게 */
+    .score-input-wrap { display:flex; flex-direction:column; gap:4px; width:60px; }
     .score-input-wrap label { font-weight: 900; font-size: 11px; text-align: center; }
-    .score-input { width: 100%; text-align:center; border-radius:6px; font-size:15px; font-weight: 900; outline: none; background:#000; padding: 10px 0 !important; }
+    .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 10px 0 !important; }
     .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
     .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
 
-    /* 판수 박스 네온 및 노란 글씨 */
+    /* 히스토리 판수 네온 */
     .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:15px; border-radius:10px; }
     .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding: 10px 5px; border-radius: 8px; border: 2px solid; }
-    .red .history-item { border-color: var(--red) !important; box-shadow: var(--neon-red) !important; }
-    .blue .history-item { border-color: var(--blue) !important; box-shadow: var(--neon-blue) !important; }
+    .red .history-item { border-color: var(--red); box-shadow: var(--neon-red); }
+    .blue .history-item { border-color: var(--blue); box-shadow: var(--neon-blue); }
+    .history-item span { color: var(--gold); text-shadow: 0 0 8px var(--gold); font-weight: 900; font-size: 12px; }
     
-    .history-item span { color: var(--gold) !important; text-shadow: 0 0 8px var(--gold); font-weight: 900; font-size: 12px; }
     .champ-input { width:92%; background:#000; border: 2px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:12px; font-weight: 800; box-shadow: var(--neon-gold); outline: none; }
     
     .btn-toggle { width:100%; padding:8px 0; font-size:11px; font-weight:900; border:none; border-radius:4px; cursor:pointer; }
@@ -89,31 +95,31 @@
 <div class="wrap">
     <div class="admin-header">
         <div class="top-controls">
-            <div class="header-group"><label>🚩 레드 팀 명칭</label><input id="redNameInput" oninput="updateTeamNames()" placeholder="레드 팀"></div>
-            <div class="header-group"><label>🚩 블루 팀 명칭</label><input id="blueNameInput" oninput="updateTeamNames()" placeholder="블루 팀"></div>
-            <div class="header-group"><label>⏰ 목표 종료 시간</label><div class="timer-input-wrap"><input id="endDateTime" type="datetime-local"></div></div>
-            <div class="header-group"><label>👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuild()"></div>
+            <div class="header-group"><label class="label-red">🚩 레드 팀 명칭</label><input id="redNameInput" oninput="updateTeamNames()" placeholder="레드 팀"></div>
+            <div class="header-group"><label class="label-blue">🚩 블루 팀 명칭</label><input id="blueNameInput" oninput="updateTeamNames()" placeholder="블루 팀"></div>
+            <div class="header-group"><label class="label-gold">⏰ 목표 종료 시간</label><div class="timer-input-wrap"><input id="endDateTime" type="datetime-local"></div></div>
+            <div class="header-group"><label class="label-gold">👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuild()"></div>
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
         </div>
         <div class="menu-desc">
-            <strong>💡 이라네 시트지 필독 관리 매뉴얼 (네온 전구 점등)</strong>
-            데이터 동기화: 방송 시작 전 반드시 [데이터 불러오기]를 눌러 이전 세이브 데이터를 가져오세요.<br>
-            스코어 수동 제어: 우측 [승리/패배] 칸에 숫자를 넣으면 하단 판수 결과와 상관없이 해당 숫자가 전광판에 박힙니다.<br>
-            네온 간판 가이드: 모든 입력창과 1판 단위 박스는 팀 색상에 맞는 불이 들어와야 정상입니다.<br>
-            실시간 반영: 수정한 내용은 반드시 우측 하단 [송출 화면 반영] 버튼을 눌러야 시청자 화면에 업데이트됩니다.<br>
-            입력 편의: 닉네임 입력 후 [Enter]를 치면 다음 칸(티어, LP, 챔피언)으로 커서가 자동으로 넘어갑니다.
+            <strong>💡 이라네 시트지 필독 관리 매뉴얼</strong>
+            • <span class="neon-point">데이터 반영:</span> 우측 하단 붉은색 [송출 화면 반영] 버튼을 눌러야 실제 시트지에 적용됩니다.<br>
+            • <span class="neon-point">강제 수정:</span> 승/패 칸에 숫자를 직접 입력하면 하단 히스토리와 상관없이 해당 숫자가 전격 기록됩니다.<br>
+            • <span class="neon-point">엔터 이동:</span> 입력창에서 엔터를 치면 다음 칸으로 편리하게 이동합니다. (챔피언 포함)<br>
+            • <span class="neon-point">시간 설정:</span> 입력창의 시/분 부분을 클릭하여 오전/오후 및 상세 시간을 수정할 수 있습니다.
         </div>
     </div>
 
     <div class="teams-container">
-        <div class="team-box red"><h2 id="redTitle" class="red-text" style="color:var(--red); text-shadow:var(--neon-red);">레드 팀</h2><div id="redPlayers" class="member-list"></div></div>
-        <div class="team-box blue"><h2 id="blueTitle" class="blue-text" style="color:var(--blue); text-shadow:var(--neon-blue);">블루 팀</h2><div id="bluePlayers" class="member-list"></div></div>
+        <div class="team-box red"><h2 id="redTitle" style="color:var(--red); text-shadow:var(--neon-red); font-weight:900;">레드 팀</h2><div id="redPlayers" class="member-list"></div></div>
+        <div class="team-box blue"><h2 id="blueTitle" style="color:var(--blue); text-shadow:var(--neon-blue); font-weight:900;">블루 팀</h2><div id="bluePlayers" class="member-list"></div></div>
     </div>
 </div>
 
 <button class="btn-apply" onclick="applyToSupabase()">송출 화면 반영</button>
 
 <script>
+// (스크립트 로직 동일 - 챔피언 None 처리 포함)
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -176,10 +182,10 @@ function createMemberCard(team, data = null) {
 
     card.innerHTML = `
         <div class="name-row">
-            <div class="input-group"><label>방송 닉네임</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-            <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id || ''}"></div>
-            <div class="input-group" style="flex:1.5"><label>티어 선택</label><select class="tier-select">${tierOptions}</select></div>
-            <div class="input-group" style="width:48px; flex:none;"><label>LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
+            <div class="input-group"><label style="font-weight:900;">방송 닉네임</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
+            <div class="input-group"><label style="font-weight:900;">롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id || ''}"></div>
+            <div class="input-group" style="flex:1.5"><label style="font-weight:900;">티어 선택</label><select class="tier-select">${tierOptions}</select></div>
+            <div class="input-group" style="width:55px; flex:none;"><label style="font-weight:900;">LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
             <div class="score-input-wrap" style="margin-left:8px;"><label style="color:var(--gold);">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
             <div class="score-input-wrap"><label style="color:var(--red);">패배</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
