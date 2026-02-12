@@ -51,14 +51,16 @@
     .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
     
     .name-row { display:flex; gap:12px; margin-bottom:15px; align-items: flex-end; }
-    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; display: block; }
+    
+    /* 입력 그룹 정렬 */
+    .input-group { display: flex; flex-direction: column; }
+    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; margin-left: 2px; }
     
     /* 입력창 높이 통일 */
     .nick-disp, .nick-riot, .tier-select, .lp-input, .score-input { height: 42px !important; box-sizing: border-box; }
     
-    /* 스트리머명 칸 축소 */
-    .nick-disp { width: 110px !important; flex: none !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; }
-    /* 롤 닉네임 칸 */
+    /* 스트리머명 칸 및 롤 닉네임 정렬 유지 */
+    .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; }
     .nick-riot { flex: 1.2 !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; }
     
     .red .nick-disp, .red .nick-riot { border: 2px solid var(--red); }
@@ -66,10 +68,11 @@
     
     .tier-select { padding:0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; flex: 1.5 !important; }
     
-    .lp-input { width: 65px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; flex: none !important; }
+    .lp-input { width: 60px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
 
-    /* 승리 패배 칸 절대 안짤리게 고정 너비 확보 */
-    .score-input-wrap { display:flex; flex-direction:column; gap:6px; width:65px; flex: none !important; }
+    /* 승리 패배 칸 폭 축소 (99점 최적화) */
+    .score-input-wrap { display:flex; flex-direction:column; width:50px; flex: none !important; }
+    .score-input-wrap label { font-size: 11px; font-weight: 900; margin-bottom: 6px; text-align: center; }
     .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; }
     .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
     .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
@@ -119,6 +122,7 @@
 <button class="btn-apply" onclick="applyToSupabase()">송출 화면 반영</button>
 
 <script>
+// (스크립트 로직 유지)
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -184,7 +188,7 @@ function createMemberCard(team, data = null) {
             <div class="input-group"><label style="font-weight:900;">스트리머명</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
             <div class="input-group"><label style="font-weight:900;">롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id || ''}"></div>
             <div class="input-group" style="flex:1.5"><label style="font-weight:900;">티어 선택</label><select class="tier-select">${tierOptions}</select></div>
-            <div class="input-group" style="width:65px; flex:none;"><label style="font-weight:900;">LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
+            <div class="input-group" style="width:60px; flex:none;"><label style="font-weight:900;">LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
             <div class="score-input-wrap" style="margin-left:8px;"><label style="color:var(--gold);">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
             <div class="score-input-wrap"><label style="color:var(--red);">패배</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
