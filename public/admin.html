@@ -26,70 +26,72 @@
     .header-group label { font-size:12px; font-weight:800; color:var(--gold); text-shadow: 0 0 5px rgba(255,211,105,0.5); margin-left:2px; }
     
     .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:800; outline:none; transition:0.2s; }
-    #redNameInput { border: 2px solid var(--red); color: var(--red); box-shadow: var(--neon-red); }
-    #blueNameInput { border: 2px solid var(--blue); color: var(--blue); box-shadow: var(--neon-blue); }
+    #redNameInput { border: 2px solid var(--red); color: var(--red); box-shadow: var(--neon-red); text-shadow: var(--neon-red); }
+    #blueNameInput { border: 2px solid var(--blue); color: var(--blue); box-shadow: var(--neon-blue); text-shadow: var(--neon-blue); }
     
-    #teamCount { font-weight: 800; color: var(--gold); border: 2px solid var(--gold); background: #000; font-size: 18px; text-align: center; box-shadow: var(--neon-gold); width:80px; }
+    #teamCount { font-weight: 800; color: var(--gold); border: 2px solid var(--gold); background: #000; font-size: 18px; text-align: center; box-shadow: var(--neon-gold); width:80px; text-shadow: var(--neon-gold); }
 
     .timer-input-wrap { display: flex; align-items: center; gap: 10px; background: #000; padding: 10px 15px; border-radius: 10px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); height: 46px; box-sizing: border-box; }
-    #endDateTime { background: transparent; border: none; color: var(--gold); font-family: 'Pretendard'; font-weight: 800; font-size: 15px; outline: none; color-scheme: dark; }
+    #endDateTime { background: transparent; border: none; color: var(--gold); font-family: 'Pretendard'; font-weight: 800; font-size: 15px; outline: none; color-scheme: dark; text-shadow: var(--neon-gold); }
 
-    .btn-load-data { height:46px; padding:0 20px; background:#333; color:#fff; border:1px solid #555; border-radius:8px; cursor:pointer; font-weight:800; transition:0.2s; }
-    .btn-load-data:hover { background:var(--gold); color:#000; border-color:var(--gold); box-shadow: var(--neon-gold); }
+    /* 데이터 불러오기 버튼 네온 추가 */
+    .btn-load-data { height:46px; padding:0 20px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:800; transition:0.2s; box-shadow: var(--neon-emerald); text-shadow: 0 0 5px var(--emerald); }
+    .btn-load-data:hover { background:var(--emerald); color:#000; }
 
     /* 매뉴얼 */
-    .menu-desc { font-size:13.5px; color:#ccc; line-height:1.8; background:#252525; padding:18px; border-radius:10px; border: 1px solid var(--gold); box-shadow: inset 0 0 10px rgba(255,211,105,0.1), var(--neon-gold); margin-top: 10px; }
+    .menu-desc { font-size:13.5px; color:#ccc; line-height:1.8; background:#111; padding:18px; border-radius:10px; border: 1px solid var(--gold); box-shadow: inset 0 0 10px rgba(255,211,105,0.1), var(--neon-gold); margin-top: 10px; }
     .menu-desc strong { color: var(--gold); font-size: 15px; text-shadow: 0 0 10px var(--gold); }
 
     /* 팀 박스 및 카드 */
     .teams-container { display:flex; gap:25px; }
     .team-box { flex:1; background:#1a1a1a; padding:20px; border-radius:15px; border-top:5px solid #444; }
-    .team-box.red { border-color: var(--red); }
-    .team-box.blue { border-color: var(--blue); }
+    .team-box.red { border-color: var(--red); box-shadow: inset 0 0 20px rgba(255, 59, 59, 0.05); }
+    .team-box.blue { border-color: var(--blue); box-shadow: inset 0 0 20px rgba(77, 184, 255, 0.05); }
     .team-box h2 { font-family:'Orbitron',sans-serif; margin-top:0; font-size:28px; text-align:center; }
     .red-text { color: var(--red); text-shadow: var(--neon-red); }
     .blue-text { color: var(--blue); text-shadow: var(--neon-blue); }
 
     .member-list { display:flex; flex-direction:column; gap:20px; max-height:800px; overflow-y:auto; padding: 10px; }
-    .member-card { background:#1e1e1e; border-radius:12px; padding:20px; border: 2px solid #333; position: relative; }
+    .member-card { background:#151515; border-radius:12px; padding:20px; border: 2px solid #333; position: relative; }
     
-    /* 입력창 라벨 위치 조정 */
     .input-group { display:flex; flex-direction:column; gap:4px; flex:1; }
-    .input-group label { font-size:11px; font-weight:800; color:#aaa; margin-left:2px; margin-bottom: 2px; }
+    .input-group label { font-size:11px; font-weight:800; margin-left:2px; margin-bottom: 2px; text-shadow: 0 0 5px rgba(255,255,255,0.2); }
     
-    .name-row { display:flex; gap:12px; margin-bottom:15px; align-items: flex-end; }
-    .name-row input, .name-row select { padding:10px; background:#000; color:#fff; border-radius:6px; font-size:13px; font-weight: 700; border: 2px solid #444; outline:none; transition: 0.2s; }
+    .name-row { display:flex; gap:10px; margin-bottom:15px; align-items: flex-end; }
+    .name-row input, .name-row select { padding:10px; background:#000; border-radius:6px; font-size:13px; font-weight: 700; outline:none; transition: 0.2s; }
     
-    .team-box.red .nick-disp, .team-box.red .nick-riot { border-color: var(--red); box-shadow: var(--neon-red); }
-    .team-box.blue .nick-disp, .team-box.blue .nick-riot { border-color: var(--blue); box-shadow: var(--neon-blue); }
-    .tier-select { border-color: var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; }
+    /* 레드/블루 팀 카드 내 입력창 네온 및 글자색 */
+    .team-box.red .nick-disp, .team-box.red .nick-riot { border: 2px solid var(--red); color: var(--red); box-shadow: var(--neon-red); text-shadow: 0 0 5px var(--red); }
+    .team-box.blue .nick-disp, .team-box.blue .nick-riot { border: 2px solid var(--blue); color: var(--blue); box-shadow: var(--neon-blue); text-shadow: 0 0 5px var(--blue); }
     
-    /* LP 칸 너비 축소 */
-    .lp-input { width: 50px !important; border-color: var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; text-align: center; }
+    .tier-select { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; text-shadow: 0 0 5px var(--gold); }
+    
+    /* LP 칸 너비 더 축소 및 네온 */
+    .lp-input { width: 42px !important; border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; text-shadow: 0 0 5px var(--gold); text-align: center; }
 
-    .score-input-wrap { display:flex; flex-direction:column; gap:4px; width:50px; margin-left: 2px; }
+    .score-input-wrap { display:flex; flex-direction:column; gap:4px; width:48px; margin-left: 2px; }
     .score-input-wrap label { font-size:11px; font-weight:900; text-align:center; margin-bottom: 2px; }
-    .score-input { width: 100%; padding:10px 0 !important; text-align:center; border-radius:6px; font-size:16px !important; outline: none; box-sizing: border-box; }
-    .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; }
-    .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red) !important; }
+    .score-input { width: 100%; padding:10px 0 !important; text-align:center; border-radius:6px; font-size:16px !important; outline: none; box-sizing: border-box; background:#000; }
+    .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; text-shadow: var(--neon-gold); }
+    .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red) !important; text-shadow: var(--neon-red); }
 
-    /* 히스토리 에디터 */
+    /* 히스토리 에디터 네온 */
     .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:15px; border-radius:10px; border: 1px solid #333; }
-    .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding:10px 5px; background:#1e1e1e; border-radius:8px; border: 1px solid #444; }
-    .history-item span { font-size:12px; color: var(--gold); font-weight:900; }
+    .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding:10px 5px; background:#1e1e1e; border-radius:8px; border: 1px solid #444; transition: 0.2s; }
+    .history-item:focus-within { border-color: var(--gold); box-shadow: var(--neon-gold); }
+    .history-item span { font-size:12px; color: var(--gold); font-weight:900; text-shadow: 0 0 5px var(--gold); }
     .champ-input { width:92%; background:#000; border: 2px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:11.5px; font-weight: 600; box-shadow: var(--neon-gold); outline: none; }
     
-    .btn-toggle { width:100%; padding:8px 0; font-size:11px; font-weight:900; border:none; border-radius:4px; cursor:pointer; }
-    .btn-toggle.win { background: var(--gold); color: #000; }
-    .btn-toggle.lose { background: var(--red); color: #fff; }
-    .btn-toggle.ing { background: var(--emerald); color: #fff; }
+    .btn-toggle { width:100%; padding:8px 0; font-size:11px; font-weight:900; border:none; border-radius:4px; cursor:pointer; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+    .btn-toggle.win { background: var(--gold); color: #000; box-shadow: var(--neon-gold); }
+    .btn-toggle.lose { background: var(--red); color: #fff; box-shadow: var(--neon-red); }
+    .btn-toggle.ing { background: var(--emerald); color: #fff; box-shadow: var(--neon-emerald); }
 
-    .btn-apply { position: fixed; bottom: 30px; right: 30px; z-index: 1000; width: 280px; height: 70px; font-size:24px; font-weight:800; background: var(--red); color:#fff; border:none; border-radius:15px; cursor:pointer; box-shadow: 0 0 25px rgba(255, 59, 59, 0.6); transition: 0.2s; }
-    .btn-apply:hover { background:#ff1a1a; transform: scale(1.05); }
+    .btn-apply { position: fixed; bottom: 30px; right: 30px; z-index: 1000; width: 280px; height: 70px; font-size:24px; font-weight:800; background: var(--red); color:#fff; border:none; border-radius:15px; cursor:pointer; box-shadow: 0 0 25px rgba(255, 59, 59, 0.6); transition: 0.2s; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+    .btn-apply:hover { background:#ff1a1a; transform: scale(1.05); box-shadow: 0 0 40px rgba(255, 59, 59, 0.9); }
 </style>
 </head>
 <body>
-
 <div class="wrap">
     <div class="admin-header">
         <div class="top-controls">
@@ -183,8 +185,8 @@ function createMemberCard(team, data = null) {
             <div class="input-group"><label>방송 닉네임</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
             <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id || ''}"></div>
             <div class="input-group" style="flex:1.5"><label>티어 선택</label><select class="tier-select">${tierOptions}</select></div>
-            <div class="input-group" style="width:50px; flex:none;"><label>LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
-            <div class="score-input-wrap" style="margin-left:12px;"><label style="color:var(--gold)">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
+            <div class="input-group" style="width:42px; flex:none;"><label>LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
+            <div class="score-input-wrap" style="margin-left:10px;"><label style="color:var(--gold)">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
             <div class="score-input-wrap"><label style="color:var(--red)">패배</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
