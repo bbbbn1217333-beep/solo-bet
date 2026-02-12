@@ -50,27 +50,47 @@
     .red .member-card { border-color: var(--red); box-shadow: var(--neon-red); }
     .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
     
-    .name-row { display:flex; gap:12px; margin-bottom:15px; align-items: flex-end; }
+    .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; }
     
-    /* 입력 그룹 중앙 정렬 */
     .input-group { display: flex; flex-direction: column; align-items: center; }
     .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; }
     
-    /* 입력창 높이 통일 (티어 선택 포함) */
-    .nick-disp, .nick-riot, .tier-select, .lp-input, .score-input { height: 42px !important; box-sizing: border-box; }
-    
-    .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; }
-    .nick-riot { flex: 1.2 !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; }
-    
-    .red .nick-disp, .red .nick-riot { border: 2px solid var(--red); }
-    .blue .nick-disp, .blue .nick-riot { border: 2px solid var(--blue); }
-    
-    /* 티어 선택창 높이 및 디자인 일치 */
-    .tier-select { padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; flex: 1.5 !important; appearance: none; text-align: center; }
-    
-    .lp-input { width: 60px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
+    /* 입력창 높이 및 박스사이징 최적화 */
+    .nick-disp, .nick-riot, .lp-input, .score-input { 
+        height: 44px !important; 
+        box-sizing: border-box !important; 
+    }
 
-    .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:50px; flex: none !important; }
+    /* 티어 선택 칸 세로 길이(높이) 대폭 확대 */
+    .tier-select { 
+        height: 44px !important; 
+        box-sizing: border-box !important;
+        padding: 0 10px; 
+        background:#000; 
+        border: 2px solid var(--gold) !important; 
+        border-radius:6px; 
+        font-size:13px; 
+        font-weight: 800; 
+        color: var(--gold) !important; 
+        box-shadow: var(--neon-gold); 
+        outline:none; 
+        flex: 1.5 !important; 
+        text-align: center;
+        text-align-last: center;
+        appearance: none; /* 브라우저 기본 스타일 제거하여 높이 확보 */
+        line-height: 40px;
+    }
+    
+    .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
+    .nick-riot { flex: 1.05 !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
+    
+    .red .nick-disp, .red .nick-riot { border-color: var(--red); }
+    .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
+    
+    .lp-input { width: 55px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
+
+    /* 승리 패배 간격 밀착 */
+    .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; flex: none !important; margin-left: 2px !important; }
     .score-input-wrap label { font-size: 11px; font-weight: 900; margin-bottom: 6px; }
     .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; }
     .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
@@ -186,8 +206,8 @@ function createMemberCard(team, data = null) {
             <div class="input-group"><label style="font-weight:900;">스트리머명</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
             <div class="input-group"><label style="font-weight:900;">롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id || ''}"></div>
             <div class="input-group" style="flex:1.5"><label style="font-weight:900;">티어 선택</label><select class="tier-select">${tierOptions}</select></div>
-            <div class="input-group" style="width:60px; flex:none;"><label style="font-weight:900;">LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
-            <div class="score-input-wrap" style="margin-left:8px;"><label style="color:var(--gold);">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
+            <div class="input-group" style="width:55px; flex:none;"><label style="font-weight:900;">LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
+            <div class="score-input-wrap"><label style="color:var(--gold);">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
             <div class="score-input-wrap"><label style="color:var(--red);">패배</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
