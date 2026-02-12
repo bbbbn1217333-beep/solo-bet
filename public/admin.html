@@ -16,25 +16,19 @@
     }
     body { margin:0; background:#0e0e0e; color:#fff; font-family:'Pretendard',sans-serif; padding:15px; padding-bottom: 120px; overflow-x: auto; }
     
-    /* 전체 폭 조정: 블루팀이 잘리지 않도록 함 */
     .wrap { width: 1550px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
     
     .admin-header { background:#1a1a1a; padding:25px; border-radius:15px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); }
     .top-controls { display:flex; gap:20px; align-items:flex-end; margin-bottom:20px; flex-wrap: nowrap; }
     
     .header-group { display:flex; flex-direction:column; gap:8px; }
-    
-    /* 상단 라벨 글자 크기 키움 */
     .label-red { font-size:15px; font-weight:900; color:var(--red) !important; text-shadow: 0 0 8px rgba(255,59,59,0.5); margin-left:2px; }
     .label-blue { font-size:15px; font-weight:900; color:var(--blue) !important; text-shadow: 0 0 8px rgba(77,184,255,0.5); margin-left:2px; }
     .label-gold { font-size:15px; font-weight:900; color:var(--gold); text-shadow: 0 0 8px rgba(255,211,105,0.5); margin-left:2px; }
     
-    /* 상단 입력창 크기 통일 (높이 50px로 일치) */
     .top-controls input, .timer-input-wrap, .btn-load-data { height: 50px !important; box-sizing: border-box; }
-    
     .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:900; outline:none; border: 2px solid var(--gold); color: #fff; box-shadow: var(--neon-gold); }
     
-    /* 목표 종료 시간 칸: 그림자 제거 및 크기 맞춤 */
     .timer-input-wrap { display: flex; align-items: center; background: #000; padding: 0 15px; border-radius: 8px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); width: 320px; }
     #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; box-shadow: none !important; }
 
@@ -56,25 +50,27 @@
     .red .member-card { border-color: var(--red); box-shadow: var(--neon-red); }
     .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
     
-    .name-row { display:flex; gap:10px; margin-bottom:15px; align-items: flex-end; }
-    
-    /* 문구 살짝 위로 이동 + 굵게 */
+    .name-row { display:flex; gap:12px; margin-bottom:15px; align-items: flex-end; }
     .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; display: block; }
     
-    /* 카드 내부 입력창 높이 통일 (LP 포함) */
+    /* 입력창 높이 통일 */
     .nick-disp, .nick-riot, .tier-select, .lp-input, .score-input { height: 42px !important; box-sizing: border-box; }
     
-    .nick-disp, .nick-riot { padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; flex: 1; }
+    /* 스트리머명 칸 축소 */
+    .nick-disp { width: 110px !important; flex: none !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; }
+    /* 롤 닉네임 칸 */
+    .nick-riot { flex: 1.2 !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; }
+    
     .red .nick-disp, .red .nick-riot { border: 2px solid var(--red); }
     .blue .nick-disp, .blue .nick-riot { border: 2px solid var(--blue); }
     
-    .tier-select { padding:0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; flex: 1.5; }
+    .tier-select { padding:0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; flex: 1.5 !important; }
     
-    /* LP칸 높이 맞춤 및 크기 최적화 */
-    .lp-input { width: 65px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
+    .lp-input { width: 65px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; flex: none !important; }
 
-    .score-input-wrap { display:flex; flex-direction:column; gap:6px; width:65px; }
-    .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; display: flex; align-items: center; justify-content: center; }
+    /* 승리 패배 칸 절대 안짤리게 고정 너비 확보 */
+    .score-input-wrap { display:flex; flex-direction:column; gap:6px; width:65px; flex: none !important; }
+    .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; }
     .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
     .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
 
@@ -123,7 +119,6 @@
 <button class="btn-apply" onclick="applyToSupabase()">송출 화면 반영</button>
 
 <script>
-// (스크립트 로직 동일)
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -186,7 +181,7 @@ function createMemberCard(team, data = null) {
 
     card.innerHTML = `
         <div class="name-row">
-            <div class="input-group"><label style="font-weight:900;">방송 닉네임</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
+            <div class="input-group"><label style="font-weight:900;">스트리머명</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
             <div class="input-group"><label style="font-weight:900;">롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id || ''}"></div>
             <div class="input-group" style="flex:1.5"><label style="font-weight:900;">티어 선택</label><select class="tier-select">${tierOptions}</select></div>
             <div class="input-group" style="width:65px; flex:none;"><label style="font-weight:900;">LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
