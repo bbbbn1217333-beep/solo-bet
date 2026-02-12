@@ -205,12 +205,18 @@ function createMemberCard(team, data = null) {
         <div class="name-row">
             <div class="input-group"><label style="font-weight:900;">스트리머명</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
             <div class="input-group"><label style="font-weight:900;">롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id || ''}"></div>
-            <div class="input-group" style="flex:1.5"><label style="font-weight:900;">티어 선택</label><select class="tier-select">${tierOptions}</select></div>
+            <div class="input-group" style="flex:1.5; position:relative;">
+                <label style="font-weight:900;">티어 수정 <input type="checkbox" class="tier-override" style="cursor:pointer;"></label>
+                <select class="tier-select">${tierOptions}</select>
+            </div>
             <div class="input-group" style="width:55px; flex:none;"><label style="font-weight:900;">LP</label><input class="lp-input" placeholder="0" value="${currentLP}"></div>
             <div class="score-input-wrap"><label style="color:var(--gold);">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
             <div class="score-input-wrap"><label style="color:var(--red);">패배</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
+    
+    // 데이터 보존을 위해 기존 티어값을 임시 저장
+    card.dataset.existingTier = data?.tier || "언랭크";
     return card;
 }
 
@@ -254,19 +260,29 @@ async function applyToSupabase() {
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
             champs.push(item.querySelector('.champ-input').value.trim() || 'None');
         });
-        const tierEng = card.querySelector('.tier-select').value;
-        const tierKor = TIER_MAP[tierEng]; 
-        const lpVal = card.querySelector('.lp-input').value.trim();
-        const fullTier = lpVal ? `${tierKor} - ${lpVal}LP` : tierKor;
+
+        // [수정] 체크박스가 체크되어 있을 때만 매니저가 고른 티어를 사용
+        let finalTier;
+        const overrideChecked = card.querySelector('.tier-override').checked;
+        if (overrideChecked) {
+            const tierEng = card.querySelector('.tier-select').value;
+            const tierKor = TIER_MAP[tierEng]; 
+            const lpVal = card.querySelector('.lp-input').value.trim();
+            finalTier = lpVal ? `${tierKor} - ${lpVal}LP` : tierKor;
+        } else {
+            // 체크 안 되어 있으면 기존 티어(롤 API가 가져온 값) 유지
+            finalTier = card.dataset.existingTier;
+        }
 
         players.push({ 
             name, team: card.dataset.team, riot_id: card.querySelector('.nick-riot').value.trim(),
-            tier: fullTier, 
+            tier: finalTier, 
             wins: card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length, 
             losses: card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
             recent, champions: champs 
         });
     });
+    // ... 이하 동일 (settings 저장 로직)
     try {
         await sb.from('settings').upsert({ id: 1, red_team_name: redNameInput.value, blue_team_name: blueNameInput.value, member_count: Number(teamCount.value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
         await sb.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
