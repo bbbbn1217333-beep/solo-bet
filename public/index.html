@@ -5,8 +5,8 @@
 <title>이라네 솔랭 내기 시트지</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&family=Inter:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
+/* 기존 스타일 그대로 유지 */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -46,14 +46,8 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 8px; }
 .timer-nums { font-variant-numeric: tabular-nums; min-width: 160px; text-align: left; }
-
 .clock-shake { display: inline-block; animation: shake 0.5s infinite; }
-@keyframes shake {
-  0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); }
-  50% { transform: rotate(0deg); } 75% { transform: rotate(-10deg); }
-  100% { transform: rotate(0deg); }
-}
-
+@keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); } 50% { transform: rotate(0deg); } 75% { transform: rotate(-10deg); } 100% { transform: rotate(0deg); } }
 .vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
 .vs .team-name { font-weight: 800; }
 .vs .vs-text { font-weight:900; color:#fff; text-shadow:0 0 10px #fff; animation:vsGlow 1.2s infinite alternate;}
@@ -105,6 +99,7 @@ let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
 
+// 티어 변환 로직
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.toLowerCase().includes('unranked')) return { name: 'UNRANKED', class: 'unranked' };
     const t = tierStr.toLowerCase();
@@ -136,6 +131,7 @@ const fixChamp = c => {
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
+// 컷씬 실행 함수
 async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     if (!normalCycle) return;
     normalCycle = false;
@@ -177,6 +173,7 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     
     targetScene.classList.add('active');
 
+    // 8초 후 종료 및 DB 신호 리셋
     setTimeout(async () => {
         await sb.from('players').update({ trigger_cutscene: false }).eq('id', player.id);
         targetScene.classList.remove('active');
@@ -215,32 +212,15 @@ async function loadData() {
     } catch (e) { console.log(e); }
 }
 
+// 실시간 연동 (가장 안정적인 형태)
 function setupRealtime() {
-    // 중복 연결 방지
-    sb.removeAllChannels();
-
-    sb.channel('db_changes')
-    .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'players' 
-    }, (payload) => {
-        console.log("데이터 업데이트 감지:", payload.new);
-
-        // [수정] 다른 거 안 따집니다. trigger_cutscene이 true면 무조건 실행!
+    sb.channel('public:players')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
+        // [수정] 컷씬 트리거 확인
         if (payload.new && payload.new.trigger_cutscene === true) {
-            console.log("컷씬 트리거 포착!");
-            
-            // 승패 판단: 최근 기록(recent) 배열의 마지막 값이 'win'이면 승리, 아니면 패배
-            const recentArr = payload.new.recent || [];
-            const lastRes = recentArr.filter(x => x !== 'none').pop();
-            const isWin = (lastRes === 'win');
-
-            // 컷씬 실행
-            triggerCutscene(payload.new, isWin, payload.new.last_kda || "0/0/0");
+            const lastRes = (payload.new.recent || []).filter(x => x !== 'none').pop();
+            triggerCutscene(payload.new, lastRes === 'win', payload.new.last_kda || "0/0/0");
         }
-        
-        // 화면 데이터 갱신
         loadData();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData)
