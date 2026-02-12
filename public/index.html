@@ -7,7 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-/* 기존 CSS 스타일은 동일하므로 생략하지 않고 그대로 유지됩니다 */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -30,7 +29,6 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
-/* 티어 컬러 생략 (매니저님 기존 코드와 동일) */
 .tier.iron{--t-clr:#a19d94; color:var(--t-clr);} .tier.bronze{--t-clr:#cd7f32; color:var(--t-clr);} 
 .tier.silver{--t-clr:#c0c0c0; color:var(--t-clr);} .tier.gold{--t-clr:#ffd700; color:var(--t-clr);} 
 .tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr);} .tier.emerald{--t-clr:#2ecc71; color:var(--t-clr);}
@@ -60,7 +58,6 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 @keyframes glowWhite { 0% { transform: scale(1); text-shadow:0 0 20px #ffffff; } 100% { transform: scale(1.1); text-shadow:0 0 60px #ffffff, 0 0 100px #ffffff; } }
 .score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }
 .sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
-/* 컷씬 디자인 */
 .game-result-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; box-sizing: border-box; padding: 40px; border-radius: 30px; text-align: center; background: rgba(0, 0, 0, 0.95); border: 5px solid #fff; z-index: 9999; backface-visibility: hidden; }
 .res-win { border-color: #ffd369; box-shadow: 0 0 50px rgba(255, 211, 105, 0.5); }
 .res-lose { border-color: #ff5c5c; box-shadow: 0 0 50px rgba(255, 92, 92, 0.5); }
@@ -89,26 +86,21 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; // 버전을 최신으로 유지하세요 (16.3.1 -> 14.3.1 오타 수정 권장)
+const LOL_VER = "16.3.1"; 
 
 let champMap = {}; 
 let players = [];
-let prevPlayersState = [];
 let settings = {};
 let timeLeftText = "00:00:00";
 let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
 
-// 티어 정보 처리
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.toLowerCase().includes('unranked')) return { name: 'UNRANKED', class: 'unranked' };
     const t = tierStr.toLowerCase();
     if (t.includes('challenger') || t.includes('챌린저')) return { name: tierStr, class: 'challenger' };
-    if (t.includes('grand') || t.includes('그랜드')) {
-        let fixed = tierStr.replace(/그랜드마스터|그랜드|GrandMaster|Grand/i, '그랜드마스터');
-        return { name: fixed, class: 'grandmaster' };
-    }
+    if (t.includes('grand') || t.includes('그랜드')) return { name: tierStr.replace(/그랜드마스터|그랜드|GrandMaster|Grand/i, '그랜드마스터'), class: 'grandmaster' };
     if (t.includes('master') || t.includes('마스터')) return { name: tierStr, class: 'master' };
     if (t.includes('diamond') || t.includes('다이아몬드')) return { name: tierStr, class: 'diamond' };
     if (t.includes('emerald') || t.includes('에메랄드')) return { name: tierStr, class: 'emerald' };
@@ -124,17 +116,17 @@ async function initChampMap() {
     try {
         const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/data/ko_KR/champion.json`);
         const json = await res.json();
-        Object.values(json.data).forEach(champ => { champMap[champ.key] = champ.id; }); // key 기반 매핑
+        Object.values(json.data).forEach(champ => { champMap[champ.name] = champ.id; });
     } catch (e) { console.error(e); }
 }
 
 const fixChamp = c => {
-    if(!c || c === 'None' || c === 'Blank' || c === '' || c === 0) return 'None';
-    if (champMap[c]) return champMap[c]; // ID(숫자)를 이름으로 변환
-    return c;
+    if(!c || c === 'None' || c === 'Blank' || c === '') return 'None';
+    let raw = c.trim();
+    if (champMap[raw]) return champMap[raw];
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
-// [수정] 자동 트리거 대응 컷씬 함수
 async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     if (!normalCycle) return;
     normalCycle = false;
@@ -148,7 +140,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     const tierInfo = getTierInfo(player.tier);
     const teamDisplayName = player.team === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
     
-    // 챔피언 이미지 결정 (현재 판 챔피언 혹은 최근 기록의 마지막 챔피언)
     let displayChamp = fixChamp(player.current_champ);
     if (displayChamp === 'None' && player.champions && player.champions.length > 0) {
         displayChamp = fixChamp(player.champions[player.champions.length-1]);
@@ -177,11 +168,8 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     
     targetScene.classList.add('active');
 
-    // 8초 후 원래 사이클로 복귀
     setTimeout(async () => {
-        // [중요] 실행 완료 후 DB 트리거 꺼주기
         await sb.from('players').update({ trigger_cutscene: false }).eq('id', player.id);
-        
         targetScene.classList.remove('active');
         normalCycle = true;
         sIdx = 0;
@@ -215,20 +203,13 @@ async function loadData() {
     } catch (e) { console.log(e); }
 }
 
-// [핵심] 실시간 감시 로직 (매니저님의 '자동 갱신' 비결)
 function setupRealtime() {
     sb.channel('db_changes')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
-        const prev = payload.old;
-        const curr = payload.new;
-
-        // 1. 컷씬 트리거 감지 (승/패 종료 시)
-        if (curr.trigger_cutscene === true) {
-            const isWin = curr.wins > (prev.wins || 0);
-            triggerCutscene(curr, isWin, curr.last_kda || "0/0/0");
+        if (payload.new.trigger_cutscene === true) {
+            const isWin = payload.new.wins > (payload.old.wins || 0);
+            triggerCutscene(payload.new, isWin, payload.new.last_kda || "0/0/0");
         }
-        
-        // 2. 데이터 변화가 있으면 화면 갱신
         loadData();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData)
@@ -275,24 +256,27 @@ function renderMainScene(container, filterTeam) {
                     const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                     const tierInfo = getTierInfo(p.tier);
                     
-                    // [수정] 티어 포맷 유지: 언랭크일 때만 깔끔하게 출력, 나머지는 DB 값 그대로 사용
-                    let displayTier = p.tier || 'UNRANKED';
-                    if (displayTier.toLowerCase().includes('unranked')) {
-                        displayTier = 'UNRANKED';
-                    }
+                    let displayTier = (p.tier || 'UNRANKED').toUpperCase().includes('UNRANKED') ? 'UNRANKED' : p.tier;
 
                     let inGameStyle = p.status === 'IN_GAME' ? 'border: 3px solid #00FFAA; box-shadow: 0 0 20px #00FFAA;' : '';
                     let currentChampImg = '';
                     if (p.status === 'IN_GAME' && p.current_champ) {
                         const cImg = fixChamp(p.current_champ);
                         currentChampImg = `<div style="position:absolute; right:-10px; top:-10px; width:50px; height:50px; border:2px solid #00FFAA; border-radius:50%; overflow:hidden; z-index:20;">
-                                            <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cImg}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'" style="width:100%;">
+                                            <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cImg}.png" style="width:100%;">
                                            </div>`;
                     }
 
                     let icon = '';
                     if(p.streak >= 3) icon = '<span class="status-icon">👑</span>';
                     else if(p.streak <= -3) icon = '<span class="status-icon">💀</span>';
+
+                    // [수정] 1승중 / 1패중 문구 조건
+                    let streakText = '';
+                    if (p.streak === 1) streakText = '1승중';
+                    else if (p.streak > 1) streakText = p.streak + '연승';
+                    else if (p.streak === -1) streakText = '1패중';
+                    else if (p.streak < -1) streakText = Math.abs(p.streak) + '연패';
 
                     return `
                     <div class="member-card" style="${inGameStyle} border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">
@@ -301,14 +285,13 @@ function renderMainScene(container, filterTeam) {
                             <span class="name">${p.name}</span>
                             <span class="tier ${tierInfo.class}">${displayTier}</span>
                             <div class="record"><span class="win">😁${p.wins}승</span> <span class="lose">😡${p.losses}패</span></div>
-                            ${p.streak !== 0 ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${p.streak > 0 ? p.streak+'연승' : Math.abs(p.streak)+'연패'}</span>` : ''}
+                            ${streakText ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${streakText}</span>` : ''}
                         </div>
                         <div class="history">
                             ${(p.recent || []).map((r, i) => {
                                 const cName = fixChamp(p.champions[i]);
-                                // [수정] 라이엇 DDragon 서버 사용
                                 const imgSrc = (cName === 'None' || !cName) ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cName}.png`;
-                                return `<div class="champ"><img src="${imgSrc}" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><span class="wl-badge ${r}">${r==='win'?'W':'L'}</span></div>`;
+                                return `<div class="champ"><img src="${imgSrc}"><span class="wl-badge ${r}">${r==='win'?'W':'L'}</span></div>`;
                             }).join('')}
                         </div>
                     </div>`;
@@ -317,7 +300,7 @@ function renderMainScene(container, filterTeam) {
         </div>`;
     }).join('')}</div>`;
 }
-    
+
 function renderScoreScene() {
     const rW = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.wins || 0), 0);
     const rL = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.losses || 0), 0);
@@ -325,23 +308,13 @@ function renderScoreScene() {
     const bL = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.losses || 0), 0);
     const rName = settings.red_team_name || 'RED TEAM';
     const bName = settings.blue_team_name || 'BLUE TEAM';
-    
     let rC = (rW === bW) ? 'draw' : (rW > bW ? 'winner' : 'loser');
     let bC = (rW === bW) ? 'draw' : (bW > rW ? 'winner' : 'loser');
-    
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
             <div class="timer-label">팀 종합 스코어</div>
-            <div class="timer" id="timer-display">
-                <span class="clock">⏰</span> 
-                <span>남은 시간 :</span> 
-                <span id="timer-nums" class="timer-nums">${timeLeftText}</span>
-            </div>
-            <div class="vs">
-                <span class="team-name" style="color:#ff5c5c">${rName}</span>
-                <span class="vs-text">VS</span>
-                <span class="team-name" style="color:#4db8ff">${bName}</span>
-            </div>
+            <div class="timer" id="timer-display"><span class="clock">⏰</span> <span>남은 시간 :</span> <span id="timer-nums" class="timer-nums">${timeLeftText}</span></div>
+            <div class="vs"><span class="team-name" style="color:#ff5c5c">${rName}</span> <span class="vs-text">VS</span> <span class="team-name" style="color:#4db8ff">${bName}</span></div>
             <div class="score-wrap">
                 <div class="score-box ${rC}"><div class="score-num">${rW}</div><div class="sub-info">패배 : ${rL}</div></div>
                 <div class="score-box ${bC}"><div class="score-num">${bW}</div><div class="sub-info">패배 : ${bL}</div></div>
@@ -360,7 +333,7 @@ function nextScene() {
 async function start() { 
     await initChampMap(); 
     await loadData(); 
-    setupRealtime(); // 실시간 감시 시작
+    setupRealtime(); 
     setInterval(updateTimer, 1000);
     sceneInterval = setInterval(nextScene, 10000);
 }
