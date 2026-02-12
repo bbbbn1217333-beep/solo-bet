@@ -3,95 +3,85 @@
 <head>
 <meta charset="UTF-8">
 <title>이라네 솔랭 내기 시트지 관리자용</title>
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
     :root { 
         --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; 
         --emerald: #2ecc71; 
-        --neon-red: 0 0 15px rgba(255, 59, 59, 0.8);
-        --neon-blue: 0 0 15px rgba(77, 184, 255, 0.8);
-        --neon-gold: 0 0 12px rgba(255, 211, 105, 0.7);
-        --neon-emerald: 0 0 12px rgba(46, 204, 113, 0.7);
+        --neon-red: 0 0 15px rgba(255, 59, 59, 0.8), 0 0 5px rgba(255, 59, 59, 0.5);
+        --neon-blue: 0 0 15px rgba(77, 184, 255, 0.8), 0 0 5px rgba(77, 184, 255, 0.5);
+        --neon-gold: 0 0 20px rgba(255, 211, 105, 0.8), 0 0 8px rgba(255, 211, 105, 0.6);
+        --neon-emerald: 0 0 15px rgba(46, 204, 113, 0.7);
     }
     body { margin:0; background:#0e0e0e; color:#fff; font-family:'Pretendard',sans-serif; padding:20px; padding-bottom: 120px; }
     .wrap { width:1450px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
     
-    /* 헤더 */
-    .admin-header { background:#1a1a1a; padding:25px; border-radius:15px; border:1px solid #333; }
+    /* 헤더 및 상단 팀명칭 테두리 불빛 강화 */
+    .admin-header { background:#1a1a1a; padding:25px; border-radius:15px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); }
     .top-controls { display:flex; gap:20px; align-items:flex-end; margin-bottom:20px; }
     
     .header-group { display:flex; flex-direction:column; gap:8px; }
-    .header-group label { font-size:12px; font-weight:800; color:var(--gold); text-shadow: 0 0 5px rgba(255,211,105,0.5); margin-left:2px; }
+    .header-group label { font-size:12px; font-weight:900; color:var(--gold); text-shadow: 0 0 8px rgba(255,211,105,0.6); margin-left:2px; }
     
-    /* 상단 팀 명칭 바깥 간판 노란색 불빛 */
-    .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:800; outline:none; transition:0.2s; }
-    #redNameInput, #blueNameInput { border: 2px solid var(--gold) !important; color: #fff; box-shadow: var(--neon-gold) !important; }
+    /* 팀 명칭 입력창 간판 불빛 */
+    .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:900; outline:none; transition:0.2s; }
+    #redNameInput, #blueNameInput { border: 2px solid var(--gold) !important; color: #fff; box-shadow: var(--neon-gold) !important; text-shadow: 0 0 5px #fff; }
     
-    #teamCount { font-weight: 800; color: var(--gold); border: 2px solid var(--gold); background: #000; font-size: 18px; text-align: center; box-shadow: var(--neon-gold); width:80px; }
+    #teamCount { font-weight: 900; color: var(--gold); border: 2px solid var(--gold); background: #000; font-size: 18px; text-align: center; box-shadow: var(--neon-gold); width:80px; }
 
-    /* 목표 종료 시간 칸 키우기 및 크기 맞춤 */
     .timer-input-wrap { display: flex; align-items: center; gap: 10px; background: #000; padding: 10px 15px; border-radius: 10px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); height: 46px; width: 250px; box-sizing: border-box; }
-    #endDateTime { background: transparent; border: none; color: var(--gold); font-family: 'Pretendard'; font-weight: 800; font-size: 15px; outline: none; color-scheme: dark; width: 100%; }
+    #endDateTime { background: transparent; border: none; color: var(--gold); font-family: 'Pretendard'; font-weight: 900; font-size: 15px; outline: none; color-scheme: dark; width: 100%; }
 
-    .btn-load-data { height:46px; padding:0 20px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:800; transition:0.2s; box-shadow: var(--neon-emerald); }
+    .btn-load-data { height:46px; padding:0 20px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; transition:0.2s; box-shadow: var(--neon-emerald); }
 
-    /* 매뉴얼 불빛 유지 및 기호 제거 */
-    .menu-desc { font-size:13.5px; color:#fff; line-height:1.8; background:#111; padding:20px; border-radius:10px; border: 2px solid var(--gold); box-shadow: inset 0 0 15px rgba(255,211,105,0.2), var(--neon-gold); margin-top: 10px; }
-    .menu-desc strong { color: var(--gold); font-size: 16px; text-shadow: 0 0 10px var(--gold); display: block; margin-bottom: 5px; }
+    /* 매뉴얼 글로우 및 폰트 굵게 보강 */
+    .menu-desc { font-size:14px; color:#fff; line-height:1.8; background:#111; padding:22px; border-radius:10px; border: 3px solid var(--gold); box-shadow: inset 0 0 20px rgba(255,211,105,0.3), 0 0 25px rgba(255,211,105,0.5); margin-top: 10px; font-weight: 800; }
+    .menu-desc strong { color: var(--gold); font-size: 18px; text-shadow: 0 0 15px var(--gold); display: block; margin-bottom: 8px; font-weight: 900; }
 
-    /* 팀 박스 UI 기존대로 복구 (빨갛게 파랗게) */
+    /* 팀 박스 UI */
     .teams-container { display:flex; gap:25px; }
     .team-box { flex:1; background:#1a1a1a; padding:20px; border-radius:15px; border-top: 5px solid; }
-    .team-box.red { border-color: var(--red); }
-    .team-box.blue { border-color: var(--blue); }
-    .team-box h2 { font-family:'Orbitron',sans-serif; margin-top:0; font-size:28px; text-align:center; font-weight: 800; }
+    .team-box.red { border-color: var(--red); box-shadow: 0 -5px 15px rgba(255, 59, 59, 0.3); }
+    .team-box.blue { border-color: var(--blue); box-shadow: 0 -5px 15px rgba(77, 184, 255, 0.3); }
+    .team-box h2 { font-family:'Orbitron',sans-serif; margin-top:0; font-size:28px; text-align:center; font-weight: 900; }
     
-    .member-list { display:flex; flex-direction:column; gap:20px; max-height:800px; overflow-y:auto; padding: 10px; }
-    
-    /* 멤버 카드 바깥 간판 불빛 입히기 */
-    .member-card { background:#151515; border-radius:12px; padding:20px; position: relative; border: 2px solid; }
+    /* 멤버 카드 및 히스토리 간판 불빛 */
+    .member-card { background:#151515; border-radius:12px; padding:20px; position: relative; border: 2px solid; margin-bottom: 10px; }
     .red .member-card { border-color: var(--red) !important; box-shadow: var(--neon-red) !important; }
     .blue .member-card { border-color: var(--blue) !important; box-shadow: var(--neon-blue) !important; }
     
-    .input-group { display:flex; flex-direction:column; gap:4px; flex:1; }
-    .input-group label { font-size:11px; font-weight:800; color:#fff; margin-bottom: 2px; }
-    
     .name-row { display:flex; gap:10px; margin-bottom:15px; align-items: flex-end; }
-    .name-row input, .name-row select { padding:10px; background:#000; border-radius:6px; font-size:13px; font-weight: 700; outline:none; }
+    .name-row input, .name-row select { padding:10px; background:#000; border-radius:6px; font-size:13px; font-weight: 800; outline:none; }
     
-    /* 닉네임창 텍스트 흰색 */
     .red .nick-disp, .red .nick-riot { border: 2px solid var(--red); color: #fff; }
     .blue .nick-disp, .blue .nick-riot { border: 2px solid var(--blue); color: #fff; }
     
     .tier-select { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; }
-    .lp-input { width: 48px !important; border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; text-align: center; padding: 10px 0 !important; }
+    .lp-input { width: 48px !important; border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold) !important; text-align: center; font-weight: 900; }
 
-    /* 승리 패배 글자 기존대로 굵게 */
-    .score-input-wrap { display:flex; flex-direction:column; gap:4px; width:48px; }
+    /* 스코어 글자 굵게 */
     .score-input-wrap label { font-weight: 900; font-size: 11px; text-align: center; }
-    .score-input { width: 100%; padding:10px 0 !important; text-align:center; border-radius:6px; font-size:14px; font-weight: 800; outline: none; background:#000; }
+    .score-input { width: 100%; text-align:center; border-radius:6px; font-size:15px; font-weight: 900; outline: none; background:#000; padding: 10px 0 !important; }
     .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
     .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
 
-    /* 1판 2판 바깥 간판 불빛 + 글씨 노란색 통일 */
-    .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:15px; border-radius:10px; border: 1px solid #333; }
+    /* 판수 박스 네온 및 노란 글씨 */
+    .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:15px; border-radius:10px; }
     .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding: 10px 5px; border-radius: 8px; border: 2px solid; }
     .red .history-item { border-color: var(--red) !important; box-shadow: var(--neon-red) !important; }
     .blue .history-item { border-color: var(--blue) !important; box-shadow: var(--neon-blue) !important; }
     
-    .history-item span { color: var(--gold) !important; text-shadow: 0 0 5px var(--gold); font-weight: 800; font-size: 12px; }
+    .history-item span { color: var(--gold) !important; text-shadow: 0 0 8px var(--gold); font-weight: 900; font-size: 12px; }
+    .champ-input { width:92%; background:#000; border: 2px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:12px; font-weight: 800; box-shadow: var(--neon-gold); outline: none; }
     
-    .champ-input { width:92%; background:#000; border: 2px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:11.5px; font-weight: 600; box-shadow: var(--neon-gold); outline: none; }
-    
-    /* 버튼 스타일 */
-    .btn-toggle { width:100%; padding:8px 0; font-size:11px; font-weight:800; border:none; border-radius:4px; cursor:pointer; }
+    .btn-toggle { width:100%; padding:8px 0; font-size:11px; font-weight:900; border:none; border-radius:4px; cursor:pointer; }
     .btn-toggle.win { background: var(--gold); color: #000; }
     .btn-toggle.lose { background: var(--red); color: #fff; }
     .btn-toggle.ing { background: var(--emerald); color: #fff; }
 
-    .btn-apply { position: fixed; bottom: 30px; right: 30px; z-index: 1000; width: 280px; height: 70px; font-size:24px; font-weight:800; background: var(--red); color:#fff; border:none; border-radius:15px; cursor:pointer; box-shadow: 0 0 25px rgba(255, 59, 59, 0.6); }
+    .btn-apply { position: fixed; bottom: 30px; right: 30px; z-index: 1000; width: 280px; height: 70px; font-size:24px; font-weight:900; background: var(--red); color:#fff; border:none; border-radius:15px; cursor:pointer; box-shadow: 0 0 30px rgba(255, 59, 59, 0.7); }
 </style>
 </head>
 <body>
@@ -106,7 +96,7 @@
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
         </div>
         <div class="menu-desc">
-            <strong>💡 이라네 시트지 필독 관리 매뉴얼</strong>
+            <strong>💡 이라네 시트지 필독 관리 매뉴얼 (네온 전구 점등)</strong>
             데이터 동기화: 방송 시작 전 반드시 [데이터 불러오기]를 눌러 이전 세이브 데이터를 가져오세요.<br>
             스코어 수동 제어: 우측 [승리/패배] 칸에 숫자를 넣으면 하단 판수 결과와 상관없이 해당 숫자가 전광판에 박힙니다.<br>
             네온 간판 가이드: 모든 입력창과 1판 단위 박스는 팀 색상에 맞는 불이 들어와야 정상입니다.<br>
@@ -116,8 +106,8 @@
     </div>
 
     <div class="teams-container">
-        <div class="team-box red"><h2 id="redTitle" class="red-text">레드 팀</h2><div id="redPlayers" class="member-list"></div></div>
-        <div class="team-box blue"><h2 id="blueTitle" class="blue-text">블루 팀</h2><div id="bluePlayers" class="member-list"></div></div>
+        <div class="team-box red"><h2 id="redTitle" class="red-text" style="color:var(--red); text-shadow:var(--neon-red);">레드 팀</h2><div id="redPlayers" class="member-list"></div></div>
+        <div class="team-box blue"><h2 id="blueTitle" class="blue-text" style="color:var(--blue); text-shadow:var(--neon-blue);">블루 팀</h2><div id="bluePlayers" class="member-list"></div></div>
     </div>
 </div>
 
@@ -261,7 +251,6 @@ loadData();
 </script>
 </body>
 </html>
-
 
 
 
