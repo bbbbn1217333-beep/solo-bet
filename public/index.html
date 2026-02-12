@@ -45,6 +45,15 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 8px; }
 .timer-nums { font-variant-numeric: tabular-nums; min-width: 160px; text-align: left; }
+
+/* 시계 흔들리는 애니메이션 추가 */
+.clock-shake { display: inline-block; animation: shake 0.5s infinite; }
+@keyframes shake {
+  0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); }
+  50% { transform: rotate(0eg); } 75% { transform: rotate(-10deg); }
+  100% { transform: rotate(0deg); }
+}
+
 .vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
 .vs .team-name { font-weight: 800; }
 .vs .vs-text { font-weight:900; color:#fff; text-shadow:0 0 10px #fff; animation:vsGlow 1.2s infinite alternate;}
@@ -218,129 +227,14 @@ function setupRealtime() {
 
 function updateTimer() {
     const numEl = document.getElementById('timer-nums');
-    if (!numEl || !settings.timer_end_at) return;
+    const displayEl = document.getElementById('timer-display');
+    if (!numEl || !displayEl || !settings.timer_end_at) return;
+    
     const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
+    
     if (diff <= 0) {
-        document.getElementById('timer-display').innerHTML = "솔랭 내기 종료!!!";
-    } else {
-        const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
-        const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
-        const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
-        numEl.textContent = `${h}:${m}:${s}`;
-    }
-}
-
-function renderAll() {
-    renderMainScene(document.getElementById('scene-all'), null);
-    renderMainScene(document.getElementById('scene-red'), 'red');
-    renderMainScene(document.getElementById('scene-blue'), 'blue');
-    renderScoreScene();
-}
-
-function renderMainScene(container, filterTeam) {
-    const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
-    container.innerHTML = `<div class="container">${teams.map(t => {
-        const teamPlayers = players.filter(p => p.team === t);
-        const tW = teamPlayers.reduce((a, b) => a + (b.wins || 0), 0);
-        const tL = teamPlayers.reduce((a, b) => a + (b.losses || 0), 0);
-        const teamName = t === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
-        return `
-        <div class="team ${t}">
-            <div class="team-header">
-                <h1>${teamName.toUpperCase()}</h1>
-                <div class="summary"><span class="win">😁${tW}승</span> / <span class="lose">😡${tL}패</span></div>
-            </div>
-            <div class="members">
-                ${teamPlayers.map(p => {
-                    const level = Math.min(Math.abs(p.streak), 5);
-                    const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
-                    const tierInfo = getTierInfo(p.tier);
-                    
-                    let displayTier = (p.tier || 'UNRANKED').toUpperCase().includes('UNRANKED') ? 'UNRANKED' : p.tier;
-
-                    let inGameStyle = p.status === 'IN_GAME' ? 'border: 3px solid #00FFAA; box-shadow: 0 0 20px #00FFAA;' : '';
-                    let currentChampImg = '';
-                    if (p.status === 'IN_GAME' && p.current_champ) {
-                        const cImg = fixChamp(p.current_champ);
-                        currentChampImg = `<div style="position:absolute; right:-10px; top:-10px; width:50px; height:50px; border:2px solid #00FFAA; border-radius:50%; overflow:hidden; z-index:20;">
-                                            <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cImg}.png" style="width:100%;">
-                                           </div>`;
-                    }
-
-                    let icon = '';
-                    if(p.streak >= 3) icon = '<span class="status-icon">👑</span>';
-                    else if(p.streak <= -3) icon = '<span class="status-icon">💀</span>';
-
-                    // [수정] 1승중 / 1패중 문구 조건
-                    let streakText = '';
-                    if (p.streak === 1) streakText = '1승중';
-                    else if (p.streak > 1) streakText = p.streak + '연승';
-                    else if (p.streak === -1) streakText = '1패중';
-                    else if (p.streak < -1) streakText = Math.abs(p.streak) + '연패';
-
-                    return `
-                    <div class="member-card" style="${inGameStyle} border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">
-                        ${icon} ${currentChampImg}
-                        <div class="info-line">
-                            <span class="name">${p.name}</span>
-                            <span class="tier ${tierInfo.class}">${displayTier}</span>
-                            <div class="record"><span class="win">😁${p.wins}승</span> <span class="lose">😡${p.losses}패</span></div>
-                            ${streakText ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${streakText}</span>` : ''}
-                        </div>
-                        <div class="history">
-                            ${(p.recent || []).map((r, i) => {
-                                const cName = fixChamp(p.champions[i]);
-                                const imgSrc = (cName === 'None' || !cName) ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cName}.png`;
-                                return `<div class="champ"><img src="${imgSrc}"><span class="wl-badge ${r}">${r==='win'?'W':'L'}</span></div>`;
-                            }).join('')}
-                        </div>
-                    </div>`;
-                }).join('')}
-            </div>
-        </div>`;
-    }).join('')}</div>`;
-}
-
-function renderScoreScene() {
-    const rW = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.wins || 0), 0);
-    const rL = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.losses || 0), 0);
-    const bW = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.wins || 0), 0);
-    const bL = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.losses || 0), 0);
-    const rName = settings.red_team_name || 'RED TEAM';
-    const bName = settings.blue_team_name || 'BLUE TEAM';
-    let rC = (rW === bW) ? 'draw' : (rW > bW ? 'winner' : 'loser');
-    let bC = (rW === bW) ? 'draw' : (bW > rW ? 'winner' : 'loser');
-    document.getElementById('scene-score').innerHTML = `
-        <div class="score-board">
-            <div class="timer-label">팀 종합 스코어</div>
-            <div class="timer" id="timer-display"><span class="clock">⏰</span> <span>남은 시간 :</span> <span id="timer-nums" class="timer-nums">${timeLeftText}</span></div>
-            <div class="vs"><span class="team-name" style="color:#ff5c5c">${rName}</span> <span class="vs-text">VS</span> <span class="team-name" style="color:#4db8ff">${bName}</span></div>
-            <div class="score-wrap">
-                <div class="score-box ${rC}"><div class="score-num">${rW}</div><div class="sub-info">패배 : ${rL}</div></div>
-                <div class="score-box ${bC}"><div class="score-num">${bW}</div><div class="sub-info">패배 : ${bL}</div></div>
-            </div>
-        </div>`;
-}
-
-function nextScene() {
-    if (!normalCycle) return;
-    const scenes = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue'), document.getElementById('scene-score')];
-    scenes.forEach(s => s.classList.remove('active'));
-    sIdx = (sIdx + 1) % scenes.length;
-    scenes[sIdx].classList.add('active');
-}
-
-async function start() { 
-    await initChampMap(); 
-    await loadData(); 
-    setupRealtime(); 
-    setInterval(updateTimer, 1000);
-    sceneInterval = setInterval(nextScene, 10000);
-}
-start();
-</script>
-</body>
-</html>
+        // [수정] 종료 시 시계 이모티콘 앞에 살리고 애니메이션 추가
+        displayEl.innerHTML = `<span class="clock clock-shake">⏰</span> 솔랭 내
 
 
 
