@@ -210,9 +210,10 @@ function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
 
     const kdaCalc = d === 0 ? "PERFECT" : ((k + a) / d).toFixed(2);
 
-    // [수정] 가장 마지막(최신) 챔피언 인덱스 가져오기
-    const lastIdx = player.champions.length - 1;
-    const latestChamp = fixChamp(player.champions[lastIdx]);
+    // [수정] 빈 값이 아닌 진짜 마지막 챔피언 찾기
+    const validChamps = (player.champions || []).filter(c => c && c !== 'None' && c !== 'Blank' && c !== '');
+    const latestChampName = validChamps.length > 0 ? validChamps[validChamps.length - 1] : 'None';
+    const latestChamp = fixChamp(latestChampName);
     
     targetScene.innerHTML = `
         <div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}">
