@@ -201,7 +201,7 @@ function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
         }
     }
 
-    // [수정] 언랭크일 때는 점수 변동(+20 등)을 표시하지 않음
+    // [수정] 언랭크일 때는 점수 변동 알림 표시 안 함
     let lpDisplay = "";
     if(lpDiff !== 0 && tierInfo.class !== 'unranked') {
         lpDisplay = isWin ? ` (+${lpDiff})` : ` (-${Math.abs(lpDiff)})`;
@@ -213,6 +213,12 @@ function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
     const latestChampName = validChamps.length > 0 ? validChamps[validChamps.length - 1] : 'None';
     const latestChamp = fixChamp(latestChampName);
     
+    // [수정] 컷씬에서도 대시(-) 제거
+    let cutsceneTierName = tierInfo.name;
+    if (tierInfo.class === 'unranked') {
+        cutsceneTierName = cutsceneTierName.replace(/[-\s]|0lp/gi, '').trim() || 'UNRANKED';
+    }
+
     targetScene.innerHTML = `
         <div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}">
             <h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1>
@@ -225,7 +231,7 @@ function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
                 </span>
                 ${streakText ? `<span class="streak ${player.streak > 0 ? 'win' : 'lose'}" style="font-size: 20px; vertical-align: middle; margin-left: 12px;">${streakText}</span>` : ''}
             </div>
-            <div class="res-tier tier ${tierInfo.class}">${tierInfo.name}${lpDisplay}</div>
+            <div class="res-tier tier ${tierInfo.class}">${cutsceneTierName}${lpDisplay}</div>
             <div class="res-champ">
                 <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${latestChamp}.png">
                 <div class="res-kda-box">
@@ -329,10 +335,10 @@ function renderMainScene(container, filterTeam) {
                     const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                     const tierInfo = getTierInfo(p.tier);
                     
-                    // [수정] 언랭크일 때만 티어 텍스트에서 0LP 문구 제거
+                    // [수정] 언랭크일 때 '0LP', '-', '공백' 모두 제거
                     let displayName = tierInfo.name;
                     if (tierInfo.class === 'unranked') {
-                        displayName = displayName.replace(/0\s?lp/i, '').trim();
+                        displayName = displayName.replace(/[-\s]|0lp/gi, '').trim() || 'UNRANKED';
                     }
 
                     let icon = '';
