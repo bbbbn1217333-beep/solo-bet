@@ -41,16 +41,16 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
+.wl-badge.none { color: #888; border-color: #888; }
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 8px; }
 .timer-nums { font-variant-numeric: tabular-nums; min-width: 160px; text-align: left; }
 
-/* 시계 흔들리는 애니메이션 추가 */
 .clock-shake { display: inline-block; animation: shake 0.5s infinite; }
 @keyframes shake {
   0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); }
-  50% { transform: rotate(0eg); } 75% { transform: rotate(-10deg); }
+  50% { transform: rotate(0deg); } 75% { transform: rotate(-10deg); }
   100% { transform: rotate(0deg); }
 }
 
@@ -196,14 +196,17 @@ async function loadData() {
         if (pData) {
             players = pData.map(p => {
                 let streak = 0;
-                const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
+                const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose' || r === 'none');
                 if (recent.length > 0) {
-                    const lastResult = recent[recent.length - 1]; 
-                    for(let i = recent.length - 1; i >= 0; i--) {
-                        if(recent[i] === lastResult) streak++;
-                        else break;
+                    const lastResult = recent.filter(x => x !== 'none').pop();
+                    if (lastResult) {
+                        for(let i = recent.length - 1; i >= 0; i--) {
+                            if (recent[i] === 'none') continue;
+                            if(recent[i] === lastResult) streak++;
+                            else break;
+                        }
+                        streak = lastResult === 'win' ? streak : -streak;
                     }
-                    streak = lastResult === 'win' ? streak : -streak;
                 }
                 return { ...p, streak };
             });
@@ -233,14 +236,11 @@ function updateTimer() {
     const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
     
     if (diff <= 0) {
-        // [수정] 종료 시 시계 이모티콘 앞에 살리고 애니메이션 추가
         displayEl.innerHTML = `<span class="clock clock-shake">⏰</span> 솔랭 내기 종료!!!`;
     } else {
         const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
         const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
         const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
-        
-        // 기존 ⏰ 상태 유지
         displayEl.innerHTML = `<span class="clock">⏰</span> <span>남은 시간 :</span> <span id="timer-nums" class="timer-nums">${h}:${m}:${s}</span>`;
     }
 }
@@ -305,7 +305,9 @@ function renderMainScene(container, filterTeam) {
                             ${(p.recent || []).map((r, i) => {
                                 const cName = fixChamp(p.champions[i]);
                                 const imgSrc = (cName === 'None' || !cName) ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${cName}.png`;
-                                return `<div class="champ"><img src="${imgSrc}"><span class="wl-badge ${r}">${r==='win'?'W':'L'}</span></div>`;
+                                // [수정] r이 'none'일 때 뱃지 텍스트를 '...'으로 변경
+                                let badgeText = r === 'win' ? 'W' : (r === 'lose' ? 'L' : '...');
+                                return `<div class="champ"><img src="${imgSrc}"><span class="wl-badge ${r}">${badgeText}</span></div>`;
                             }).join('')}
                         </div>
                     </div>`;
