@@ -60,7 +60,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 @keyframes glowWhite { 0% { transform: scale(1); text-shadow:0 0 20px #ffffff; } 100% { transform: scale(1.1); text-shadow:0 0 60px #ffffff, 0 0 100px #ffffff; } }
 .score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }
 .sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
-.game-result-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 750px; box-sizing: border-box; padding: 40px; border-radius: 30px; text-align: center; background: rgba(0, 0, 0, 0.95); border: 5px solid #fff; z-index: 9999; backface-visibility: hidden; }
+.game-result-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 780px; box-sizing: border-box; padding: 40px; border-radius: 30px; text-align: center; background: rgba(0, 0, 0, 0.95); border: 5px solid #fff; z-index: 9999; backface-visibility: hidden; }
 .res-win { border-color: #ffd369; box-shadow: 0 0 50px rgba(255, 211, 105, 0.5); }
 .res-lose { border-color: #ff5c5c; box-shadow: 0 0 50px rgba(255, 92, 92, 0.5); }
 .res-title { font-size: 70px; margin: 0; line-height: 1.2; font-weight: 800; }
@@ -88,7 +88,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; // 요청하신 버전 수정
+const LOL_VER = "16.3.1"; 
 
 let champMap = {}; 
 let players = [];
@@ -136,7 +136,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     const [k, d, a] = kdaText.split('/').map(Number);
     const kdaCalc = d === 0 ? "PERFECT" : ((k + a) / d).toFixed(2);
     
-    // 연승/연패 계산
     let streakCount = 0;
     const recent = (player.recent || []).filter(r => r === 'win' || r === 'lose');
     if (recent.length > 0) {
@@ -147,7 +146,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
         }
     }
     
-    // 배지 스타일 (기존 멤버카드 스타일 그대로 적용)
     const streakText = isWin ? (streakCount === 1 ? '1승중' : streakCount + '연승') : (streakCount === 1 ? '1패중' : streakCount + '연패');
     const streakClass = isWin ? 'win' : 'lose';
     const streakBadgeHTML = streakCount > 0 ? `<span class="streak ${streakClass}" style="font-size: 22px; font-weight: 900; padding: 4px 12px; border-radius: 6px; vertical-align: middle;">${streakText}</span>` : '';
@@ -163,7 +161,7 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
         if (validChamps.length > 0) lastChamp = fixChamp(validChamps[validChamps.length - 1]);
     }
 
-    // [최종 최적화] 닉네임 옆으로 승패기록(굵게) + 연승배지 이동
+    // [수정] 10승 0패 앞에 이모티콘 😁 😡 다시 추가
     targetScene.innerHTML = `
         <div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}">
             <h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1>
@@ -172,8 +170,8 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
                 <span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}; margin:0;">${teamDisplayName}</span>
                 <span style="vertical-align: middle;">${player.name}</span>
                 <span style="font-size: 34px; font-weight: 900; vertical-align: middle; display: inline-flex; gap: 8px;">
-                    <span style="color:#ffd369; text-shadow: 0 0 10px rgba(255,211,105,0.6);">${player.wins}승</span> 
-                    <span style="color:#ff6b6b; text-shadow: 0 0 10px rgba(255,107,107,0.6);">${player.losses}패</span>
+                    <span style="color:#ffd369; text-shadow: 0 0 10px rgba(255,211,105,0.6);">😁 ${player.wins}승</span> 
+                    <span style="color:#ff6b6b; text-shadow: 0 0 10px rgba(255,107,107,0.6);">😡 ${player.losses}패</span>
                 </span>
                 ${streakBadgeHTML}
             </div>
