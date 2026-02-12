@@ -211,9 +211,8 @@ async function loadData() {
 
 async function applyToSupabase() {
     const playersUpdateList = [];
-    let cutsceneAssigned = false; // 1명만 컷씬 주인공으로 배정하기 위한 변수
+    let cutsceneAssigned = false;
 
-    // 1. 현재 화면의 데이터를 수집
     document.querySelectorAll('.member-card').forEach(card => {
         const name = card.querySelector('.nick-disp').value.trim();
         if(!name) return;
@@ -236,7 +235,6 @@ async function applyToSupabase() {
             finalTierStr = (tEng === "UNRANKED" || !lpVal || lpVal === "0") ? tKor : `${tKor} - ${lpVal}LP`;
         }
 
-        // [중요] 컷씬 배정 로직 (승/패 기록이 있는 사람 중 첫 번째 1명만)
         let triggerThisPlayer = false;
         const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
         if (!cutsceneAssigned && lastValidRes) {
@@ -255,12 +253,12 @@ async function applyToSupabase() {
             losses: card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
             recent, 
             champions: champs,
-            trigger_cutscene: triggerThisPlayer // 주인공만 true
+            trigger_cutscene: triggerThisPlayer
         });
     });
 
     try {
-        // 2. 설정 업데이트 (Upsert)
+        // 1. 설정 업데이트
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -269,14 +267,21 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 3. [핵심 최적화] 지우고 새로 넣는 대신 UPSERT 사용
-        // name을 기준으로 동일인이면 업데이트, 없으면 추가
+        // 2. 데이터가 있을 때만 실행
         if(playersUpdateList.length > 0) {
-            const { error: upsertError } = await sb.from('players').upsert(playersUpdateList, { onConflict: 'name' });
-            if (upsertError) throw upsertError;
+            // [해결책] ON CONFLICT 에러를 피하기 위해 기존 데이터를 먼저 지우고
+            const { error: delError } = await sb.from('players').delete().neq('name', '___dummy___'); 
+            if (delError) throw delError;
+
+            // [핵심] 0.1초 정도 아주 미세한 대기 시간을 주어 DB 반영을 확실히 함
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // 새로 넣기 (이때 송출 패널에서 INSERT를 감지해서 화면을 그립니다)
+            const { error: insError } = await sb.from('players').insert(playersUpdateList);
+            if (insError) throw insError;
         }
         
-        alert('✅ 송출 화면에 실시간 반영되었습니다!');
+        alert('✅ 송출 화면에 반영되었습니다!');
         cachedPlayers = [...playersUpdateList]; 
     } catch (e) { 
         console.error(e);
