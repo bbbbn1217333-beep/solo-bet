@@ -1,186 +1,4 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<title>이라네 솔랭 내기 시트지</title>
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&family=Inter:wght@600;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-/* 배경 및 기본 설정 */
-body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
-.scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
-.scene.active{opacity:1; z-index:1; display:block;}
-
-/* 레이아웃 간격 최소화 */
-.container{display:flex; gap:10px; justify-content:center; margin-top:0px;}
-.team{display:flex; flex-direction:column; align-items:center;}
-
-/* 팀 헤더 */
-.team-header { display: flex; align-items: baseline; gap: 15px; margin-bottom: 5px; }
-.team h1{font-family:'Orbitron',sans-serif; font-size:38px; margin: 0;}
-.red h1{color:#ff5c5c} .blue h1{color:#4db8ff;}
-.summary{font-size:22px; font-weight:800;}
-.summary .win{color:#ffd369; text-shadow:0 0 12px #ffd369;}
-.summary .lose{color:#ff6b6b; text-shadow:0 0 12px #ff6b6b;}
-
-/* 멤버 카드 간격 최소화 */
-.members{display:flex; flex-direction:column; gap:2px;}
-.member-card{position:relative; width:330px; padding:12px 10px 8px; background:rgba(255,255,255,.06); border-radius:8px; border:2px solid rgba(120,120,120,.35); text-align:center; overflow:visible; margin-top: 10px;}
-
-/* 왕관/해골 중앙 상단 배치 */
-.status-icon { 
-    position: absolute; top: -18px; left: 50%; transform: translateX(-50%); 
-    font-size: 24px; z-index: 10; filter: drop-shadow(0 0 5px rgba(0,0,0,0.8));
-}
-
-/* 정보 라인 */
-.info-line{display:flex; justify-content:center; align-items:baseline; gap:6px; margin-bottom:8px; white-space:nowrap;}
-.name{font-family:'Orbitron',sans-serif; font-size:15px; font-weight:800; flex-shrink: 0;}
-.tier{font-size:13px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}
-.record{font-size:14px; font-weight:800; flex-shrink: 0; display:flex; gap:4px;}
-.record .win{color:#ffd369;} .record .lose{color:#ff6b6b;}
-
-/* 연승/연패 강조 박스 */
-.streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}
-.streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
-.streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
-
-/* 티어별 색상 설정 */
-.tier.iron{--t-clr:#a19d94; color:var(--t-clr);} 
-.tier.bronze{--t-clr:#cd7f32; color:var(--t-clr);} 
-.tier.silver{--t-clr:#c0c0c0; color:var(--t-clr);}
-.tier.gold{--t-clr:#ffd700; color:var(--t-clr);} 
-.tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr);} 
-.tier.emerald{--t-clr:#2ecc71; color:var(--t-clr);}
-.tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr);} 
-.tier.master{--t-clr:#9b59b6; color:var(--t-clr);} 
-.tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr);}
-.tier.challenger{--t-clr:#f1c40f; color:var(--t-clr); text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);}
-.tier.unranked{--t-clr:#aaa; color:var(--t-clr);}
-
-/* 챔피언 히스토리 */
-.history{display:flex; justify-content:center; gap:8px;}
-.champ{position:relative; width:28px; height:28px;}
-.champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
-.wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
-.wl-badge.win { color: #ffd369; border-color: #ffd369; }
-.wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
-
-/* 스코어보드 */
-.score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
-.timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
-.timer{
-    font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369;
-    display: flex; justify-content: center; align-items: center; gap: 8px;
-}
-.timer-nums { font-variant-numeric: tabular-nums; min-width: 160px; text-align: left; }
-
-.vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
-.vs .team-name { font-weight: 800; }
-.vs .vs-text { font-weight:900; color:#fff; text-shadow:0 0 10px #fff; animation:vsGlow 1.2s infinite alternate;}
-@keyframes vsGlow { 0% { transform:scale(0.9); } 100% { transform:scale(1.1); text-shadow:0 0 30px #ffea00; } }
-.score-wrap{display:flex; justify-content:center; gap:140px;}
-.score-box{display:flex; flex-direction:column; align-items:center;}
-.score-num{font-size:150px; font-weight:900; line-height:1; color:#fff; font-variant-numeric: tabular-nums;}
-.score-box.winner .score-num { color: #ffd369; animation: glowGold 1.2s infinite alternate; }
-@keyframes glowGold { 0% { transform: scale(1); text-shadow:0 0 20px #ffd369; } 100% { transform: scale(1.1); text-shadow:0 0 60px #ffd369, 0 0 100px #ffd369; } }
-.score-box.draw .score-num { color: #ffffff; animation: glowWhite 1.2s infinite alternate; }
-@keyframes glowWhite { 0% { transform: scale(1); text-shadow:0 0 20px #ffffff; } 100% { transform: scale(1.1); text-shadow:0 0 60px #ffffff, 0 0 100px #ffffff; } }
-.score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }
-.sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
-
-/* 이벤트 컷씬 디자인 */
-.game-result-card {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 600px; 
-    box-sizing: border-box; 
-    padding: 40px; border-radius: 30px; text-align: center;
-    background: rgba(0, 0, 0, 0.95); border: 5px solid #fff; z-index: 9999;
-    backface-visibility: hidden;
-}
-.res-win { border-color: #ffd369; box-shadow: 0 0 50px rgba(255, 211, 105, 0.5); }
-.res-lose { border-color: #ff5c5c; box-shadow: 0 0 50px rgba(255, 92, 92, 0.5); }
-.res-title { font-size: 70px; margin: 0; line-height: 1.2; font-weight: 800; }
-.res-win .res-title { color: #fff; text-shadow: 0 0 25px #ffd369, 0 0 45px #ffd369; }
-.res-lose .res-title { color: #fff; text-shadow: 0 0 25px #ff5c5c, 0 0 45px #ff5c5c; }
-
-.res-nick { font-size: 35px; font-weight: 800; margin: 25px 0 10px; }
-.res-team { padding: 4px 12px; border-radius: 6px; font-size: 20px; vertical-align: middle; margin-right: 10px; color: #fff; text-transform: uppercase; }
-
-/* [복구] 티어 테두리 색상 표시용 */
-.res-tier { 
-    font-size: 28px; font-weight: 800; margin: 0 auto 20px; 
-    color: #fff !important; width: fit-content; padding: 6px 18px; border-radius: 6px;
-    border: 2px solid var(--t-clr); background: rgba(255, 255, 255, 0.05);
-    box-shadow: inset 0 0 10px var(--t-clr), 0 0 15px var(--t-clr); text-shadow: 0 0 5px #000;
-}
-
-.res-champ img { width: 140px; height: 140px; border-radius: 50%; border: 4px solid #fff; margin-bottom: 15px; }
-
-.res-kda-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.kda-main { font-size: 30px; font-weight: 800; color: #fff; font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
-.kda-sub { font-size: 24px; font-weight: 800; color: #ffd369; font-family: 'Orbitron', sans-serif; opacity: 1; }
-</style>
-</head>
-<body>
-
-<div class="scene active" id="scene-all"></div>
-<div class="scene" id="scene-red"></div>
-<div class="scene" id="scene-blue"></div>
-<div class="scene" id="scene-score"></div>
-<div class="scene" id="scene-game-win"></div>
-<div class="scene" id="scene-game-lose"></div>
-
-<script>
-const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; 
-
-let champMap = {}; 
-let players = [];
-let prevPlayersState = [];
-let settings = {};
-let timeLeftText = "00:00:00";
-let sIdx = 0;
-let normalCycle = true;
-let sceneInterval;
-
-function getTierInfo(tierStr) {
-    if (!tierStr || tierStr.toLowerCase().includes('unranked')) return { name: 'UNRANKED', class: 'unranked' };
-    const t = tierStr.toLowerCase();
-    if (t.includes('challenger') || t.includes('챌린저')) return { name: tierStr, class: 'challenger' };
-    if (t.includes('grand') || t.includes('그랜드')) {
-        let fixed = tierStr.replace(/그랜드마스터|그랜드|GrandMaster|Grand/i, '그랜드마스터');
-        return { name: fixed, class: 'grandmaster' };
-    }
-    if (t.includes('master') || t.includes('마스터')) return { name: tierStr, class: 'master' };
-    if (t.includes('diamond') || t.includes('다이아몬드')) return { name: tierStr, class: 'diamond' };
-    if (t.includes('emerald') || t.includes('에메랄드')) return { name: tierStr, class: 'emerald' };
-    if (t.includes('platinum') || t.includes('플래티넘')) return { name: tierStr, class: 'platinum' };
-    if (t.includes('gold') || t.includes('골드')) return { name: tierStr, class: 'gold' };
-    if (t.includes('silver') || t.includes('실버')) return { name: tierStr, class: 'silver' };
-    if (t.includes('bronze') || t.includes('브론즈')) return { name: tierStr, class: 'bronze' };
-    if (t.includes('iron') || t.includes('아이언')) return { name: tierStr, class: 'iron' };
-    return { name: tierStr, class: 'unranked' };
-}
-
-async function initChampMap() {
-    try {
-        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/data/ko_KR/champion.json`);
-        const json = await res.json();
-        Object.values(json.data).forEach(champ => { champMap[champ.name] = champ.id; });
-    } catch (e) { console.error(e); }
-}
-
-const fixChamp = c => {
-    if(!c || c === 'None' || c === 'Blank' || c === '') return 'None';
-    let raw = c.trim();
-    if (champMap[raw]) return champMap[raw];
-    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
-};
-
+// 1. 이벤트 컷씬(이전 로직 수정)
 function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
     if (!normalCycle) return;
     normalCycle = false;
@@ -192,7 +10,6 @@ function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
     
     const teamDisplayName = player.team === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
     
-    // 연승/연패 문구 생성
     let streakText = "";
     if (player.streak !== 0) {
         const absStreak = Math.abs(player.streak);
@@ -203,14 +20,14 @@ function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
         }
     }
 
+    // [수정] 언랭크일 때는 LP 변동 수치를 표시하지 않음
     let lpDisplay = "";
-    if(lpDiff !== 0) {
+    if(lpDiff !== 0 && tierInfo.class !== 'unranked') {
         lpDisplay = isWin ? ` (+${lpDiff})` : ` (-${Math.abs(lpDiff)})`;
     }
 
     const kdaCalc = d === 0 ? "PERFECT" : ((k + a) / d).toFixed(2);
 
-    // [수정] 빈 값이 아닌 진짜 마지막 챔피언 찾기
     const validChamps = (player.champions || []).filter(c => c && c !== 'None' && c !== 'Blank' && c !== '');
     const latestChampName = validChamps.length > 0 ? validChamps[validChamps.length - 1] : 'None';
     const latestChamp = fixChamp(latestChampName);
@@ -248,70 +65,7 @@ function triggerCutscene(player, isWin, lpDiff = 0, k=0, d=0, a=0) {
     }, 8000);
 }
 
-async function loadData() {
-    try {
-        const { data: sData } = await sb.from('settings').select('*');
-        if (sData && sData.length > 0) settings = sData[0];
-        
-        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
-        if (pData) {
-            const newPlayers = pData.map(p => {
-                let streak = 0;
-                const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
-                if (recent.length > 0) {
-                    const lastResult = recent[recent.length - 1]; 
-                    for(let i = recent.length - 1; i >= 0; i--) {
-                        if(recent[i] === lastResult) streak++;
-                        else break;
-                    }
-                    streak = lastResult === 'win' ? streak : -streak;
-                }
-                return { ...p, streak };
-            });
-
-            if (prevPlayersState.length > 0) {
-                newPlayers.forEach(np => {
-                    const op = prevPlayersState.find(p => p.name === np.name);
-                    if (op) {
-                        const currentLP = parseInt(np.tier.match(/\d+/)) || 0;
-                        const prevLP = parseInt(op.tier.match(/\d+/)) || 0;
-                        const diff = Math.abs(currentLP - prevLP) || 20;
-
-                        if (np.wins > op.wins) triggerCutscene(np, true, diff, 10, 2, 8);
-                        else if (np.losses > op.losses) triggerCutscene(np, false, diff, 2, 7, 4);
-                    }
-                });
-            }
-            players = newPlayers;
-            prevPlayersState = JSON.parse(JSON.stringify(newPlayers));
-        }
-        renderAll();
-    } catch (e) { console.log(e); }
-}
-
-function updateTimer() {
-    const numEl = document.getElementById('timer-nums');
-    if (!numEl) return;
-    if (settings.timer_end_at) {
-        const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
-        if (diff <= 0) {
-            document.getElementById('timer-display').innerHTML = "솔랭 내기 종료!!!";
-        } else {
-            const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
-            const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
-            const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
-            numEl.textContent = `${h}:${m}:${s}`;
-        }
-    }
-}
-
-function renderAll() {
-    renderMainScene(document.getElementById('scene-all'), null);
-    renderMainScene(document.getElementById('scene-red'), 'red');
-    renderMainScene(document.getElementById('scene-blue'), 'blue');
-    renderScoreScene();
-}
-
+// 2. 메인 씬 렌더링(멤버 카드 수정)
 function renderMainScene(container, filterTeam) {
     const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
     container.innerHTML = `<div class="container">${teams.map(t => {
@@ -331,6 +85,13 @@ function renderMainScene(container, filterTeam) {
                     const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                     const tierInfo = getTierInfo(p.tier);
                     
+                    // [수정] 티어 이름에서 LP 표시 처리
+                    // 언랭크일 때 '0LP' 문구가 포함되어 있다면 제거
+                    let displayName = tierInfo.name;
+                    if (tierInfo.class === 'unranked') {
+                        displayName = displayName.replace(/0\s?lp/i, '').trim();
+                    }
+
                     let icon = '';
                     if(p.streak >= 3) icon = '<span class="status-icon">👑</span>';
                     else if(p.streak <= -3) icon = '<span class="status-icon">💀</span>';
@@ -339,10 +100,8 @@ function renderMainScene(container, filterTeam) {
                     if (p.streak !== 0) {
                         const absStreak = Math.abs(p.streak);
                         if (p.streak > 0) {
-                            // [수정] 띄어쓰기 제거: 1승 중 -> 1승중
                             streakText = absStreak === 1 ? '1승중' : `${absStreak}연승`;
                         } else {
-                            // [수정] 띄어쓰기 제거: 1패 중 -> 1패중
                             streakText = absStreak === 1 ? '1패중' : `${absStreak}연패`;
                         }
                     }
@@ -352,7 +111,7 @@ function renderMainScene(container, filterTeam) {
                         ${icon}
                         <div class="info-line">
                             <span class="name">${p.name}</span>
-                            <span class="tier ${tierInfo.class}">${tierInfo.name}</span>
+                            <span class="tier ${tierInfo.class}">${displayName}</span>
                             <div class="record"><span class="win">😁${p.wins}승</span> <span class="lose">😡${p.losses}패</span></div>
                             ${p.streak !== 0 ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${streakText}</span>` : ''}
                         </div>
@@ -369,58 +128,6 @@ function renderMainScene(container, filterTeam) {
         </div>`;
     }).join('')}</div>`;
 }
-
-function renderScoreScene() {
-    const rW = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.wins || 0), 0);
-    const rL = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.losses || 0), 0);
-    const bW = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.wins || 0), 0);
-    const bL = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.losses || 0), 0);
-    const rName = settings.red_team_name || 'RED TEAM';
-    const bName = settings.blue_team_name || 'BLUE TEAM';
-    
-    let rC = (rW === bW) ? 'draw' : (rW > bW ? 'winner' : 'loser');
-    let bC = (rW === bW) ? 'draw' : (bW > rW ? 'winner' : 'loser');
-    
-    document.getElementById('scene-score').innerHTML = `
-        <div class="score-board">
-            <div class="timer-label">팀 종합 스코어</div>
-            <div class="timer" id="timer-display">
-                <span class="clock">⏰</span> 
-                <span>남은 시간 :</span> 
-                <span id="timer-nums" class="timer-nums">${timeLeftText}</span>
-            </div>
-            <div class="vs">
-                <span class="team-name" style="color:#ff5c5c">${rName}</span>
-                <span class="vs-text">VS</span>
-                <span class="team-name" style="color:#4db8ff">${bName}</span>
-            </div>
-            <div class="score-wrap">
-                <div class="score-box ${rC}"><div class="score-num">${rW}</div><div class="sub-info">패배 : ${rL}</div></div>
-                <div class="score-box ${bC}"><div class="score-num">${bW}</div><div class="sub-info">패배 : ${bL}</div></div>
-            </div>
-        </div>`;
-}
-
-function nextScene() {
-    if (!normalCycle) return;
-    const scenes = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue'), document.getElementById('scene-score')];
-    scenes.forEach(s => s.classList.remove('active'));
-    sIdx = (sIdx + 1) % scenes.length;
-    scenes[sIdx].classList.add('active');
-}
-
-async function start() { 
-    await initChampMap(); 
-    await loadData(); 
-    setInterval(updateTimer, 1000);
-    sceneInterval = setInterval(nextScene, 10000);
-}
-start();
-
-sb.channel('any').on('postgres_changes',{event:'*',schema:'public',table:'settings'},loadData).on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData).subscribe();
-</script>
-</body>
-</html>
 
 
 
