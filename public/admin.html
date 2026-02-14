@@ -76,13 +76,17 @@
             <div class="header-group"><label class="label-blue">🚩 블루 팀 명칭</label><input id="blueNameInput" oninput="updateTeamNames()" placeholder="블루 팀"></div>
             <div class="header-group"><label class="label-gold">⏰ 목표 종료 시간</label><div class="timer-input-wrap"><input id="endDateTime" type="datetime-local"></div></div>
             <div class="header-group"><label class="label-gold">👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuild()"></div>
+            
+            <button id="watchBtn" class="btn-load-data" onclick="toggleWatch()" style="color:var(--gold); border-color:var(--gold); box-shadow: var(--neon-gold);">▶️ 자동 감시 시작</button>
+            
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
         </div>
         <div class="menu-desc">
             <strong>💡 이라네 시트지 필독 관리 매뉴얼</strong>
             • <span class="neon-point">데이터 반영:</span> 우측 하단 붉은색 [송출 화면 반영] 버튼을 눌러야 실제 시트지에 적용됩니다.<br>
             • <span class="neon-point">실시간 연동:</span> 데이터가 수정되면 송출 화면이 새로고침 없이 즉시 업데이트됩니다.<br>
-            • <span class="neon-point">컷씬 제어:</span> 승/패 기록이 있는 사람 중 첫 번째 사람의 컷씬만 자동으로 터집니다.
+            • <span class="neon-point">컷씬 제어:</span> 승/패 기록이 있는 사람 중 첫 번째 사람의 컷씬만 자동으로 터집니다.<br>
+            • <span class="neon-point">자동 감시:</span> 2분마다 라이엇 서버에서 전적과 챔피언을 실시간으로 가져옵니다.
         </div>
     </div>
 
@@ -112,6 +116,42 @@ const TIER_MAP = {
 };
 
 let cachedPlayers = [];
+let autoSyncInterval = null; // 자동 감시용 변수 추가
+
+// [추가] 자동 감시 토글 함수 (2분 주기)
+async function toggleWatch() {
+    const btn = document.getElementById('watchBtn');
+    
+    if (autoSyncInterval) {
+        clearInterval(autoSyncInterval);
+        autoSyncInterval = null;
+        btn.innerText = "▶️ 자동 감시 시작";
+        btn.style.color = "var(--gold)";
+        btn.style.borderColor = "var(--gold)";
+        btn.style.boxShadow = "var(--neon-gold)";
+    } else {
+        btn.innerText = "⏹️ 감시 중 (2분 주기)";
+        btn.style.color = "var(--red)";
+        btn.style.borderColor = "var(--red)";
+        btn.style.boxShadow = "var(--neon-red)";
+        
+        syncWithRiot(); // 즉시 실행
+        autoSyncInterval = setInterval(syncWithRiot, 120000); // 120초(2분) 주기
+    }
+}
+
+// [추가] Vercel API 호출 함수
+async function syncWithRiot() {
+    try {
+        const res = await fetch('/api/sync');
+        if (res.ok) {
+            await loadData(); // DB 변동사항 화면에 로드
+            console.log("라이엇 데이터 동기화 완료 (2분 주기)");
+        }
+    } catch (e) {
+        console.error("동기화 에러:", e);
+    }
+}
 
 function updateTeamNames() {
     document.getElementById('redTitle').innerText = document.getElementById('redNameInput').value || '레드 팀';
@@ -137,21 +177,15 @@ async function fetchRiotData(input) {
         statusLabel.innerText = "🔄 조회중...";
         statusLabel.style.color = "var(--emerald)";
 
-        // 기존 Railway API 사용
         const res = await fetch(`https://solrank-api-production.up.railway.app/api/summoner?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`);
         const data = await res.json();
 
         if (data.tier) {
             card.dataset.puuid = data.puuid;
-            
-            // 티어 매핑 및 한글화
             const tierKor = TIER_MAP[`${data.tier} ${data.rank}`] || TIER_MAP[data.tier] || data.tier;
             const finalStr = `${tierKor} - ${data.leaguePoints}LP`;
-            
-            // 데이터셋 업데이트
             card.dataset.existingTier = finalStr;
 
-            // 수동 수정 체크 안되어있을 때만 화면 반영
             const tierOverride = card.querySelector('.tier-override');
             const lpOverride = card.querySelector('.lp-override');
 
@@ -318,7 +352,6 @@ async function applyToSupabase() {
         });
 
         if(playersUpdateList.length > 0) {
-            // UUID 오류 방지를 위해 name 기준 삭제
             await sb.from('players').delete().not('name', 'eq', 'SAFE_DELETE_NONE'); 
             await new Promise(resolve => setTimeout(resolve, 300));
             const { error: insError } = await sb.from('players').insert(playersUpdateList);
