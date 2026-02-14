@@ -3,7 +3,7 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 
 module.exports = async (req, res) => {
     // 환경 변수 로드 (Vercel Settings에서 설정한 이름과 일치해야 함)
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
     const riotApiKey = process.env.RIOT_API_KEY;
 
     // 티어 한글 매핑 데이터
