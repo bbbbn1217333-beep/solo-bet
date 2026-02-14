@@ -213,11 +213,14 @@ async function applyToSupabase() {
     
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
+        // 이름이 없으면 저장할 가치가 없으므로 스킵
         if (!name) continue;
 
-        // 캐시 데이터에서 정확한 매칭 찾기
+        // 1. 현재 카드에서 UUID 추출
         const cardUuid = card.dataset.uuid;
-        const existingPlayer = cachedPlayers.find(p => (cardUuid && p.id === cardUuid) || (p.name === name));
+        
+        // 2. 캐시에서 기존 유저 정보 찾기 (ID가 있을 때만 유효)
+        const existingPlayer = cachedPlayers.find(p => p.id && cardUuid && p.id === cardUuid);
 
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
@@ -236,14 +239,14 @@ async function applyToSupabase() {
         if (!cutsceneAssigned && lastIdx !== -1) {
             trigger = true; cutsceneAssigned = true; targetChamp = champs[lastIdx];
             if (existingPlayer) {
-                const oldLP = parseInt(existingPlayer.tier.match(/(\d+)LP/)?.[1] || 0);
+                const oldLP = parseInt(existingPlayer.tier?.match(/(\d+)LP/)?.[1] || 0);
                 const newLP = parseInt(lpVal || 0);
                 const diff = newLP - oldLP;
                 lpDiff = (diff >= 0) ? `+${diff}LP` : `${diff}LP`;
-                const oldRank = TIER_RANK[existingPlayer.tier.split(' - ')[0]] ?? -1;
+                const oldRank = TIER_RANK[existingPlayer.tier?.split(' - ')[0]] ?? -1;
                 const newRank = TIER_RANK[finalTierStr.split(' - ')[0]] ?? -1;
                 if (recent[lastIdx] === 'win') {
-                    if (newRank > oldRank) event = (finalTierStr.split(' ')[0] !== existingPlayer.tier.split(' ')[0]) ? 'promotion_major' : 'promotion';
+                    if (newRank > oldRank) event = (finalTierStr.split(' ')[0] !== existingPlayer.tier?.split(' ')[0]) ? 'promotion_major' : 'promotion';
                     else event = 'victory';
                 } else {
                     event = (newRank < oldRank) ? 'demotion' : 'defeat';
@@ -251,7 +254,7 @@ async function applyToSupabase() {
             }
         }
 
-        // [중요] ID 처리 로직: null 전송 방지
+        // 3. 데이터 객체 생성 (id는 처음부터 넣지 않음)
         const playerData = {
             "name": name,
             "team": card.dataset.team,
@@ -268,16 +271,17 @@ async function applyToSupabase() {
             "target_champion": targetChamp || "None"
         };
 
-        // 기존 유저면 id를 넣고, 신규 유저면 id 속성 자체를 보내지 않음 (DB 자동생성 유도)
-        if (existingPlayer && existingPlayer.id) {
-            playerData.id = existingPlayer.id;
+        // 4. [핵심] ID가 '진짜로' 존재할 때만 추가
+        // 만약 cardUuid가 "null" 문자열이거나 빈 값이라면 절대 추가하지 않음
+        if (cardUuid && cardUuid !== "" && cardUuid !== "null" && cardUuid !== "undefined") {
+            playerData.id = cardUuid;
         }
 
         playersUpdateList.push(playerData);
     }
 
     try {
-        // 1. 설정 저장 (Single Range Optimization)
+        // 설정 저장
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -286,21 +290,17 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 2. 플레이어 일괄 업데이트 (Single Range Optimization)
+        // 플레이어 업데이트 (onConflict를 name으로 지정하여 ID가 없어도 이름이 같으면 덮어씌우게 설정)
         if (playersUpdateList.length > 0) {
-            const { error: pError } = await sb.from('players').upsert(playersUpdateList).select();
+            const { error: pError } = await sb.from('players').upsert(playersUpdateList, { onConflict: 'name' });
             if (pError) throw pError;
         }
 
-        alert('✅ 반영 성공!');
+        alert('✅ 이번엔 진짜 성공했습니다!');
         loadData();
     } catch (e) {
-        console.error(e);
-        if (e.message.includes('event_type')) {
-            alert("❌ 아직 DB 컬럼을 인식하지 못하고 있습니다.\n관리자 페이지를 완전히 끄고 다시 접속해 보시거나, 1~2분 뒤에 시도해 주세요.");
-        } else {
-            alert(`❌ 실패: ${e.message}`);
-        }
+        console.error("에러 상세:", e);
+        alert(`❌ 실패: ${e.message}`);
     }
 }
 loadData();
