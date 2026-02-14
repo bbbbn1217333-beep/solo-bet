@@ -296,11 +296,14 @@ async function applyToSupabase() {
         if (!cutsceneAssigned && lastValidRes) { triggerThisPlayer = true; cutsceneAssigned = true; }
 
         // [핵심 변경] 순서(i)가 아니라 "이름"으로 기존 데이터를 찾음
+     // ... (기존 코드 생략)
+
+        // [핵심 변경] 순서(i)가 아니라 "이름"으로 기존 데이터를 찾음
         const existingPlayer = cachedPlayers.find(p => p.name === name);
 
         const playerData = {
             name: name,
-            team: card.dataset.team, // 'red' 또는 'blue'
+            team: card.dataset.team,
             riot_id: card.querySelector('.nick-riot').value.trim(),
             puuid: card.dataset.puuid || (existingPlayer ? existingPlayer.puuid : null),
             tier: finalTierStr,
@@ -313,13 +316,17 @@ async function applyToSupabase() {
             lp_diff: (existingPlayer ? (existingPlayer.lp_diff || "") : "")
         };
 
-        // 2. 기존 유저라면 ID를 넣어주고, 신규 유저라면 ID 칸 자체를 만들지 않음
+        // ⭐ 이 부분이 핵심입니다!
+        // 기존 유저라면(ID가 있다면) ID를 넣어주고, 
+        // 신규 유저라면(ID가 없다면) playerData 객체에 id 속성 자체를 추가하지 않습니다.
         if (existingPlayer && existingPlayer.id) {
             playerData.id = existingPlayer.id;
         }
 
         playersUpdateList.push(playerData);
-    }
+    } // for문 끝
+
+    // ... (이후 supabase.upsert 호출)
 
     try {
         // 설정 저장 (id: 1 고정)
