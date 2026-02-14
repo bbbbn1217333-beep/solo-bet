@@ -205,11 +205,9 @@ async function applyToSupabase() {
     
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
-        // 이름이 없으면 빈 슬롯으로 간주하고 스킵
         if (!name) continue;
 
         const cardUuid = card.dataset.uuid;
-        // 캐시된 데이터에서 ID나 이름으로 기존 유저 확인
         const existingPlayer = cachedPlayers.find(p => (cardUuid && p.id === cardUuid) || (p.name === name));
 
         let recent = [], champs = [];
@@ -223,23 +221,18 @@ async function applyToSupabase() {
         const lpVal = card.querySelector('.lp-input').value.trim();
         const finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
 
-        // 이벤트 및 LP 변동 계산
         let trigger = false, event = null, lpDiff = "", targetChamp = "None";
         const lastIdx = recent.findLastIndex(r => r === 'win' || r === 'lose');
         
         if (!cutsceneAssigned && lastIdx !== -1) {
-            trigger = true; 
-            cutsceneAssigned = true; 
-            targetChamp = champs[lastIdx];
+            trigger = true; cutsceneAssigned = true; targetChamp = champs[lastIdx];
             if (existingPlayer) {
                 const oldLP = parseInt(existingPlayer.tier.match(/(\d+)LP/)?.[1] || 0);
                 const newLP = parseInt(lpVal || 0);
                 const diff = newLP - oldLP;
                 lpDiff = (diff >= 0) ? `+${diff}LP` : `${diff}LP`;
-                
                 const oldRank = TIER_RANK[existingPlayer.tier.split(' - ')[0]] ?? -1;
                 const newRank = TIER_RANK[finalTierStr.split(' - ')[0]] ?? -1;
-                
                 if (recent[lastIdx] === 'win') {
                     if (newRank > oldRank) event = (finalTierStr.split(' ')[0] !== existingPlayer.tier.split(' ')[0]) ? 'promotion_major' : 'promotion';
                     else event = 'victory';
@@ -249,24 +242,23 @@ async function applyToSupabase() {
             }
         }
 
-        // 업데이트 객체 생성
-const playerData = {
-    "name": name,
-    "team": card.dataset.team,
-    "riot_id": card.querySelector('.nick-riot').value.trim(),
-    "tier": finalTierStr,
-    "manual_tier": card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked,
-    "wins": card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length,
-    "losses": card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
-    "recent": recent,
-    "champions": champs,
-    "trigger_cutscene": trigger,
-    "event_type": event, // 여기 컬럼명들이 SQL과 정확히 일치해야 합니다.
-    "lp_diff": lpDiff,
-    "target_champion": targetChamp
-};
+        // [중요] 컬럼명을 문자열로 감싸서 API 전송 (캐시 오류 완화)
+        const playerData = {
+            "name": name,
+            "team": card.dataset.team,
+            "riot_id": card.querySelector('.nick-riot').value.trim(),
+            "tier": finalTierStr,
+            "manual_tier": card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked,
+            "wins": card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length,
+            "losses": card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
+            "recent": recent,
+            "champions": champs,
+            "trigger_cutscene": trigger,
+            "event_type": event,
+            "lp_diff": lpDiff,
+            "target_champion": targetChamp
+        };
 
-        // 핵심: ID가 있을 때만 객체에 추가 (신규 추가 시 ID가 포함되면 에러남)
         if (existingPlayer && existingPlayer.id) {
             playerData.id = existingPlayer.id;
         }
@@ -284,17 +276,23 @@ const playerData = {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 2. 플레이어 데이터 저장 (ID 유무에 따라 알아서 Insert/Update 판단)
+        // 2. 플레이어 업데이트 (UPSERT)
         if (playersUpdateList.length > 0) {
-            const { error: pError } = await sb.from('players').upsert(playersUpdateList, { onConflict: 'id' });
+            // .select()를 추가하면 API가 강제로 스키마를 다시 확인하게 유도할 수 있습니다.
+            const { error: pError } = await sb.from('players').upsert(playersUpdateList).select();
             if (pError) throw pError;
         }
 
-        alert('✅ 성공적으로 반영되었습니다!');
-        loadData(); // 최신 ID값 동기화를 위해 다시 불러오기
+        alert('✅ 반영 성공!');
+        loadData();
     } catch (e) {
-        console.error("상세 에러 내용:", e);
-        alert(`❌ 반영 실패: ${e.message || '알 수 없는 오류'}`);
+        console.error(e);
+        // 에러가 지속될 경우를 대비한 구체적인 안내
+        if (e.message.includes('event_type')) {
+            alert("❌ 아직 DB 컬럼을 인식하지 못하고 있습니다.\n관리자 페이지를 완전히 끄고 다시 접속해 보시거나, 1~2분 뒤에 시도해 주세요.");
+        } else {
+            alert(`❌ 실패: ${e.message}`);
+        }
     }
 }
 loadData();
