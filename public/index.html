@@ -38,7 +38,6 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
 
-/* 티어별 색상 명확하게 지정 */
 .tier.iron{--t-clr:#a19d94; color:var(--t-clr);} 
 .tier.bronze{--t-clr:#cd7f32; color:var(--t-clr);} 
 .tier.silver{--t-clr:#c0c0c0; color:var(--t-clr);} 
@@ -118,25 +117,27 @@ let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
 
-// 티어 파싱 로직 대폭 강화
+// [수정] 티어 판별 로직: 문자열이 비어있지 않으면 무조건 표시하고 키워드로 색상 결정
 function getTierInfo(tierStr) {
-    if (!tierStr || tierStr === "언랭크" || tierStr.toLowerCase().includes('unranked')) return { name: 'UNRANKED', class: 'unranked' };
+    if (!tierStr || tierStr === "언랭크" || tierStr.toLowerCase().includes('unranked')) {
+        return { name: 'UNRANKED', class: 'unranked' };
+    }
     
     const t = tierStr.toLowerCase();
+    let cls = 'unranked';
     
-    // 한글 명칭과 클래스 맵핑
-    if (t.includes('챌린저') || t.includes('challenger')) return { name: tierStr, class: 'challenger' };
-    if (t.includes('그랜드') || t.includes('grand')) return { name: tierStr, class: 'grandmaster' };
-    if (t.includes('마스터') || t.includes('master')) return { name: tierStr, class: 'master' };
-    if (t.includes('다이아') || t.includes('diamond')) return { name: tierStr, class: 'diamond' };
-    if (t.includes('에메랄드') || t.includes('emerald')) return { name: tierStr, class: 'emerald' };
-    if (t.includes('플래티넘') || t.includes('platinum')) return { name: tierStr, class: 'platinum' };
-    if (t.includes('골드') || t.includes('gold')) return { name: tierStr, class: 'gold' };
-    if (t.includes('실버') || t.includes('silver')) return { name: tierStr, class: 'silver' };
-    if (t.includes('브론즈') || t.includes('bronze')) return { name: tierStr, class: 'bronze' };
-    if (t.includes('아이언') || t.includes('iron')) return { name: tierStr, class: 'iron' };
+    if (t.includes('챌린저') || t.includes('challenger')) cls = 'challenger';
+    else if (t.includes('그랜드') || t.includes('grand')) cls = 'grandmaster';
+    else if (t.includes('마스터') || t.includes('master')) cls = 'master';
+    else if (t.includes('다이아') || t.includes('diamond')) cls = 'diamond';
+    else if (t.includes('에메랄드') || t.includes('emerald')) cls = 'emerald';
+    else if (t.includes('플래티넘') || t.includes('platinum')) cls = 'platinum';
+    else if (t.includes('골드') || t.includes('gold')) cls = 'gold';
+    else if (t.includes('실버') || t.includes('silver')) cls = 'silver';
+    else if (t.includes('브론즈') || t.includes('bronze')) cls = 'bronze';
+    else if (t.includes('아이언') || t.includes('iron')) cls = 'iron';
     
-    return { name: tierStr, class: 'unranked' };
+    return { name: tierStr, class: cls };
 }
 
 async function initChampMap() {
@@ -203,7 +204,7 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
 
             <div class="res-tier-wrap">
                 <div class="res-tier tier ${tierInfo.class}">
-                    <span>${player.tier}</span>
+                    <span>${tierInfo.name}</span>
                     <span class="res-point ${isWin ? 'win' : 'lose'}">${isWin ? '(+20)' : '(-20)'}</span>
                 </div>
             </div>
@@ -372,7 +373,6 @@ start();
 </script>
 </body>
 </html>
-
 
 
 
