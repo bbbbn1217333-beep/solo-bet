@@ -1,83 +1,78 @@
+// sync.js (최종 최적화 및 컷씬 트리거 버전)
 const { createClient } = require('@supabase/supabase-js');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 module.exports = async (req, res) => {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const riotApiKey = process.env.RIOT_API_KEY;
 
-    if (!riotApiKey) return res.status(200).json({ success: false, reason: "API_KEY 미설정" });
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     try {
-        // 1. 플레이어 목록 한 번에 가져오기
-        const { data: players, error: dbError } = await supabase.from('players').select('*');
-        if (dbError) throw new Error(`DB Read Error: ${dbError.message}`);
-
-        const tierNames = {
-            'CHALLENGER': '챌린저', 'GRANDMASTER': '그랜드마스터', 'MASTER': '마스터',
-            'DIAMOND': '다이아몬드', 'EMERALD': '에메랄드', 'PLATINUM': '플래티넘',
-            'GOLD': '골드', 'SILVER': '실버', 'BRONZE': '브론즈', 'IRON': '아이언'
-        };
-
-        // 업데이트할 데이터를 모아두는 배열 (최적화 핵심)
+        const { data: players } = await supabase.from('players').select('*');
         const updateData = [];
 
         for (const player of players) {
             if (player.manual_tier || !player.riot_id?.includes('#')) continue;
             const [name, tag] = player.riot_id.split('#');
 
-            // 1️⃣ Account API (PUUID 획득)
-            const accRes = await fetch(
-                `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?api_key=${riotApiKey}`
-            );
+            // 1. PUUID 및 최근 매치 ID 가져오기
+            const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}?api_key=${riotApiKey}`);
             if (!accRes.ok) continue;
             const account = await accRes.json();
 
-            // 2️⃣ League API (승인된 by-puuid 엔드포인트 사용)
-            const leagueRes = await fetch(
-                `https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${account.puuid}?api_key=${riotApiKey}`
-            );
-            if (!leagueRes.ok) continue;
+            const matchRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${account.puuid}/ids?start=0&count=1&api_key=${riotApiKey}`);
+            const matchIds = await matchRes.json();
+            const lastMatchId = matchIds[0];
 
-            const leagues = await leagueRes.json();
-            let tierStr = "언랭크";
+            // 2. 새로운 게임 종료 감지!! (핵심)
+            let matchStats = null;
+            let shouldTrigger = false;
 
-            if (Array.isArray(leagues)) {
-                const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5');
-                if (solo) {
-                    const rawTier = solo.tier.toUpperCase();
-                    const tierKor = tierNames[rawTier] || rawTier;
-                    const rank = ['CHALLENGER', 'GRANDMASTER', 'MASTER'].includes(rawTier) ? "" : " " + solo.rank;
-                    tierStr = `${tierKor}${rank} - ${solo.leaguePoints}LP`;
+            if (lastMatchId && lastMatchId !== player.last_match_id) {
+                const detailRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${lastMatchId}?api_key=${riotApiKey}`);
+                const detail = await detailRes.json();
+                const me = detail.info.participants.find(p => p.puuid === account.puuid);
+                
+                if (me) {
+                    matchStats = {
+                        kda: `${me.kills}/${me.deaths}/${me.assists}`,
+                        champion: me.championName,
+                        win: me.win
+                    };
+                    shouldTrigger = true; // 새로운 게임이면 컷씬 트리거 발동!
                 }
             }
 
-            // 3. 업데이트할 내용을 배열에 추가
+            // 3. 티어 정보 가져오기
+            const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${account.puuid}?api_key=${riotApiKey}`);
+            const leagues = await leagueRes.json();
+            const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5');
+            
+            let tierStr = player.tier;
+            if (solo) {
+                tierStr = `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`;
+            }
+
+            // 4. 업데이트 리스트에 담기
             updateData.push({
                 id: player.id,
                 tier: tierStr,
-                puuid: account.puuid
+                last_match_id: lastMatchId,
+                last_kda: matchStats ? matchStats.kda : player.last_kda,
+                // 최근 전적 배열 업데이트 (승리/패배 추가)
+                recent: shouldTrigger ? [...(player.recent || []).slice(1), matchStats.win ? 'win' : 'lose'] : player.recent,
+                champions: shouldTrigger ? [...(player.champions || []).slice(1), matchStats.champion] : player.champions,
+                trigger_cutscene: shouldTrigger, // 송출 화면에 신호 보냄!
+                wins: (shouldTrigger && matchStats.win) ? (player.wins + 1) : player.wins,
+                losses: (shouldTrigger && !matchStats.win) ? (player.losses + 1) : player.losses
             });
-
-            console.log(`[Queue] ${name} 준비 완료: ${tierStr}`);
         }
 
-        // 4. 단 한 번의 호출로 대량 업데이트 (Upsert 방식 최적화)
         if (updateData.length > 0) {
-            const { error: upsertError } = await supabase
-                .from('players')
-                .upsert(updateData, { onConflict: 'id' }); // id가 겹치면 업데이트
-
-            if (upsertError) throw new Error(`Upsert Error: ${upsertError.message}`);
-            console.log(`✅ 총 ${updateData.length}명의 데이터가 한 번에 갱신되었습니다.`);
+            await supabase.from('players').upsert(updateData);
         }
 
-        return res.status(200).json({ success: true, count: updateData.length });
-
-    } catch (error) {
-        console.error("전체 에러:", error);
-        return res.status(200).json({ success: false, reason: error.message });
+        return res.status(200).json({ success: true });
+    } catch (e) {
+        return res.status(500).json({ error: e.message });
     }
 };
