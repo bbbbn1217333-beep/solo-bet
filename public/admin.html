@@ -44,7 +44,6 @@
     .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; transition: 0.3s; white-space: nowrap; }
     .nick-disp, .nick-riot, .lp-input, .score-input { height: 44px !important; box-sizing: border-box !important; }
     
-    /* 언랭크 칸 크기 조정됨 */
     .tier-select { 
         height: 44px !important; 
         width: 100%;
@@ -63,7 +62,7 @@
     }
     
     .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
-    .nick-riot { flex: 1 !important; min-width: 150px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
+    .nick-riot { flex: 1.5 !important; min-width: 150px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
     .red .nick-disp, .red .nick-riot { border-color: var(--red); }
     .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
     .lp-input { width: 65px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
@@ -98,9 +97,9 @@
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
         </div>
         <div class="menu-desc">
-            <strong>💡 이라네 시트지 필독 관리 매뉴얼</strong>
-            • <span class="neon-point">UUID 호환:</span> DB의 UUID 형식(Primary Key)을 완벽하게 지원합니다.<br>
-            • <span class="neon-point">수정 체크박스:</span> 티어와 LP 옆의 체크박스를 활성화해야 수동 수정값이 반영됩니다.
+            <strong>💡 데이터 중복 처리 안내</strong>
+            • 기존에 추가된 적이 있는 플레이어(닉네임 동일)는 자동으로 기존 정보를 덮어씌웁니다.<br>
+            • 반영 실패 시, 페이지를 한 번 <strong>'새로고침'</strong> 하신 후 <strong>'데이터 불러오기'</strong>를 눌러주세요.
         </div>
     </div>
 
@@ -187,8 +186,8 @@ function createMemberCard(team, data = null) {
     card.innerHTML = `
         <div class="name-row">
             <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-            <div class="input-group" style="flex:2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
-            <div class="input-group" style="flex:1.8;">
+            <div class="input-group" style="flex:1.5;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
+            <div class="input-group" style="flex:1.5;">
                 <label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label>
                 <select class="tier-select" style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select>
             </div>
@@ -251,7 +250,12 @@ async function applyToSupabase() {
         if (!name) continue;
 
         const cardUuid = card.dataset.uuid;
-        const existingPlayer = cachedPlayers.find(p => (cardUuid && p.id === cardUuid) || (p.name === name));
+        // 수정된 매칭 로직: 이름으로도 기존 데이터를 검색하여 UUID 매칭
+        const existingPlayer = cachedPlayers.find(p => 
+            (cardUuid && p.id === cardUuid) || 
+            (p.name === name)
+        );
+        
         const isRiotIdChanged = existingPlayer && existingPlayer.riot_id !== currentRiotId;
 
         let recent = [], champs = [];
@@ -320,7 +324,10 @@ async function applyToSupabase() {
 
         alert('✅ 반영 성공!');
         loadData();
-    } catch (e) { console.error(e); alert('❌ 반영 실패'); }
+    } catch (e) { 
+        console.error(e); 
+        alert('❌ 반영 실패: 동일한 이름이 이미 다른 팀에 있거나 데이터 충돌이 발생했습니다.'); 
+    }
 }
 loadData();
 </script>
