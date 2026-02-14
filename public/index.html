@@ -37,12 +37,20 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
-.tier.iron{--t-clr:#a19d94; color:var(--t-clr);} .tier.bronze{--t-clr:#cd7f32; color:var(--t-clr);} 
-.tier.silver{--t-clr:#c0c0c0; color:var(--t-clr);} .tier.gold{--t-clr:#ffd700; color:var(--t-clr);} 
-.tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr);} .tier.emerald{--t-clr:#2ecc71; color:var(--t-clr);}
-.tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr);} .tier.master{--t-clr:#9b59b6; color:var(--t-clr);} 
-.tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr);} .tier.challenger{--t-clr:#f1c40f; color:var(--t-clr); text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);}
+
+/* 티어별 색상 명확하게 지정 */
+.tier.iron{--t-clr:#a19d94; color:var(--t-clr);} 
+.tier.bronze{--t-clr:#cd7f32; color:var(--t-clr);} 
+.tier.silver{--t-clr:#c0c0c0; color:var(--t-clr);} 
+.tier.gold{--t-clr:#ffd700; color:var(--t-clr);} 
+.tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr);} 
+.tier.emerald{--t-clr:#2ecc71; color:var(--t-clr);}
+.tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr);} 
+.tier.master{--t-clr:#9b59b6; color:var(--t-clr);} 
+.tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr);} 
+.tier.challenger{--t-clr:#f1c40f; color:var(--t-clr); text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);}
 .tier.unranked{--t-clr:#aaa; color:var(--t-clr);}
+
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
@@ -78,7 +86,6 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .res-nick { font-size: 38px; font-weight: 800; margin: 25px 0 10px; }
 .res-team { padding: 4px 12px; border-radius: 6px; font-size: 20px; vertical-align: middle; margin-right: 10px; color: #fff; text-transform: uppercase; }
 .res-tier-wrap { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px; margin-bottom: 20px; }
-/* 티어 박스 디자인 - 수치 포함 */
 .res-tier { font-size: 28px; font-weight: 800; color: #fff !important; padding: 8px 22px; border-radius: 8px; border: 2px solid var(--t-clr); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 10px var(--t-clr), 0 0 15px var(--t-clr); text-shadow: 0 0 5px #000; display: flex; align-items: center; gap: 12px; }
 .res-point { font-weight: 900; }
 .res-point.win { color: #ffd369; }
@@ -111,19 +118,24 @@ let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
 
+// 티어 파싱 로직 대폭 강화
 function getTierInfo(tierStr) {
-    if (!tierStr || tierStr.toLowerCase().includes('unranked')) return { name: 'UNRANKED', class: 'unranked' };
+    if (!tierStr || tierStr === "언랭크" || tierStr.toLowerCase().includes('unranked')) return { name: 'UNRANKED', class: 'unranked' };
+    
     const t = tierStr.toLowerCase();
-    if (t.includes('challenger') || t.includes('챌린저')) return { name: tierStr, class: 'challenger' };
-    if (t.includes('grand') || t.includes('그랜드')) return { name: tierStr.replace(/그랜드마스터|그랜드|GrandMaster|Grand/i, '그랜드마스터'), class: 'grandmaster' };
-    if (t.includes('master') || t.includes('마스터')) return { name: tierStr, class: 'master' };
-    if (t.includes('diamond') || t.includes('다이아몬드')) return { name: tierStr, class: 'diamond' };
-    if (t.includes('emerald') || t.includes('에메랄드')) return { name: tierStr, class: 'emerald' };
-    if (t.includes('platinum') || t.includes('플래티넘')) return { name: tierStr, class: 'platinum' };
-    if (t.includes('gold') || t.includes('골드')) return { name: tierStr, class: 'gold' };
-    if (t.includes('silver') || t.includes('실버')) return { name: tierStr, class: 'silver' };
-    if (t.includes('bronze') || t.includes('브론즈')) return { name: tierStr, class: 'bronze' };
-    if (t.includes('iron') || t.includes('아이언')) return { name: tierStr, class: 'iron' };
+    
+    // 한글 명칭과 클래스 맵핑
+    if (t.includes('챌린저') || t.includes('challenger')) return { name: tierStr, class: 'challenger' };
+    if (t.includes('그랜드') || t.includes('grand')) return { name: tierStr, class: 'grandmaster' };
+    if (t.includes('마스터') || t.includes('master')) return { name: tierStr, class: 'master' };
+    if (t.includes('다이아') || t.includes('diamond')) return { name: tierStr, class: 'diamond' };
+    if (t.includes('에메랄드') || t.includes('emerald')) return { name: tierStr, class: 'emerald' };
+    if (t.includes('플래티넘') || t.includes('platinum')) return { name: tierStr, class: 'platinum' };
+    if (t.includes('골드') || t.includes('gold')) return { name: tierStr, class: 'gold' };
+    if (t.includes('실버') || t.includes('silver')) return { name: tierStr, class: 'silver' };
+    if (t.includes('브론즈') || t.includes('bronze')) return { name: tierStr, class: 'bronze' };
+    if (t.includes('아이언') || t.includes('iron')) return { name: tierStr, class: 'iron' };
+    
     return { name: tierStr, class: 'unranked' };
 }
 
@@ -175,7 +187,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
         if (validChamps.length > 0) lastChamp = fixChamp(validChamps[validChamps.length - 1]);
     }
 
-    // [수정] 티어 네모 박스 안에 점수 변동 수치 통합
     targetScene.innerHTML = `
         <div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}">
             <h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1>
@@ -242,14 +253,9 @@ async function loadData() {
     } catch (e) { console.log(e); }
 }
 
-// 1. 실시간 감지 로직 강화 (setupRealtime 함수 찾아서 교체)
 function setupRealtime() {
     sb.channel('db_changes')
-    // 모든 변경사항(*), 특히 UPDATE를 확실히 잡습니다.
     .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
-        console.log("DB 변경 발생:", payload.eventType, payload.new);
-        
-        // 컷씬 트리거 로직 (기존 유지)
         if (payload.eventType === 'UPDATE' && payload.new.trigger_cutscene === true) {
             const recent = payload.new.recent || [];
             const lastRes = recent.filter(x => x === 'win' || x === 'lose').pop();
@@ -257,17 +263,11 @@ function setupRealtime() {
                 triggerCutscene(payload.new, lastRes === 'win', payload.new.last_kda || "0/0/0");
             }
         }
-        
-        // 데이터가 변경되면 무조건 다시 로드해서 화면을 갱신합니다.
         loadData();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData)
     .subscribe();
 }
-
-// 2. 티어 표시 로직 안전화 (renderMainScene 함수 내부 수정)
-// 아래 변수 선언 부분을 찾아 교체하세요.
-
 
 function updateTimer() {
     const displayEl = document.getElementById('timer-display');
@@ -308,13 +308,7 @@ function renderMainScene(container, filterTeam) {
                     const level = Math.min(Math.abs(p.streak), 5);
                     const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                     
-                    // [1] 티어 색상 정보 가져오기
                     const tierInfo = getTierInfo(p.tier);
-                    
-                    // [2] 티어 글자 결정 (데이터가 있을 때만 출력, 없으면 UNRANKED)
-                    let displayTier = (p.tier && p.tier.toString().trim() !== "" && !p.tier.toLowerCase().includes('unranked')) 
-                                      ? p.tier 
-                                      : 'UNRANKED';
                     
                     let icon = '';
                     if(p.streak >= 3) icon = '<span class="status-icon crown-glow">👑</span>';
@@ -326,7 +320,7 @@ function renderMainScene(container, filterTeam) {
                         ${icon}
                         <div class="info-line">
                             <span class="name">${p.name}</span>
-                            <span class="tier ${tierInfo.class}">${displayTier}</span>
+                            <span class="tier ${tierInfo.class}">${tierInfo.name}</span>
                             <div class="record"><span class="win">😁${p.wins}승</span> <span class="lose">😡${p.losses}패</span></div>
                             ${streakText ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${streakText}</span>` : ''}
                         </div>
