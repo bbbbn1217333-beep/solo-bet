@@ -240,23 +240,28 @@ async function loadData() {
 
 async function applyToSupabase() {
     const playersUpdateList = [];
-    const seenNames = new Set(); // 중복 방지용
+    const seenNames = new Set(); 
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
     const teamCount = Number(document.getElementById('teamCount').value);
     
+    // 1. 현재 화면에 입력된 데이터 정리 및 기존 데이터와 매칭
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
         const currentRiotId = card.querySelector('.nick-riot').value.trim();
         
-        if (!name || seenNames.has(name)) continue; // 이름이 없거나 이미 리스트에 있으면 패스
+        if (!name) continue;
+        
+        // 화면 내 중복 입력 방지 (실수로 같은 이름을 두 번 적은 경우)
+        if (seenNames.has(name)) {
+            alert(`⚠️ 중복된 이름이 있습니다: ${name}\n이름은 하나만 존재해야 합니다.`);
+            return;
+        }
         seenNames.add(name);
 
-        const cardUuid = card.dataset.uuid;
-        // 닉네임이나 ID로 기존 데이터 찾기
-        const existingPlayer = cachedPlayers.find(p => 
-            (cardUuid && p.id === cardUuid) || (p.name === name)
-        );
+        // [중요] DB에서 가져온 캐시 데이터 중 이름이 같은 게 있는지 확인
+        // 있으면 그 데이터의 ID(UUID)를 그대로 써야 충돌이 안 납니다.
+        const existingPlayer = cachedPlayers.find(p => p.name === name);
         
         const isRiotIdChanged = existingPlayer && existingPlayer.riot_id !== currentRiotId;
 
@@ -281,7 +286,7 @@ async function applyToSupabase() {
             const lpVal = card.querySelector('.lp-input').value.trim();
             finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
         } else {
-            finalTierStr = card.dataset.existingTier || "언랭크";
+            finalTierStr = (existingPlayer ? existingPlayer.tier : card.dataset.existingTier) || "언랭크";
         }
 
         let triggerThisPlayer = false;
@@ -302,7 +307,8 @@ async function applyToSupabase() {
             trigger_cutscene: triggerThisPlayer
         };
 
-        // 기존 ID가 있다면 반드시 할당해서 중복 생성을 방지
+        // DB에 이미 있는 유저라면 ID를 명시적으로 지정 (Update 모드)
+        // DB에 없는 유저라면 ID를 넣지 않음 (Insert 모드 - 자동생성)
         if (existingPlayer && existingPlayer.id) {
             playerData.id = existingPlayer.id;
         }
@@ -311,7 +317,7 @@ async function applyToSupabase() {
     }
 
     try {
-        // 1. 설정 저장
+        // 1. 설정값 업데이트
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -320,25 +326,27 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 2. 삭제 처리 (현재 리스트에 없는 데이터만)
+        // 2. 삭제 처리: DB에는 있지만 현재 화면(업데이트 리스트)에는 없는 유저 제거
         const currentUuids = playersUpdateList.map(p => p.id).filter(id => id);
-        if (cachedPlayers.length > 0) {
-            const idsToDelete = cachedPlayers.map(p => p.id).filter(id => !currentUuids.includes(id));
-            if (idsToDelete.length > 0) {
-                await sb.from('players').delete().in('id', idsToDelete);
-            }
+        const idsToDelete = cachedPlayers
+            .filter(p => !currentUuids.includes(p.id))
+            .map(p => p.id);
+
+        if (idsToDelete.length > 0) {
+            await sb.from('players').delete().in('id', idsToDelete);
         }
 
-        // 3. 데이터 삽입/수정 (잠시 대기 후 실행하여 삭제 완료 보장)
-        const { error } = await sb.from('players').upsert(playersUpdateList, { onConflict: 'id' });
+        // 3. 삽입 및 업데이트 (Upsert)
+        // onConflict: 'id'를 통해 ID가 겹치면 업데이트하도록 강제
+        const { error } = await sb.from('players').upsert(playersUpdateList);
         
         if (error) throw error;
 
-        alert('✅ 반영 성공!');
-        await loadData(); // 최신 데이터 다시 불러오기
+        alert('✅ 성공적으로 반영되었습니다!');
+        await loadData(); 
     } catch (e) { 
-        console.error("Error Detail:", e); 
-        alert('❌ 반영 실패: 캐시 문제일 수 있습니다. 페이지를 새로고침 후 다시 시도해 주세요.'); 
+        console.error("Critical Error:", e); 
+        alert(`❌ 반영 실패: ${e.message || '알 수 없는 오류'}\n페이지를 새로고침 후 다시 시도해 보세요.`); 
     }
 }
 loadData();
