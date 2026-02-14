@@ -240,6 +240,7 @@ async function loadData() {
 
 async function applyToSupabase() {
     const playersUpdateList = [];
+    const seenNames = new Set(); // 중복 방지용
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
     const teamCount = Number(document.getElementById('teamCount').value);
@@ -247,13 +248,14 @@ async function applyToSupabase() {
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
         const currentRiotId = card.querySelector('.nick-riot').value.trim();
-        if (!name) continue;
+        
+        if (!name || seenNames.has(name)) continue; // 이름이 없거나 이미 리스트에 있으면 패스
+        seenNames.add(name);
 
         const cardUuid = card.dataset.uuid;
-        // 수정된 매칭 로직: 이름으로도 기존 데이터를 검색하여 UUID 매칭
+        // 닉네임이나 ID로 기존 데이터 찾기
         const existingPlayer = cachedPlayers.find(p => 
-            (cardUuid && p.id === cardUuid) || 
-            (p.name === name)
+            (cardUuid && p.id === cardUuid) || (p.name === name)
         );
         
         const isRiotIdChanged = existingPlayer && existingPlayer.riot_id !== currentRiotId;
@@ -300,11 +302,16 @@ async function applyToSupabase() {
             trigger_cutscene: triggerThisPlayer
         };
 
-        if (existingPlayer && existingPlayer.id) playerData.id = existingPlayer.id;
+        // 기존 ID가 있다면 반드시 할당해서 중복 생성을 방지
+        if (existingPlayer && existingPlayer.id) {
+            playerData.id = existingPlayer.id;
+        }
+        
         playersUpdateList.push(playerData);
     }
 
     try {
+        // 1. 설정 저장
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -313,20 +320,25 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
+        // 2. 삭제 처리 (현재 리스트에 없는 데이터만)
         const currentUuids = playersUpdateList.map(p => p.id).filter(id => id);
         if (cachedPlayers.length > 0) {
             const idsToDelete = cachedPlayers.map(p => p.id).filter(id => !currentUuids.includes(id));
-            if (idsToDelete.length > 0) await sb.from('players').delete().in('id', idsToDelete);
+            if (idsToDelete.length > 0) {
+                await sb.from('players').delete().in('id', idsToDelete);
+            }
         }
 
-        const { error } = await sb.from('players').upsert(playersUpdateList);
+        // 3. 데이터 삽입/수정 (잠시 대기 후 실행하여 삭제 완료 보장)
+        const { error } = await sb.from('players').upsert(playersUpdateList, { onConflict: 'id' });
+        
         if (error) throw error;
 
         alert('✅ 반영 성공!');
-        loadData();
+        await loadData(); // 최신 데이터 다시 불러오기
     } catch (e) { 
-        console.error(e); 
-        alert('❌ 반영 실패: 동일한 이름이 이미 다른 팀에 있거나 데이터 충돌이 발생했습니다.'); 
+        console.error("Error Detail:", e); 
+        alert('❌ 반영 실패: 캐시 문제일 수 있습니다. 페이지를 새로고침 후 다시 시도해 주세요.'); 
     }
 }
 loadData();
