@@ -53,10 +53,10 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 /* 스코어보드 & 타이머 */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
-.timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 8px; }
+.timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 50px;}
 .timer-nums { font-variant-numeric: tabular-nums; min-width: 160px; text-align: left; }
-.clock-shake { display: inline-block; animation: shake 0.5s infinite; }
-@keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); } 50% { transform: rotate(0deg); } 75% { transform: rotate(-10deg); } 100% { transform: rotate(0deg); } }
+.clock-shake { display: inline-block; animation: shake 0.5s infinite linear; font-size: 38px; }
+@keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(15deg); } 50% { transform: rotate(0deg); } 75% { transform: rotate(-15deg); } 100% { transform: rotate(0deg); } }
 
 .vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
 .vs .team-name { font-weight: 800; }
@@ -160,31 +160,31 @@ const fixChamp = c => {
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
+// --- 타이머 업데이트 함수 ---
 function updateTimer() {
     const displayEl = document.getElementById('timer-display');
     if (!displayEl || !settings || !settings.timer_end_at) return;
     const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
+    
     if (diff <= 0) {
-        displayEl.innerHTML = `<span class="clock clock-shake">⏰</span> <span style="color:#ff4d4d; font-size:36px; font-weight:900;">솔랭 내기 종료!!!</span>`;
+        displayEl.innerHTML = `<span class="clock clock-shake">⏰</span> <span style="color:#ff4d4d; font-size:36px; font-weight:900; font-family:'Pretendard';">솔랭 내기 종료!!!</span>`;
         return;
     }
+    
     const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
     const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
     const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
     displayEl.innerHTML = `<span class="clock">⏰</span> <span>남은 시간 :</span> <span id="timer-nums" class="timer-nums">${h}:${m}:${s}</span>`;
 }
 
-// --- 이벤트 컷씬 함수 (요청사항 반영) ---
 async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     if (!normalCycle) return;
     normalCycle = false;
     clearInterval(sceneInterval);
 
-    // 1. KDA 계산 (노란 글씨용)
     const [k, d, a] = kdaText.split('/').map(Number);
     const kdaVal = d === 0 ? "PERFECT" : ((k + a) / d).toFixed(2);
 
-    // 2. 연승/연패 계산
     let streakCount = 0;
     const recent = (player.recent || []).filter(r => r === 'win' || r === 'lose');
     if (recent.length > 0) {
@@ -195,15 +195,10 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     }
     const streakLabel = isWin ? (streakCount <= 1 ? '1승중' : streakCount + '연승') : (streakCount <= 1 ? '1패중' : streakCount + '연패');
 
-    // 3. 이벤트 뱃지 설정
     let statusBadgeHTML = "";
-    if (player.event_type === 'promotion_major') {
-        statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
-    } else if (player.event_type === 'promotion') {
-        statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
-    } else if (player.event_type === 'demotion') {
-        statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
-    }
+    if (player.event_type === 'promotion_major') statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
+    else if (player.event_type === 'promotion') statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
+    else if (player.event_type === 'demotion') statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
 
     const tierInfo = getTierInfo(player.tier);
     const lpDiff = player.lp_diff || "";
@@ -216,7 +211,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     targetScene.innerHTML = `
         <div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}">
             <h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1>
-            
             <div class="res-nick">
                 <span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${teamDisplayName}</span>
                 <span>${player.name}</span>
@@ -226,7 +220,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
                 </span>
                 <span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span>
             </div>
-            
             <div class="res-tier-wrap">
                 <div class="res-tier tier ${tierInfo.class}">
                     <span>${tierInfo.name}</span>
@@ -234,7 +227,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
                     ${statusBadgeHTML}
                 </div>
             </div>
-
             <div class="res-champ">
                 <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'">
                 <div class="res-kda-box">
@@ -245,7 +237,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
         </div>`;
     
     targetScene.classList.add('active');
-
     setTimeout(() => {
         targetScene.classList.remove('active');
         normalCycle = true;
@@ -284,9 +275,7 @@ function setupRealtime() {
         if (payload.eventType === 'UPDATE' && payload.new.trigger_cutscene === true) {
             const recent = payload.new.recent || [];
             const lastRes = recent.filter(x => x === 'win' || x === 'lose').pop();
-            if (lastRes) {
-                triggerCutscene(payload.new, lastRes === 'win', payload.new.last_kda || "0/0/0");
-            }
+            if (lastRes) triggerCutscene(payload.new, lastRes === 'win', payload.new.last_kda || "0/0/0");
         }
         loadData();
     })
@@ -345,13 +334,14 @@ function renderMainScene(container, filterTeam) {
 
 function renderScoreScene() {
     const rW = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.wins || 0), 0);
-    const rL = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.losses || 0), 0);
     const bW = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.wins || 0), 0);
+    const rL = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.losses || 0), 0);
     const bL = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.losses || 0), 0);
     const rName = settings.red_team_name || 'RED TEAM';
     const bName = settings.blue_team_name || 'BLUE TEAM';
     let rC = (rW === bW) ? 'draw' : (rW > bW ? 'winner' : 'loser');
     let bC = (rW === bW) ? 'draw' : (bW > rW ? 'winner' : 'loser');
+    
     document.getElementById('scene-score').innerHTML = `
         <div class="score-board">
             <div class="timer-label">팀 종합 스코어</div>
@@ -362,7 +352,7 @@ function renderScoreScene() {
                 <div class="score-box ${bC}"><div class="score-num">${bW}</div><div class="sub-info">패배 : ${bL}</div></div>
             </div>
         </div>`;
-    updateTimer();
+    updateTimer(); 
 }
 
 function nextScene() {
