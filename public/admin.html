@@ -248,19 +248,18 @@ async function applyToSupabase() {
     const playersUpdateList = [];
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
+    const teamCount = Number(document.getElementById('teamCount').value);
     
+    // 1. 현재 화면에 떠 있는 카드들 중 설정된 인원수 이내의 데이터만 수집
     for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
         const name = card.querySelector('.nick-disp').value.trim();
         const currentRiotId = card.querySelector('.nick-riot').value.trim();
         
-        // 이름이 아예 없으면 DB에 저장하지 않음
         if (!name) continue;
 
-        // 🚩 화면의 값을 최우선으로 가져오기 위해 캐시에서 해당 이름을 가진 기존 데이터를 찾음
         const cardId = card.dataset.id;
         const existingPlayer = cachedPlayers.find(p => (cardId && p.id == cardId) || (p.name === name));
-        
         const isRiotIdChanged = existingPlayer && existingPlayer.riot_id !== currentRiotId;
 
         let recent = [], champs = [];
@@ -273,7 +272,6 @@ async function applyToSupabase() {
         const wins = card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length;
         const losses = card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length;
 
-        // 🚩 닉네임 변경 시 티어 초기화 로직 유지
         let finalTierStr = "";
         if (isRiotIdChanged) {
             finalTierStr = "언랭크";
@@ -314,24 +312,35 @@ async function applyToSupabase() {
     }
 
     try {
-        // 1. 설정값 저장 (인원수 포함)
+        // A. 설정값 저장 (인원수 업데이트)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
             blue_team_name: document.getElementById('blueNameInput').value, 
-            member_count: Number(document.getElementById('teamCount').value), 
+            member_count: teamCount, 
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 2. 플레이어 데이터 저장
+        // B. 초과된 인원 삭제 로직 추가 🚩
+        // 현재 DB에 있는 ID들 중, 이번 업데이트 리스트에 포함되지 않은 ID들은 삭제합니다.
+        const currentIds = playersUpdateList.map(p => p.id).filter(id => id);
+        if (cachedPlayers.length > 0) {
+            const idsToDelete = cachedPlayers
+                .map(p => p.id)
+                .filter(id => !currentIds.includes(id));
+            
+            if (idsToDelete.length > 0) {
+                await sb.from('players').delete().in('id', idsToDelete);
+            }
+        }
+
+        // C. 플레이어 데이터 저장
         if (playersUpdateList.length > 0) {
             const { error: upsertError } = await sb.from('players').upsert(playersUpdateList);
             if (upsertError) throw upsertError;
         }
 
-        alert('✅ 반영 성공!');
-        
-        // 🚩 중요: 반영 직후에는 다시 불러오기(loadData)를 호출하여 DB와 화면을 동기화함
+        alert('✅ 반영 성공! (초과 인원 정리 완료)');
         await loadData();
     } catch (e) { 
         console.error(e);
