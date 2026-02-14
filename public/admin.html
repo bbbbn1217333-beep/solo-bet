@@ -213,13 +213,15 @@ async function applyToSupabase() {
     
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
-        // 이름이 없으면 저장할 가치가 없으므로 스킵
         if (!name) continue;
 
-        // 1. 현재 카드에서 UUID 추출
-        const cardUuid = card.dataset.uuid;
+        // 1. ID 추출 및 정제
+        let cardUuid = card.dataset.uuid;
+        // 문자열로 된 "null", "undefined" 또는 빈 값을 진짜 null로 변환
+        if (cardUuid === "null" || cardUuid === "undefined" || cardUuid === "") {
+            cardUuid = null;
+        }
         
-        // 2. 캐시에서 기존 유저 정보 찾기 (ID가 있을 때만 유효)
         const existingPlayer = cachedPlayers.find(p => p.id && cardUuid && p.id === cardUuid);
 
         let recent = [], champs = [];
@@ -254,7 +256,7 @@ async function applyToSupabase() {
             }
         }
 
-        // 3. 데이터 객체 생성 (id는 처음부터 넣지 않음)
+        // 2. 데이터 객체 생성 (기본 필드만)
         const playerData = {
             "name": name,
             "team": card.dataset.team,
@@ -271,9 +273,8 @@ async function applyToSupabase() {
             "target_champion": targetChamp || "None"
         };
 
-        // 4. [핵심] ID가 '진짜로' 존재할 때만 추가
-        // 만약 cardUuid가 "null" 문자열이거나 빈 값이라면 절대 추가하지 않음
-        if (cardUuid && cardUuid !== "" && cardUuid !== "null" && cardUuid !== "undefined") {
+        // 3. [핵심] ID가 유효할 때만 객체에 추가
+        if (cardUuid) {
             playerData.id = cardUuid;
         }
 
@@ -290,13 +291,13 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 플레이어 업데이트 (onConflict를 name으로 지정하여 ID가 없어도 이름이 같으면 덮어씌우게 설정)
+        // 플레이어 업데이트 (기본 upsert 방식으로 복구)
         if (playersUpdateList.length > 0) {
-            const { error: pError } = await sb.from('players').upsert(playersUpdateList, { onConflict: 'name' });
+            const { error: pError } = await sb.from('players').upsert(playersUpdateList);
             if (pError) throw pError;
         }
 
-        alert('✅ 이번엔 진짜 성공했습니다!');
+        alert('✅ 반영 성공!');
         loadData();
     } catch (e) {
         console.error("에러 상세:", e);
