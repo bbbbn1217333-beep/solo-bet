@@ -297,7 +297,9 @@ function renderMainScene(container, filterTeam) {
                     const level = Math.min(Math.abs(p.streak), 5);
                     const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
                     const tierInfo = getTierInfo(p.tier);
-                    let displayTier = (p.tier || 'UNRANKED').toUpperCase().includes('UNRANKED') ? 'UNRANKED' : p.tier;
+                    
+                    // 핵심 수정: p.tier가 존재하고 'UNRANKED'가 아니면 그 값을 그대로 사용
+                    let displayTier = (p.tier && p.tier !== 'UNRANKED') ? p.tier : 'UNRANKED';
                     
                     let icon = '';
                     if(p.streak >= 3) icon = '<span class="status-icon crown-glow">👑</span>';
@@ -326,7 +328,7 @@ function renderMainScene(container, filterTeam) {
         </div>`;
     }).join('')}</div>`;
 }
-
+    
 function renderScoreScene() {
     const rW = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.wins || 0), 0);
     const rL = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.losses || 0), 0);
