@@ -2,7 +2,8 @@
   "name": "solo-bet",
   "version": "1.0.0",
   "dependencies": {
-    "@supabase/supabase-js": "^2.x.x",
-    "axios": "^1.6.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.0",
+    "node-fetch": "^2.6.7"
   }
 }
