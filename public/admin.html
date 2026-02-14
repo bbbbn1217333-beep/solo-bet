@@ -239,8 +239,9 @@ async function loadData() {
 }
 
 async function applyToSupabase() {
-    const playersUpdateList = [];
-    const seenNames = new Set(); 
+    const toUpsert = []; // 기존 유저 (ID 있음)
+    const toInsert = []; // 신규 유저 (ID 없음)
+    const seenNames = new Set();
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
     const teamCount = Number(document.getElementById('teamCount').value);
@@ -298,15 +299,12 @@ async function applyToSupabase() {
             trigger_cutscene: triggerThisPlayer
         };
 
-        // [핵심 수정] 기존 ID가 있으면 넣고, 없으면 Supabase가 자동 생성하도록 id 키 자체를 삭제
         if (existingPlayer && existingPlayer.id) {
             playerData.id = existingPlayer.id;
+            toUpsert.push(playerData);
         } else {
-            // 신규 유저일 경우 id 속성을 아예 부여하지 않음 (DB의 default value 기능을 쓰기 위함)
-            delete playerData.id;
+            toInsert.push(playerData);
         }
-        
-        playersUpdateList.push(playerData);
     }
 
     try {
@@ -320,7 +318,7 @@ async function applyToSupabase() {
         });
 
         // 2. 삭제 처리
-        const currentUuids = playersUpdateList.map(p => p.id).filter(id => id);
+        const currentUuids = toUpsert.map(p => p.id);
         const idsToDelete = cachedPlayers
             .filter(p => !currentUuids.includes(p.id))
             .map(p => p.id);
@@ -329,12 +327,18 @@ async function applyToSupabase() {
             await sb.from('players').delete().in('id', idsToDelete);
         }
 
-        // 3. 반영 (id가 없는 데이터는 신규 생성으로 들어감)
-        const { error } = await sb.from('players').upsert(playersUpdateList);
+        // 3. 데이터 반영 (기존 유저는 업데이트, 신규 유저는 삽입)
+        if (toUpsert.length > 0) {
+            const { error: upError } = await sb.from('players').upsert(toUpsert);
+            if (upError) throw upError;
+        }
         
-        if (error) throw error;
+        if (toInsert.length > 0) {
+            const { error: inError } = await sb.from('players').insert(toInsert);
+            if (inError) throw inError;
+        }
 
-        alert('✅ 성공적으로 반영되었습니다!');
+        alert('✅ 모든 데이터가 성공적으로 반영되었습니다!');
         await loadData(); 
     } catch (e) { 
         console.error("Critical Error:", e); 
