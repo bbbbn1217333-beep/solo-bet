@@ -8,10 +8,10 @@ module.exports = async (req, res) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     try {
+        console.log("--- 동기화 프로세스 시작 ---");
         const { data: players, error: dbError } = await supabase.from('players').select('*');
         if (dbError) throw new Error(`DB Read Error: ${dbError.message}`);
 
-        // 최적화를 위해 업데이트할 데이터를 모아서 처리
         for (const player of players) {
             if (player.manual_tier || !player.riot_id?.includes('#')) continue;
 
@@ -22,19 +22,27 @@ module.exports = async (req, res) => {
             if (!accRes.ok) continue;
             const account = await accRes.json();
 
-            // 2. 소환사 ID 및 티어 조회 (kr 서버 기준)
+            // 2. 소환사 ID 조회 (kr 서버)
             const summRes = await fetch(`https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${account.puuid}?api_key=${riotApiKey}`);
             if (!summRes.ok) continue;
             const summoner = await summRes.json();
 
+            // 3. 티어 조회
             const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-summoner/${summoner.id}?api_key=${riotApiKey}`);
             const leagues = await leagueRes.json();
             
-            // 솔랭 데이터 찾기
-            const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5');
-            const tierStr = solo ? `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP` : "UNRANKED";
+            // [오류 수정 포인트] leagues가 배열인지 확인하는 안전장치 추가
+            let tierStr = "UNRANKED";
+            if (Array.isArray(leagues)) {
+                const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5');
+                if (solo) {
+                    tierStr = `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`;
+                }
+            } else {
+                console.error(`${player.name} 티어 정보 로드 실패 (배열 아님):`, leagues);
+            }
 
-            // 3. DB 업데이트 (최적화: 개별 플레이어 정보를 즉시 반영)
+            // 4. DB 업데이트
             await supabase.from('players').update({ 
                 tier: tierStr,
                 puuid: account.puuid 
@@ -46,7 +54,10 @@ module.exports = async (req, res) => {
         return res.status(200).json({ success: true });
 
     } catch (error) {
-        console.error("Critical Error:", error.message);
-        return res.status(200).json({ success: false, reason: error.message });
+        console.error("Critical Error Detail:", error.message);
+        return res.status(200).json({ 
+            success: false, 
+            reason: error.message 
+        });
     }
 };
