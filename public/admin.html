@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이라네 솔랭 내기 시트지 관리자용 (UUID & LP 수정 대응)</title>
+<title>이라네 솔랭 내기 시트지 관리자용</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -41,14 +41,32 @@
     .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
     .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; }
     .input-group { display: flex; flex-direction: column; align-items: center; }
-    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; transition: 0.3s; }
+    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; transition: 0.3s; white-space: nowrap; }
     .nick-disp, .nick-riot, .lp-input, .score-input { height: 44px !important; box-sizing: border-box !important; }
-    .tier-select { height: 44px !important; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; flex: 1.5 !important; text-align: center; appearance: none; }
+    
+    /* 언랭크 칸 크기 조정됨 */
+    .tier-select { 
+        height: 44px !important; 
+        width: 100%;
+        box-sizing: border-box !important; 
+        padding: 0 10px; 
+        background:#000; 
+        border: 2px solid var(--gold) !important; 
+        border-radius:6px; 
+        font-size:14px; 
+        font-weight: 900; 
+        color: var(--gold) !important; 
+        box-shadow: var(--neon-gold); 
+        outline:none; 
+        text-align: center; 
+        appearance: none; 
+    }
+    
     .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
-    .nick-riot { flex: 1.05 !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
+    .nick-riot { flex: 1 !important; min-width: 150px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
     .red .nick-disp, .red .nick-riot { border-color: var(--red); }
     .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
-    .lp-input { width: 55px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
+    .lp-input { width: 65px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
     .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; flex: none !important; margin-left: 2px !important; }
     .score-input-wrap label { font-size: 11px; font-weight: 900; margin-bottom: 6px; }
     .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; }
@@ -82,8 +100,7 @@
         <div class="menu-desc">
             <strong>💡 이라네 시트지 필독 관리 매뉴얼</strong>
             • <span class="neon-point">UUID 호환:</span> DB의 UUID 형식(Primary Key)을 완벽하게 지원합니다.<br>
-            • <span class="neon-point">수정 체크박스:</span> 티어와 LP 옆의 체크박스를 활성화해야 수동 수정값이 반영됩니다.<br>
-            • <span class="neon-point">데이터 보호:</span> 자동 감시 중에도 '수정' 체크된 항목은 수동 입력값이 유지됩니다.
+            • <span class="neon-point">수정 체크박스:</span> 티어와 LP 옆의 체크박스를 활성화해야 수동 수정값이 반영됩니다.
         </div>
     </div>
 
@@ -170,12 +187,12 @@ function createMemberCard(team, data = null) {
     card.innerHTML = `
         <div class="name-row">
             <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-            <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
-            <div class="input-group" style="flex:1.5;">
+            <div class="input-group" style="flex:2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
+            <div class="input-group" style="flex:1.8;">
                 <label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label>
                 <select class="tier-select" style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select>
             </div>
-            <div class="input-group" style="width:65px;">
+            <div class="input-group" style="width:75px;">
                 <label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label>
                 <input class="lp-input" placeholder="0" value="${currentLP}" style="opacity:${data?.manual_tier ? '1' : '0.4'};">
             </div>
@@ -254,7 +271,6 @@ async function applyToSupabase() {
         if (isRiotIdChanged) {
             finalTierStr = "언랭크";
         } else if (tierManual || lpManual) {
-            // 티어나 LP 중 하나라도 수정 체크되어 있으면 수동 조합 생성
             const tEng = card.querySelector('.tier-select').value;
             const lpVal = card.querySelector('.lp-input').value.trim();
             finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
@@ -302,7 +318,7 @@ async function applyToSupabase() {
         const { error } = await sb.from('players').upsert(playersUpdateList);
         if (error) throw error;
 
-        alert('✅ 반영 성공! (UUID 및 수동 수정 대응 완료)');
+        alert('✅ 반영 성공!');
         loadData();
     } catch (e) { console.error(e); alert('❌ 반영 실패'); }
 }
