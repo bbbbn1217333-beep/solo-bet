@@ -282,7 +282,6 @@ async function applyToSupabase() {
         const tierOverride = card.querySelector('.tier-override').checked;
         const lpOverride = card.querySelector('.lp-override').checked;
         
-        // [중요] 화면에서 수동 수정을 안 했다면 DB에 있던 기존 티어값을 그대로 유지
         let finalTierStr = card.dataset.existingTier || "언랭크";
         if (tierOverride || lpOverride) {
             const tEng = card.querySelector('.tier-select').value;
@@ -295,11 +294,10 @@ async function applyToSupabase() {
         const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
         if (!cutsceneAssigned && lastValidRes) { triggerThisPlayer = true; cutsceneAssigned = true; }
 
-        // [최적화] ID를 포함하여 upsert 수행 (삭제 방지)
+        // 캐시된 데이터에서 해당 순서의 플레이어 정보 가져오기
         const existingPlayer = cachedPlayers[i]; 
 
-        playersUpdateList.push({
-            id: existingPlayer ? existingPlayer.id : undefined, // 기존 ID가 있으면 업데이트
+        const playerData = {
             name, 
             team: card.dataset.team, 
             riot_id: card.querySelector('.nick-riot').value.trim(),
@@ -310,12 +308,20 @@ async function applyToSupabase() {
             losses: card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
             recent, 
             champions: champs, 
-            trigger_cutscene: triggerThisPlayer
-        });
+            trigger_cutscene: triggerThisPlayer,
+            lp_diff: (existingPlayer ? (existingPlayer.lp_diff || "") : "")
+        };
+
+        // 핵심: id가 null로 들어가지 않게 함 (not-null constraint 에러 방지)
+        if (existingPlayer && existingPlayer.id) {
+            playerData.id = existingPlayer.id;
+        }
+
+        playersUpdateList.push(playerData);
     }
 
     try {
-        // 1. 설정 저장
+        // 1. 설정 저장 (팀 이름, 인원 등)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -324,15 +330,14 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 2. [최적화] Delete 없이 Upsert로 한 번에 처리
+        // 2. 플레이어 데이터 일괄 업데이트
         if (playersUpdateList.length > 0) {
             const { error: upsertError } = await sb.from('players').upsert(playersUpdateList);
             if (upsertError) throw upsertError;
         }
 
         alert('✅ 송출 화면에 반영되었습니다!');
-        // 최신 데이터로 캐시 갱신
-        loadData(); 
+        loadData(); // 최신 상태로 화면 다시 그리기
     } catch (e) { 
         alert('❌ 반영 실패: ' + e.message); 
     }
