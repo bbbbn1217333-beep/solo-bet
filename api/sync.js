@@ -93,19 +93,21 @@ module.exports = async (req, res) => {
                     }
                 }
 
-                updateData.push({
-                    id: player.id,
-                    tier: `${fullTierKo} - ${solo.leaguePoints}LP`,
-                    last_match_id: currentMatchId,
-                    last_kda: matchStats ? matchStats.kda : (player.last_kda || "0/0/0"),
-                    lp_diff: matchStats ? matchStats.lpDiff : (player.lp_diff || ""),
-                    recent: (shouldTrigger && matchStats) ? [...(player.recent || ["none","none","none","none","none"]).slice(1), matchStats.win ? 'win' : 'lose'] : (player.recent || ["none","none","none","none","none"]),
-                    champions: (shouldTrigger && matchStats) ? [...(player.champions || ["None","None","None","None","None"]).slice(1), matchStats.champion] : (player.champions || ["None","None","None","None","None"]),
-                    wins: (shouldTrigger && matchStats?.win) ? (Number(player.wins || 0) + 1) : (player.wins || 0),
-                    losses: (shouldTrigger && matchStats && !matchStats.win) ? (Number(player.losses || 0) + 1) : (player.losses || 0),
-                    trigger_cutscene: shouldTrigger,
-                    puuid: account.puuid
-                });
+// sync.js 내부의 루프 안쪽 수정
+updateData.push({
+    id: player.id, // DB에서 가져온 고유 ID를 그대로 사용 (매우 중요)
+    name: player.name, // 이름이 바뀌지 않도록 명시
+    tier: `${fullTierKo} - ${solo.leaguePoints}LP`,
+    last_match_id: currentMatchId,
+    last_kda: matchStats ? matchStats.kda : (player.last_kda || "0/0/0"),
+    lp_diff: matchStats ? matchStats.lp_diff : (player.lp_diff || ""),
+    recent: (shouldTrigger && matchStats) ? [...(player.recent || Array(10).fill("ing")).slice(1), matchStats.win ? 'win' : 'lose'] : (player.recent || Array(10).fill("ing")),
+    champions: (shouldTrigger && matchStats) ? [...(player.champions || Array(10).fill("None")).slice(1), matchStats.champion] : (player.champions || Array(10).fill("None")),
+    wins: (shouldTrigger && matchStats?.win) ? (Number(player.wins || 0) + 1) : (player.wins || 0),
+    losses: (shouldTrigger && matchStats && !matchStats.win) ? (Number(player.losses || 0) + 1) : (player.losses || 0),
+    trigger_cutscene: shouldTrigger,
+    puuid: account.puuid // 새로 조회한 PUUID를 정확히 입력
+});
             } catch (err) { console.error("개별 플레이어 오류:", err); continue; }
         }
 
