@@ -265,12 +265,13 @@ async function applyToSupabase() {
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
     
+    // 현재 화면의 모든 카드를 돌면서 데이터 수집
     for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
         const name = card.querySelector('.nick-disp').value.trim();
         
-        // [중요] 이름이 없는 빈 카드는 DB 업데이트 대상에서 완전히 제외
-        if (!name || name === "") continue;
+        // 1. 이름이 없으면 아예 무시 (이게 없으면 빈 칸이 에러를 일으킴)
+        if (!name) continue;
 
         const recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
@@ -294,12 +295,12 @@ async function applyToSupabase() {
         const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
         if (!cutsceneAssigned && lastValidRes) { triggerThisPlayer = true; cutsceneAssigned = true; }
 
-        // 캐시된 데이터와 안전하게 매칭
-        const existingPlayer = cachedPlayers.find(p => p.name === name) || cachedPlayers[i];
+        // [핵심 변경] 순서(i)가 아니라 "이름"으로 기존 데이터를 찾음
+        const existingPlayer = cachedPlayers.find(p => p.name === name);
 
         const playerData = {
             name: name,
-            team: card.dataset.team,
+            team: card.dataset.team, // 'red' 또는 'blue'
             riot_id: card.querySelector('.nick-riot').value.trim(),
             puuid: card.dataset.puuid || (existingPlayer ? existingPlayer.puuid : null),
             tier: finalTierStr,
@@ -312,7 +313,7 @@ async function applyToSupabase() {
             lp_diff: (existingPlayer ? (existingPlayer.lp_diff || "") : "")
         };
 
-        // ID가 있는 경우만 포함 (없으면 DB가 gen_random_uuid()로 자동생성)
+        // 2. 기존 유저라면 ID를 넣어주고, 신규 유저라면 ID 칸 자체를 만들지 않음
         if (existingPlayer && existingPlayer.id) {
             playerData.id = existingPlayer.id;
         }
@@ -321,7 +322,7 @@ async function applyToSupabase() {
     }
 
     try {
-        // 설정 저장
+        // 설정 저장 (id: 1 고정)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -330,17 +331,16 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 플레이어 업데이트
+        // 플레이어 일괄 업데이트
         if (playersUpdateList.length > 0) {
-            // upsert 시 id가 없으면 insert, 있으면 update가 일어납니다.
             const { error: upsertError } = await sb.from('players').upsert(playersUpdateList);
             if (upsertError) throw upsertError;
         }
 
         alert('✅ 반영 성공!');
-        loadData();
+        await loadData(); // 최신 ID를 포함한 데이터를 다시 불러와서 캐시 갱신
     } catch (e) { 
-        console.error(e);
+        console.error("상세 에러:", e);
         alert('❌ 반영 실패: ' + e.message); 
     }
 }
