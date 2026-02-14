@@ -86,7 +86,7 @@
             • <span class="neon-point">데이터 반영:</span> 우측 하단 붉은색 [송출 화면 반영] 버튼을 눌러야 실제 시트지에 적용됩니다.<br>
             • <span class="neon-point">실시간 연동:</span> 데이터가 수정되면 송출 화면이 새로고침 없이 즉시 업데이트됩니다.<br>
             • <span class="neon-point">컷씬 제어:</span> 승/패 기록이 있는 사람 중 첫 번째 사람의 컷씬만 자동으로 터집니다.<br>
-            • <span class="neon-point">자동 감시:</span> 2분마다 라이엇 서버에서 전적과 챔피언을 실시간으로 가져옵니다.
+            • <span class="neon-point">자동 감시:</span> 45초마다 라이엇 서버에서 전적과 챔피언을 실시간으로 가져옵니다.
         </div>
     </div>
 
@@ -116,9 +116,9 @@ const TIER_MAP = {
 };
 
 let cachedPlayers = [];
-let autoSyncInterval = null; // 자동 감시용 변수 추가
+let autoSyncInterval = null; 
 
-// [추가] 자동 감시 토글 함수 (2분 주기)
+// [수정] 자동 감시 토글 함수 (45초 주기 최적화)
 async function toggleWatch() {
     const btn = document.getElementById('watchBtn');
     
@@ -130,23 +130,23 @@ async function toggleWatch() {
         btn.style.borderColor = "var(--gold)";
         btn.style.boxShadow = "var(--neon-gold)";
     } else {
-        btn.innerText = "⏹️ 감시 중 (2분 주기)";
+        btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.color = "var(--red)";
         btn.style.borderColor = "var(--red)";
         btn.style.boxShadow = "var(--neon-red)";
         
         syncWithRiot(); // 즉시 실행
-        autoSyncInterval = setInterval(syncWithRiot, 120000); // 120초(2분) 주기
+        autoSyncInterval = setInterval(syncWithRiot, 45000); // 45초 주기로 변경
     }
 }
 
-// [추가] Vercel API 호출 함수
+// [수정] Vercel API 호출 함수 (로그 메시지 수정)
 async function syncWithRiot() {
     try {
         const res = await fetch('/api/sync');
         if (res.ok) {
             await loadData(); // DB 변동사항 화면에 로드
-            console.log("라이엇 데이터 동기화 완료 (2분 주기)");
+            console.log("라이엇 데이터 동기화 완료 (45초 주기)");
         }
     } catch (e) {
         console.error("동기화 에러:", e);
