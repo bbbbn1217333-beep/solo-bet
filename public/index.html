@@ -90,6 +90,12 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .res-kda-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .kda-main { font-size: 30px; font-weight: 800; color: #fff; font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 .kda-sub { font-size: 24px; font-weight: 800; color: #ffd369; font-family: 'Orbitron', sans-serif; opacity: 1; }
+
+/* 신규 추가: 승격/승급/강등 뱃지 스타일 */
+.status-badge { font-size: 22px; font-weight: 900; padding: 2px 10px; border-radius: 6px; margin-left: 5px; text-transform: uppercase; }
+.badge-pro-super { color: #ffea00; border: 2px solid #ffea00; box-shadow: 0 0 15px #ffea00; background: rgba(255, 234, 0, 0.1); } /* 승격: 찐한 노랑 */
+.badge-pro { color: #fff380; border: 2px solid #fff380; box-shadow: 0 0 10px #fff380; background: rgba(255, 243, 128, 0.1); }    /* 승급: 연한 노랑 */
+.badge-dem { color: #ff4d4d; border: 2px solid #ff4d4d; box-shadow: 0 0 15px #ff4d4d; background: rgba(255, 77, 77, 0.1); }    /* 강등: 빨강 */
 </style>
 </head>
 <body>
@@ -105,7 +111,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; // 요청하신 버전 유지
+const LOL_VER = "16.3.1"; 
 
 let champMap = {}; 
 let champIdToKey = {};
@@ -155,6 +161,31 @@ const fixChamp = c => {
 
 async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     if (!normalCycle) return;
+
+    // --- 승격/승급/강등 판별 로직 ---
+    const tierRank = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아':7, '마스터':8, '그랜드':9, '챌린저':10 };
+    let statusBadgeHTML = "";
+    
+    // 현재 렌더링된 players 리스트에서 이전 데이터를 찾음
+    const oldP = players.find(p => p.id === player.id);
+    if (oldP && oldP.tier !== player.tier) {
+        const oldTier = oldP.tier || "";
+        const newTier = player.tier || "";
+        const oldName = oldTier.replace(/[0-9]/g, '').trim();
+        const newName = newTier.replace(/[0-9]/g, '').trim();
+        const oldNum = parseInt(oldTier.replace(/[^0-9]/g, '')) || 5;
+        const newNum = parseInt(newTier.replace(/[^0-9]/g, '')) || 5;
+
+        if (tierRank[newName] > tierRank[oldName]) {
+            statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
+        } else if (tierRank[newName] === tierRank[oldName] && newNum < oldNum) {
+            statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
+        } else if (tierRank[newName] < tierRank[oldName] || (tierRank[newName] === tierRank[oldName] && newNum > oldNum)) {
+            statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
+        }
+    }
+    // ----------------------------
+
     normalCycle = false;
     clearInterval(sceneInterval);
 
@@ -179,8 +210,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     const targetScene = isWin ? document.getElementById('scene-game-win') : document.getElementById('scene-game-lose');
     const tierInfo = getTierInfo(player.tier);
     const teamDisplayName = player.team === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
-    
-    // 이 부분이 핵심! sync.js가 전달해준 lp_diff 문구를 가져옵니다.
     const displayLP = player.lp_diff || "";
 
     let lastChamp = 'None';
@@ -205,6 +234,7 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
                 <div class="res-tier tier ${tierInfo.class}">
                     <span>${tierInfo.name}</span>
                     <span class="res-point ${isWin ? 'win' : 'lose'}" style="margin-left:10px;">${displayLP}</span>
+                    ${statusBadgeHTML}
                 </div>
             </div>
             <div class="res-champ">
@@ -254,17 +284,15 @@ async function loadData() {
 function setupRealtime() {
     sb.channel('db_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
-        // 데이터가 변경되면 즉시 다시 그리기
-        loadData();
-
-        // 컷씬 트리거 로직
         if (payload.eventType === 'UPDATE' && payload.new.trigger_cutscene === true) {
             const recent = payload.new.recent || [];
             const lastRes = recent.filter(x => x === 'win' || x === 'lose').pop();
             if (lastRes) {
+                // 컷씬 터뜨리기 전에 현재 화면의 players 정보(이전 정보)를 넘겨주기 위해 loadData 호출 전 실행
                 triggerCutscene(payload.new, lastRes === 'win', payload.new.last_kda || "0/0/0");
             }
         }
+        loadData();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData)
     .subscribe();
