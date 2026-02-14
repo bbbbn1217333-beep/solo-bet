@@ -154,7 +154,6 @@ function toggleResult(btn) {
     else { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
 }
 
-// [수정] 외부 API 대신 우리 서버(/api/sync)를 활용하여 데이터를 갱신하도록 변경
 async function fetchRiotData(input) {
     const riotId = input.value.trim();
     if (!riotId.includes('#')) return;
@@ -164,10 +163,8 @@ async function fetchRiotData(input) {
         statusLabel.innerText = "🔄 갱신 요청중...";
         statusLabel.style.color = "var(--emerald)";
 
-        // 1. 서버에 최신 데이터 긁어오라고 명령 (sync API 활용)
         const res = await fetch('/api/sync');
         if (res.ok) {
-            // 2. 갱신된 데이터를 DB에서 다시 불러오기
             await loadData();
             statusLabel.innerText = "✅ 갱신 완료";
         } else { throw new Error("서버 응답 실패"); }
@@ -265,25 +262,40 @@ async function applyToSupabase() {
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
     
-    // 현재 화면의 모든 카드를 돌면서 데이터 수집
     for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
         const name = card.querySelector('.nick-disp').value.trim();
+        const currentRiotId = card.querySelector('.nick-riot').value.trim();
         
-        // 1. 이름이 없으면 아예 무시 (이게 없으면 빈 칸이 에러를 일으킴)
         if (!name) continue;
 
-        const recent = [], champs = [];
-        card.querySelectorAll('.history-item').forEach(item => {
-            const btn = item.querySelector('.btn-toggle');
-            recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
-            champs.push(item.querySelector('.champ-input').value.trim() || 'None');
-        });
+        const existingPlayer = cachedPlayers.find(p => p.name === name);
+        const isRiotIdChanged = existingPlayer && existingPlayer.riot_id !== currentRiotId;
+
+        let recent = [], champs = [];
+        let wins = 0, losses = 0;
+
+        // 🚩 롤 닉네임이 바뀌었으면 전적 초기화
+        if (isRiotIdChanged) {
+            recent = Array(10).fill("ing");
+            champs = Array(10).fill("None");
+            wins = 0;
+            losses = 0;
+        } else {
+            // 그대로라면 화면의 데이터 수집
+            card.querySelectorAll('.history-item').forEach(item => {
+                const btn = item.querySelector('.btn-toggle');
+                recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
+                champs.push(item.querySelector('.champ-input').value.trim() || 'None');
+            });
+            wins = card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length;
+            losses = card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length;
+        }
 
         const tierOverride = card.querySelector('.tier-override').checked;
         const lpOverride = card.querySelector('.lp-override').checked;
         
-        let finalTierStr = card.dataset.existingTier || "언랭크";
+        let finalTierStr = isRiotIdChanged ? "언랭크" : (card.dataset.existingTier || "언랭크");
         if (tierOverride || lpOverride) {
             const tEng = card.querySelector('.tier-select').value;
             const tKor = TIER_MAP[tEng];
@@ -295,41 +307,30 @@ async function applyToSupabase() {
         const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
         if (!cutsceneAssigned && lastValidRes) { triggerThisPlayer = true; cutsceneAssigned = true; }
 
-        // [핵심 변경] 순서(i)가 아니라 "이름"으로 기존 데이터를 찾음
-     // ... (기존 코드 생략)
-
-        // [핵심 변경] 순서(i)가 아니라 "이름"으로 기존 데이터를 찾음
-        const existingPlayer = cachedPlayers.find(p => p.name === name);
-
         const playerData = {
             name: name,
             team: card.dataset.team,
-            riot_id: card.querySelector('.nick-riot').value.trim(),
-            puuid: card.dataset.puuid || (existingPlayer ? existingPlayer.puuid : null),
+            riot_id: currentRiotId,
+            puuid: isRiotIdChanged ? null : (card.dataset.puuid || (existingPlayer ? existingPlayer.puuid : null)),
             tier: finalTierStr,
             manual_tier: tierOverride || lpOverride,
-            wins: card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length,
-            losses: card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
+            wins: wins,
+            losses: losses,
             recent: recent,
             champions: champs,
             trigger_cutscene: triggerThisPlayer,
-            lp_diff: (existingPlayer ? (existingPlayer.lp_diff || "") : "")
+            lp_diff: isRiotIdChanged ? "" : (existingPlayer ? (existingPlayer.lp_diff || "") : ""),
+            last_match_id: isRiotIdChanged ? null : (existingPlayer ? existingPlayer.last_match_id : null)
         };
 
-        // ⭐ 이 부분이 핵심입니다!
-        // 기존 유저라면(ID가 있다면) ID를 넣어주고, 
-        // 신규 유저라면(ID가 없다면) playerData 객체에 id 속성 자체를 추가하지 않습니다.
         if (existingPlayer && existingPlayer.id) {
             playerData.id = existingPlayer.id;
         }
 
         playersUpdateList.push(playerData);
-    } // for문 끝
-
-    // ... (이후 supabase.upsert 호출)
+    }
 
     try {
-        // 설정 저장 (id: 1 고정)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -338,14 +339,13 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 플레이어 일괄 업데이트
         if (playersUpdateList.length > 0) {
             const { error: upsertError } = await sb.from('players').upsert(playersUpdateList);
             if (upsertError) throw upsertError;
         }
 
         alert('✅ 반영 성공!');
-        await loadData(); // 최신 ID를 포함한 데이터를 다시 불러와서 캐시 갱신
+        await loadData();
     } catch (e) { 
         console.error("상세 에러:", e);
         alert('❌ 반영 실패: ' + e.message); 
