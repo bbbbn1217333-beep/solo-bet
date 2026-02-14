@@ -244,7 +244,11 @@ async function loadData() {
 
 function setupRealtime() {
     sb.channel('db_changes')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players' }, (payload) => {
+    // 1. 티어나 승패가 업데이트(UPDATE) 되었을 때 즉시 로드
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
+        console.log("데이터 변경 감지:", payload.new);
+        
+        // 만약 관리자 패널에서 컷씬 트리거를 보냈다면 실행
         if (payload.new && payload.new.trigger_cutscene === true) {
             const recent = payload.new.recent || [];
             const lastRes = recent.filter(x => x === 'win' || x === 'lose').pop();
@@ -252,8 +256,11 @@ function setupRealtime() {
                 triggerCutscene(payload.new, lastRes === 'win', payload.new.last_kda || "0/0/0");
             }
         }
-        loadData();
+        loadData(); // 변경된 티어 정보를 다시 불러와서 화면 갱신
     })
+    // 2. 새로운 플레이어가 추가(INSERT) 되었을 때
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players' }, loadData)
+    // 3. 설정 변경 시
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData)
     .subscribe();
 }
