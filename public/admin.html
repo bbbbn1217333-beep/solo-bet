@@ -263,17 +263,26 @@ async function loadData() {
 async function applyToSupabase() {
     const playersUpdateList = [];
     let cutsceneAssigned = false;
-    document.querySelectorAll('.member-card').forEach(card => {
+
+    // 현재 화면에 있는 모든 카드 정보를 수집
+    const cards = document.querySelectorAll('.member-card');
+    
+    for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
         const name = card.querySelector('.nick-disp').value.trim();
-        if(!name) return;
+        if (!name) continue;
+
         const recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
             const btn = item.querySelector('.btn-toggle');
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
             champs.push(item.querySelector('.champ-input').value.trim() || 'None');
         });
+
         const tierOverride = card.querySelector('.tier-override').checked;
         const lpOverride = card.querySelector('.lp-override').checked;
+        
+        // [중요] 화면에서 수동 수정을 안 했다면 DB에 있던 기존 티어값을 그대로 유지
         let finalTierStr = card.dataset.existingTier || "언랭크";
         if (tierOverride || lpOverride) {
             const tEng = card.querySelector('.tier-select').value;
@@ -281,38 +290,53 @@ async function applyToSupabase() {
             const lpVal = card.querySelector('.lp-input').value.trim();
             finalTierStr = (lpVal && lpVal !== "0" && tEng !== "UNRANKED") ? `${tKor} - ${lpVal}LP` : tKor;
         }
+
         let triggerThisPlayer = false;
         const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
         if (!cutsceneAssigned && lastValidRes) { triggerThisPlayer = true; cutsceneAssigned = true; }
-        playersUpdateList.push({ 
-            name, team: card.dataset.team, riot_id: card.querySelector('.nick-riot').value.trim(),
-            puuid: card.dataset.puuid || null, tier: finalTierStr, manual_tier: tierOverride || lpOverride,
+
+        // [최적화] ID를 포함하여 upsert 수행 (삭제 방지)
+        const existingPlayer = cachedPlayers[i]; 
+
+        playersUpdateList.push({
+            id: existingPlayer ? existingPlayer.id : undefined, // 기존 ID가 있으면 업데이트
+            name, 
+            team: card.dataset.team, 
+            riot_id: card.querySelector('.nick-riot').value.trim(),
+            puuid: card.dataset.puuid || (existingPlayer ? existingPlayer.puuid : null),
+            tier: finalTierStr, 
+            manual_tier: tierOverride || lpOverride,
             wins: card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length, 
             losses: card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
-            recent, champions: champs, trigger_cutscene: triggerThisPlayer
+            recent, 
+            champions: champs, 
+            trigger_cutscene: triggerThisPlayer
         });
-    });
+    }
+
     try {
+        // 1. 설정 저장
         await sb.from('settings').upsert({ 
-            id: 1, red_team_name: document.getElementById('redNameInput').value, 
+            id: 1, 
+            red_team_name: document.getElementById('redNameInput').value, 
             blue_team_name: document.getElementById('blueNameInput').value, 
             member_count: Number(document.getElementById('teamCount').value), 
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
-        if(playersUpdateList.length > 0) {
-            await sb.from('players').delete().not('name', 'eq', 'SAFE_DELETE_NONE'); 
-            await new Promise(resolve => setTimeout(resolve, 300));
-            const { error: insError } = await sb.from('players').insert(playersUpdateList);
-            if (insError) throw insError;
+
+        // 2. [최적화] Delete 없이 Upsert로 한 번에 처리
+        if (playersUpdateList.length > 0) {
+            const { error: upsertError } = await sb.from('players').upsert(playersUpdateList);
+            if (upsertError) throw upsertError;
         }
+
         alert('✅ 송출 화면에 반영되었습니다!');
-        cachedPlayers = [...playersUpdateList]; 
-    } catch (e) { alert('❌ 반영 실패: ' + e.message); }
+        // 최신 데이터로 캐시 갱신
+        loadData(); 
+    } catch (e) { 
+        alert('❌ 반영 실패: ' + e.message); 
+    }
 }
-window.onload = loadData;
-</script>
-</body>
-</html>
 
 
 
