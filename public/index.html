@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이라네 솔랭 내기 시트지</title>
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&family=Inter:wght@600;800&display=swap" rel="stylesheet">
+<title>이라네 솔랭 내기 시트지 (송출용)</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* 디자인 스타일 유지 */
+/* ... (기존 스타일 유지) ... */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -35,17 +35,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
-.tier.iron{--t-clr:#a19d94; color:var(--t-clr);} 
-.tier.bronze{--t-clr:#cd7f32; color:var(--t-clr);} 
-.tier.silver{--t-clr:#c0c0c0; color:var(--t-clr);} 
-.tier.gold{--t-clr:#ffd700; color:var(--t-clr);} 
-.tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr);} 
-.tier.emerald{--t-clr:#2ecc71; color:var(--t-clr);}
-.tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr);} 
-.tier.master{--t-clr:#9b59b6; color:var(--t-clr);} 
-.tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr);} 
-.tier.challenger{--t-clr:#f1c40f; color:var(--t-clr); text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);}
-.tier.unranked{--t-clr:#aaa; color:var(--t-clr);}
+.tier.iron{--t-clr:#a19d94; color:var(--t-clr);} .tier.bronze{--t-clr:#cd7f32; color:var(--t-clr);} .tier.silver{--t-clr:#c0c0c0; color:var(--t-clr);} .tier.gold{--t-clr:#ffd700; color:var(--t-clr);} .tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr);} .tier.emerald{--t-clr:#2ecc71; color:var(--t-clr);} .tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr);} .tier.master{--t-clr:#9b59b6; color:var(--t-clr);} .tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr);} .tier.challenger{--t-clr:#f1c40f; color:var(--t-clr); text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);} .tier.unranked{--t-clr:#aaa; color:var(--t-clr);}
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
@@ -53,7 +43,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
 .wl-badge.ing { color: #00ffaa; border-color: #00ffaa; }
-.wl-badge.none { color: #888; border-color: #888; }
+
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 8px; }
@@ -73,29 +63,28 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 @keyframes glowWhite { 0% { transform: scale(1); text-shadow:0 0 20px #ffffff; } 100% { transform: scale(1.1); text-shadow:0 0 60px #ffffff, 0 0 100px #ffffff; } }
 .score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }
 .sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
-.game-result-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 780px; box-sizing: border-box; padding: 40px; border-radius: 30px; text-align: center; background: rgba(0, 0, 0, 0.95); border: 5px solid #fff; z-index: 9999; backface-visibility: hidden; }
+
+/* 컷씬 카드 디자인 수정 */
+.game-result-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 780px; box-sizing: border-box; padding: 40px; border-radius: 30px; text-align: center; background: rgba(0, 0, 0, 0.95); border: 5px solid #fff; z-index: 9999; }
 .res-win { border-color: #ffd369; box-shadow: 0 0 50px rgba(255, 211, 105, 0.5); }
 .res-lose { border-color: #ff5c5c; box-shadow: 0 0 50px rgba(255, 92, 92, 0.5); }
-.res-title { font-size: 70px; margin: 0; line-height: 1.2; font-weight: 800; }
+.res-title { font-size: 70px; margin: 0; line-height: 1.2; font-weight: 900; }
 .res-win .res-title { color: #fff; text-shadow: 0 0 25px #ffd369, 0 0 45px #ffd369; }
 .res-lose .res-title { color: #fff; text-shadow: 0 0 25px #ff5c5c, 0 0 45px #ff5c5c; }
 .res-nick { font-size: 38px; font-weight: 800; margin: 25px 0 10px; }
 .res-team { padding: 4px 12px; border-radius: 6px; font-size: 20px; vertical-align: middle; margin-right: 10px; color: #fff; text-transform: uppercase; }
 .res-tier-wrap { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px; margin-bottom: 20px; }
-.res-tier { font-size: 28px; font-weight: 800; color: #fff !important; padding: 8px 22px; border-radius: 8px; border: 2px solid var(--t-clr); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 10px var(--t-clr), 0 0 15px var(--t-clr); text-shadow: 0 0 5px #000; display: flex; align-items: center; gap: 12px; }
-.res-point { font-weight: 900; }
-.res-point.win { color: #ffd369; }
-.res-point.lose { color: #ff6b6b; }
-.res-champ img { width: 140px; height: 140px; border-radius: 50%; border: 4px solid #fff; margin-bottom: 15px; }
-.res-kda-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.kda-main { font-size: 30px; font-weight: 800; color: #fff; font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
-.kda-sub { font-size: 24px; font-weight: 800; color: #ffd369; font-family: 'Orbitron', sans-serif; opacity: 1; }
+.res-tier { font-size: 28px; font-weight: 800; color: #fff !important; padding: 8px 22px; border-radius: 8px; border: 2px solid var(--t-clr); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 10px var(--t-clr), 0 0 15px var(--t-clr); display: flex; align-items: center; gap: 12px; }
+.res-point { font-weight: 900; font-family: 'Orbitron'; font-size: 30px; }
+.res-point.win { color: #ffd369; text-shadow: 0 0 10px #ffd369; }
+.res-point.lose { color: #ff6b6b; text-shadow: 0 0 10px #ff6b6b; }
+.res-champ img { width: 140px; height: 140px; border-radius: 50%; border: 4px solid #fff; margin-bottom: 15px; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
 
-/* 신규 추가: 승격/승급/강등 뱃지 스타일 */
-.status-badge { font-size: 22px; font-weight: 900; padding: 2px 10px; border-radius: 6px; margin-left: 5px; text-transform: uppercase; }
-.badge-pro-super { color: #ffea00; border: 2px solid #ffea00; box-shadow: 0 0 15px #ffea00; background: rgba(255, 234, 0, 0.1); } /* 승격: 찐한 노랑 */
-.badge-pro { color: #fff380; border: 2px solid #fff380; box-shadow: 0 0 10px #fff380; background: rgba(255, 243, 128, 0.1); }    /* 승급: 연한 노랑 */
-.badge-dem { color: #ff4d4d; border: 2px solid #ff4d4d; box-shadow: 0 0 15px #ff4d4d; background: rgba(255, 77, 77, 0.1); }    /* 강등: 빨강 */
+/* 상태 뱃지 보강 */
+.status-badge { font-size: 32px; font-weight: 900; padding: 4px 16px; border-radius: 8px; margin-left: 10px; text-shadow: 2px 2px 4px #000; }
+.badge-pro-super { color: #fff; background: linear-gradient(45deg, #ff0000, #ffea00); border: 3px solid #fff; box-shadow: 0 0 20px #ffea00; } /* 승격: 화려하게 */
+.badge-pro { color: #000; background: #ffd369; border: 3px solid #fff; box-shadow: 0 0 15px #ffd369; } /* 승급: 황금색 */
+.badge-dem { color: #fff; background: #ff4d4d; border: 3px solid #fff; box-shadow: 0 0 20px #ff4d4d; } /* 강등: 빨간색 */
 </style>
 </head>
 <body>
@@ -111,7 +100,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; 
+const LOL_VER = "15.3.1"; 
 
 let champMap = {}; 
 let champIdToKey = {};
@@ -162,47 +151,33 @@ const fixChamp = c => {
 async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     if (!normalCycle) return;
 
-    // --- 승격/승급/강등 판별 로직 ---
-    const tierRank = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아':7, '마스터':8, '그랜드':9, '챌린저':10 };
-    let statusBadgeHTML = "";
-    
-    // 현재 렌더링된 players 리스트에서 이전 데이터를 찾음
-    const oldP = players.find(p => p.id === player.id);
-    if (oldP && oldP.tier !== player.tier) {
-        const oldTier = oldP.tier || "";
-        const newTier = player.tier || "";
-        const oldName = oldTier.replace(/[0-9]/g, '').trim();
-        const newName = newTier.replace(/[0-9]/g, '').trim();
-        const oldNum = parseInt(oldTier.replace(/[^0-9]/g, '')) || 5;
-        const newNum = parseInt(newTier.replace(/[^0-9]/g, '')) || 5;
-
-        if (tierRank[newName] > tierRank[oldName]) {
-            statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
-        } else if (tierRank[newName] === tierRank[oldName] && newNum < oldNum) {
-            statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
-        } else if (tierRank[newName] < tierRank[oldName] || (tierRank[newName] === tierRank[oldName] && newNum > oldNum)) {
-            statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
-        }
-    }
-    // ----------------------------
-
     normalCycle = false;
     clearInterval(sceneInterval);
+
+    // --- 관리자 데이터 기반 뱃지 & 점수 변동 설정 ---
+    let statusBadgeHTML = "";
+    if (player.event_type === 'promotion_major') {
+        statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
+    } else if (player.event_type === 'promotion') {
+        statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
+    } else if (player.event_type === 'demotion') {
+        statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
+    }
 
     const [k, d, a] = kdaText.split('/').map(Number);
     const kdaCalc = d === 0 ? "PERFECT" : ((k + a) / d).toFixed(2);
     
+    // 연승/연패 계산
     let streakCount = 0;
     const recent = (player.recent || []).filter(r => r === 'win' || r === 'lose');
     if (recent.length > 0) {
         const lastResult = recent[recent.length - 1];
         for (let i = recent.length - 1; i >= 0; i--) {
-            if (recent[i] === lastResult) streakCount++;
-            else break;
+            if (recent[i] === lastResult) streakCount++; else break;
         }
     }
     
-    const streakText = isWin ? (streakCount === 1 ? '1승중' : streakCount + '연승') : (streakCount === 1 ? '1패중' : streakCount + '연패');
+    const streakText = isWin ? (streakCount <= 1 ? '1승중' : streakCount + '연승') : (streakCount <= 1 ? '1패중' : streakCount + '연패');
     const streakClass = isWin ? 'win' : 'lose';
     const streakBadgeHTML = streakCount > 0 ? `<span class="streak ${streakClass}" style="font-size: 22px; font-weight: 900; padding: 4px 12px; border-radius: 6px; vertical-align: middle;">${streakText}</span>` : '';
 
@@ -210,13 +185,10 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     const targetScene = isWin ? document.getElementById('scene-game-win') : document.getElementById('scene-game-lose');
     const tierInfo = getTierInfo(player.tier);
     const teamDisplayName = player.team === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
-    const displayLP = player.lp_diff || "";
-
-    let lastChamp = 'None';
-    if (player.champions && player.champions.length > 0) {
-        const validChamps = player.champions.filter(c => c !== 'None' && c !== '');
-        if (validChamps.length > 0) lastChamp = fixChamp(validChamps[0]);
-    }
+    
+    // 점수 변동 (LP Diff) 및 고정 챔피언
+    const lpDiff = player.lp_diff || "";
+    const displayChamp = fixChamp(player.target_champion || 'None');
 
     targetScene.innerHTML = `
         <div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}">
@@ -232,13 +204,13 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
             </div>
             <div class="res-tier-wrap">
                 <div class="res-tier tier ${tierInfo.class}">
+                    <span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>
                     <span>${tierInfo.name}</span>
-                    <span class="res-point ${isWin ? 'win' : 'lose'}" style="margin-left:10px;">${displayLP}</span>
                     ${statusBadgeHTML}
                 </div>
             </div>
             <div class="res-champ">
-                <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${lastChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'">
+                <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'">
                 <div class="res-kda-box">
                     <span class="kda-main">${kdaText}</span>
                     <span class="kda-sub">K/D/A : ${kdaCalc}</span>
@@ -257,6 +229,8 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     }, 8000);
 }
 
+// ... (loadData, setupRealtime, renderAll 등 나머지 로직은 기존과 동일) ...
+
 async function loadData() {
     try {
         const { data: sData } = await sb.from('settings').select('*');
@@ -269,8 +243,7 @@ async function loadData() {
                 if (recent.length > 0) {
                     const lastResult = recent[recent.length - 1];
                     for(let i = recent.length - 1; i >= 0; i--) {
-                        if(recent[i] === lastResult) streak++;
-                        else break;
+                        if(recent[i] === lastResult) streak++; else break;
                     }
                     streak = lastResult === 'win' ? streak : -streak;
                 }
@@ -284,11 +257,11 @@ async function loadData() {
 function setupRealtime() {
     sb.channel('db_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
+        // trigger_cutscene이 true일 때만 컷씬 발생
         if (payload.eventType === 'UPDATE' && payload.new.trigger_cutscene === true) {
             const recent = payload.new.recent || [];
             const lastRes = recent.filter(x => x === 'win' || x === 'lose').pop();
             if (lastRes) {
-                // 컷씬 터뜨리기 전에 현재 화면의 players 정보(이전 정보)를 넘겨주기 위해 loadData 호출 전 실행
                 triggerCutscene(payload.new, lastRes === 'win', payload.new.last_kda || "0/0/0");
             }
         }
@@ -328,10 +301,7 @@ function renderMainScene(container, filterTeam) {
         const teamName = t === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
         return `
         <div class="team ${t}">
-            <div class="team-header">
-                <h1>${teamName.toUpperCase()}</h1>
-                <div class="summary"><span class="win">😁${tW}승</span> / <span class="lose">😡${tL}패</span></div>
-            </div>
+            <div class="team-header"><h1>${teamName.toUpperCase()}</h1><div class="summary"><span class="win">😁${tW}승</span> / <span class="lose">😡${tL}패</span></div></div>
             <div class="members">
                 ${teamPlayers.map(p => {
                     const level = Math.min(Math.abs(p.streak), 5);
