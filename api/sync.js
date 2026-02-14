@@ -1,3 +1,6 @@
+console.log("RIOT_API_KEY:", riotApiKey);
+console.log("길이:", riotApiKey?.length);
+
 const { createClient } = require('@supabase/supabase-js');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
