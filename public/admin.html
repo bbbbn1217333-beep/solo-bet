@@ -274,13 +274,15 @@ async function applyToSupabase() {
 
         let recent = [], champs = [];
         let wins = 0, losses = 0;
+        let finalTierStr = "";
 
-        // 🚩 롤 닉네임이 바뀌었으면 전적 초기화
+        // 🚩 롤 닉네임이 바뀌었으면 전적 및 티어 초기화
         if (isRiotIdChanged) {
             recent = Array(10).fill("ing");
             champs = Array(10).fill("None");
             wins = 0;
             losses = 0;
+            finalTierStr = "언랭크"; // 닉네임 변경 시 티어 즉시 초기화
         } else {
             // 그대로라면 화면의 데이터 수집
             card.querySelectorAll('.history-item').forEach(item => {
@@ -290,17 +292,19 @@ async function applyToSupabase() {
             });
             wins = card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length;
             losses = card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length;
-        }
-
-        const tierOverride = card.querySelector('.tier-override').checked;
-        const lpOverride = card.querySelector('.lp-override').checked;
-        
-        let finalTierStr = isRiotIdChanged ? "언랭크" : (card.dataset.existingTier || "언랭크");
-        if (tierOverride || lpOverride) {
-            const tEng = card.querySelector('.tier-select').value;
-            const tKor = TIER_MAP[tEng];
-            const lpVal = card.querySelector('.lp-input').value.trim();
-            finalTierStr = (lpVal && lpVal !== "0" && tEng !== "UNRANKED") ? `${tKor} - ${lpVal}LP` : tKor;
+            
+            // 닉네임이 그대로일 때만 티어 수정 체크박스 확인
+            const tierOverride = card.querySelector('.tier-override').checked;
+            const lpOverride = card.querySelector('.lp-override').checked;
+            
+            if (tierOverride || lpOverride) {
+                const tEng = card.querySelector('.tier-select').value;
+                const tKor = TIER_MAP[tEng];
+                const lpVal = card.querySelector('.lp-input').value.trim();
+                finalTierStr = (lpVal && lpVal !== "0" && tEng !== "UNRANKED") ? `${tKor} - ${lpVal}LP` : tKor;
+            } else {
+                finalTierStr = card.dataset.existingTier || "언랭크";
+            }
         }
 
         let triggerThisPlayer = false;
@@ -313,7 +317,7 @@ async function applyToSupabase() {
             riot_id: currentRiotId,
             puuid: isRiotIdChanged ? null : (card.dataset.puuid || (existingPlayer ? existingPlayer.puuid : null)),
             tier: finalTierStr,
-            manual_tier: tierOverride || lpOverride,
+            manual_tier: isRiotIdChanged ? false : (card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked),
             wins: wins,
             losses: losses,
             recent: recent,
