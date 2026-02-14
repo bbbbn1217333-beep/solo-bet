@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이라네 솔랭 내기 시트지 관리자용</title>
+<title>이라네 솔랭 내기 시트지 관리자용 (UUID 호환)</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -41,16 +41,16 @@
     .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
     .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; }
     .input-group { display: flex; flex-direction: column; align-items: center; }
-    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; transition: 0.3s; }
-    .nick-disp, .nick-riot, .lp-input, .score-input { height: 44px !important; box-sizing: border-box !important; }
-    .tier-select { height: 44px !important; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; flex: 1.5 !important; text-align: center; text-align-last: center; appearance: none; line-height: 40px; }
+    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; }
+    .nick-disp, .nick-riot, .lp-input, .score-input, .lp-diff-input { height: 44px !important; box-sizing: border-box !important; }
+    .tier-select { height: 44px !important; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; flex: 1.5 !important; text-align: center; appearance: none; }
     .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
     .nick-riot { flex: 1.05 !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
     .red .nick-disp, .red .nick-riot { border-color: var(--red); }
     .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
     .lp-input { width: 55px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
+    .lp-diff-input { width: 75px !important; background:#000; border: 2px solid var(--emerald) !important; border-radius:6px; color: var(--emerald) !important; text-align: center; font-weight: 900; box-shadow: 0 0 10px rgba(46,204,113,0.4); outline:none; }
     .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; flex: none !important; margin-left: 2px !important; }
-    .score-input-wrap label { font-size: 11px; font-weight: 900; margin-bottom: 6px; }
     .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; }
     .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
     .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
@@ -58,7 +58,6 @@
     .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding: 10px 5px; border-radius: 8px; border: 2px solid; }
     .red .history-item { border-color: var(--red); box-shadow: var(--neon-red); }
     .blue .history-item { border-color: var(--blue); box-shadow: var(--neon-blue); }
-    .history-item span { color: var(--gold); text-shadow: 0 0 8px var(--gold); font-weight: 900; font-size: 12px; }
     .champ-input { width:92%; background:#000; border: 2px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:12px; font-weight: 800; box-shadow: var(--neon-gold); outline: none; }
     .btn-toggle { width:100%; padding:8px 0; font-size:11px; font-weight:900; border:none; border-radius:4px; cursor:pointer; }
     .btn-toggle.win { background: var(--gold); color: #000; }
@@ -76,17 +75,13 @@
             <div class="header-group"><label class="label-blue">🚩 블루 팀 명칭</label><input id="blueNameInput" oninput="updateTeamNames()" placeholder="블루 팀"></div>
             <div class="header-group"><label class="label-gold">⏰ 목표 종료 시간</label><div class="timer-input-wrap"><input id="endDateTime" type="datetime-local"></div></div>
             <div class="header-group"><label class="label-gold">👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuildWithCache()"></div>
-            
             <button id="watchBtn" class="btn-load-data" onclick="toggleWatch()" style="color:var(--gold); border-color:var(--gold); box-shadow: var(--neon-gold);">▶️ 자동 감시 시작</button>
-            
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
         </div>
         <div class="menu-desc">
             <strong>💡 이라네 시트지 필독 관리 매뉴얼</strong>
-            • <span class="neon-point">데이터 반영:</span> 우측 하단 붉은색 [송출 화면 반영] 버튼을 눌러야 실제 시트지에 적용됩니다.<br>
-            • <span class="neon-point">실시간 연동:</span> 데이터가 수정되면 송출 화면이 새로고침 없이 즉시 업데이트됩니다.<br>
-            • <span class="neon-point">컷씬 제어:</span> 승/패 기록이 있는 사람 중 첫 번째 사람의 컷씬만 자동으로 터집니다.<br>
-            • <span class="neon-point">자동 감시:</span> 45초마다 라이엇 서버에서 전적과 챔피언을 실시간으로 가져옵니다.
+            • <span class="neon-point">UUID 호환 모드:</span> 입력하신 SQL의 UUID 형식에 맞게 데이터가 저장됩니다.<br>
+            • <span class="neon-point">변동폭:</span> 자동 감시를 사용하면 점수가 바뀌지만, <strong>+20 승급!</strong> 처럼 직접 적어서 반영하면 컷씬에 그대로 나옵니다.
         </div>
     </div>
 
@@ -106,7 +101,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TIER_MAP = {
     "CHALLENGER": "챌린저", "GRANDMASTER": "그랜드마스터", "MASTER": "마스터",
     "DIAMOND 1": "다이아몬드 1", "DIAMOND 2": "다이아몬드 2", "DIAMOND 3": "다이아몬드 3", "DIAMOND 4": "다이아몬드 4",
-    "EMERALD 1": "에메랄드 1", "EMERALD 2": "에메릴드 2", "EMERALD 3": "에메랄드 3", "EMERALD 4": "에메랄드 4",
+    "EMERALD 1": "에메랄드 1", "EMERALD 2": "에메랄드 2", "EMERALD 3": "에메랄드 3", "EMERALD 4": "에메랄드 4",
     "PLATINUM 1": "플래티넘 1", "PLATINUM 2": "플래티넘 2", "PLATINUM 3": "플래티넘 3", "PLATINUM 4": "플래티넘 4",
     "GOLD 1": "골드 1", "GOLD 2": "골드 2", "GOLD 3": "골드 3", "GOLD 4": "골드 4",
     "SILVER 1": "실버 1", "SILVER 2": "실버 2", "SILVER 3": "실버 3", "SILVER 4": "실버 4",
@@ -132,10 +127,7 @@ async function toggleWatch() {
 }
 
 async function syncWithRiot() {
-    try {
-        const res = await fetch('/api/sync');
-        if (res.ok) await loadData(); 
-    } catch (e) { console.error(e); }
+    try { await fetch('/api/sync'); await loadData(); } catch (e) { console.error(e); }
 }
 
 function updateTeamNames() {
@@ -149,21 +141,11 @@ function toggleResult(btn) {
     else { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
 }
 
-async function fetchRiotData(input) {
-    const riotId = input.value.trim();
-    if (!riotId.includes('#')) return;
-    try {
-        const res = await fetch('/api/sync');
-        if (res.ok) await loadData();
-    } catch (e) { console.error(e); }
-}
-
 function createMemberCard(team, data = null) {
     const card = document.createElement('div');
     card.className = 'member-card';
     card.dataset.team = team;
-    card.dataset.id = data?.id || ""; 
-    card.dataset.puuid = data?.puuid || ""; 
+    card.dataset.uuid = data?.id || ""; // SQL id(uuid) 저장
 
     let historyHTML = '';
     for(let i=0; i<10; i++) {
@@ -186,39 +168,27 @@ function createMemberCard(team, data = null) {
 
     card.innerHTML = `
         <div class="name-row">
-            <div class="input-group"><label>스트리머명</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-            <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}" onblur="fetchRiotData(this)"></div>
-            <div class="input-group" style="flex:1.5;">
-                <label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label>
-                <select class="tier-select" style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select>
-            </div>
-            <div class="input-group" style="width:65px; flex:none;">
-                <label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label>
-                <input class="lp-input" placeholder="0" value="${currentLP}" style="opacity:${data?.manual_tier ? '1' : '0.4'};">
-            </div>
-            <div class="score-input-wrap"><label style="color:var(--gold);">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
-            <div class="score-input-wrap"><label style="color:var(--red);">패배</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
+            <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
+            <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
+            <div class="input-group" style="flex:1.5;"><label style="color:var(--gold);">티어 수정</label><select class="tier-select">${tierOptions}</select></div>
+            <div class="input-group" style="width:65px;"><label style="color:var(--gold);">LP</label><input class="lp-input" value="${currentLP}"></div>
+            <div class="input-group" style="width:75px;"><label style="color:var(--emerald);">변동폭</label><input class="lp-diff-input" placeholder="+0" value="${data?.lp_diff || ''}"></div>
+            <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
+            <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
-    card.dataset.existingTier = data?.tier || "언랭크";
     return card;
 }
 
-// 🚩 인원 조절 시 호출되는 함수 (현재 로컬 입력값을 잃지 않도록 수정)
-function rebuildWithCache() {
-    const pData = cachedPlayers; // 마지막으로 로드된 DB 데이터 기준
-    rebuild(pData);
-}
+function rebuildWithCache() { rebuild(cachedPlayers); }
 
 function rebuild(dataList = null) {
     const redWrap = document.getElementById('redPlayers');
     const blueWrap = document.getElementById('bluePlayers');
     const count = Number(document.getElementById('teamCount').value);
     redWrap.innerHTML = ''; blueWrap.innerHTML = '';
-    
     const reds = dataList?.filter(p => p.team === 'red') || [];
     const blues = dataList?.filter(p => p.team === 'blue') || [];
-    
     for(let i=0; i<count; i++) {
         redWrap.appendChild(createMemberCard('red', reds[i]));
         blueWrap.appendChild(createMemberCard('blue', blues[i]));
@@ -238,7 +208,7 @@ async function loadData() {
             }
             updateTeamNames();
         }
-        const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
+        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         cachedPlayers = pData || [];
         rebuild(pData);
     } catch (e) { console.error(e); }
@@ -248,19 +218,10 @@ async function applyToSupabase() {
     const playersUpdateList = [];
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
-    const teamCount = Number(document.getElementById('teamCount').value);
     
-    // 1. 현재 화면에 떠 있는 카드들 중 설정된 인원수 이내의 데이터만 수집
-    for (let i = 0; i < cards.length; i++) {
-        const card = cards[i];
+    for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
-        const currentRiotId = card.querySelector('.nick-riot').value.trim();
-        
         if (!name) continue;
-
-        const cardId = card.dataset.id;
-        const existingPlayer = cachedPlayers.find(p => (cardId && p.id == cardId) || (p.name === name));
-        const isRiotIdChanged = existingPlayer && existingPlayer.riot_id !== currentRiotId;
 
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
@@ -269,82 +230,52 @@ async function applyToSupabase() {
             champs.push(item.querySelector('.champ-input').value.trim() || 'None');
         });
 
-        const wins = card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length;
-        const losses = card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length;
-
-        let finalTierStr = "";
-        if (isRiotIdChanged) {
-            finalTierStr = "언랭크";
-        } else {
-            const tierOverride = card.querySelector('.tier-override').checked;
-            const lpOverride = card.querySelector('.lp-override').checked;
-            if (tierOverride || lpOverride) {
-                const tEng = card.querySelector('.tier-select').value;
-                const tKor = TIER_MAP[tEng];
-                const lpVal = card.querySelector('.lp-input').value.trim();
-                finalTierStr = (lpVal && lpVal !== "0" && tEng !== "UNRANKED") ? `${tKor} - ${lpVal}LP` : tKor;
-            } else {
-                finalTierStr = card.dataset.existingTier || "언랭크";
-            }
-        }
+        const tEng = card.querySelector('.tier-select').value;
+        const lpVal = card.querySelector('.lp-input').value.trim();
+        const finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
 
         let triggerThisPlayer = false;
         const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
         if (!cutsceneAssigned && lastValidRes) { triggerThisPlayer = true; cutsceneAssigned = true; }
 
-        const playerData = {
+        const pObj = {
             name: name,
             team: card.dataset.team,
-            riot_id: currentRiotId,
-            puuid: isRiotIdChanged ? null : (card.dataset.puuid || (existingPlayer ? existingPlayer.puuid : null)),
+            riot_id: card.querySelector('.nick-riot').value.trim(),
             tier: finalTierStr,
-            manual_tier: isRiotIdChanged ? false : (card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked),
-            wins: wins,
-            losses: losses,
+            lp_diff: card.querySelector('.lp-diff-input').value.trim(),
+            wins: Number(card.querySelector('.win-val').value) || 0,
+            losses: Number(card.querySelector('.lose-val').value) || 0,
             recent: recent,
             champions: champs,
-            trigger_cutscene: triggerThisPlayer,
-            last_match_id: isRiotIdChanged ? null : (existingPlayer ? existingPlayer.last_match_id : null)
+            trigger_cutscene: triggerThisPlayer
         };
 
-        if (existingPlayer && existingPlayer.id) playerData.id = existingPlayer.id;
-        playersUpdateList.push(playerData);
+        // SQL의 ID(UUID)가 있으면 할당
+        if (card.dataset.uuid) pObj.id = card.dataset.uuid;
+        
+        playersUpdateList.push(pObj);
     }
 
     try {
-        // A. 설정값 저장 (인원수 업데이트)
+        // 1. 설정 저장
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
             blue_team_name: document.getElementById('blueNameInput').value, 
-            member_count: teamCount, 
+            member_count: Number(document.getElementById('teamCount').value),
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // B. 초과된 인원 삭제 로직 추가 🚩
-        // 현재 DB에 있는 ID들 중, 이번 업데이트 리스트에 포함되지 않은 ID들은 삭제합니다.
-        const currentIds = playersUpdateList.map(p => p.id).filter(id => id);
-        if (cachedPlayers.length > 0) {
-            const idsToDelete = cachedPlayers
-                .map(p => p.id)
-                .filter(id => !currentIds.includes(id));
-            
-            if (idsToDelete.length > 0) {
-                await sb.from('players').delete().in('id', idsToDelete);
-            }
-        }
+        // 2. 플레이어 업데이트 (Upsert)
+        const { error } = await sb.from('players').upsert(playersUpdateList);
+        if (error) throw error;
 
-        // C. 플레이어 데이터 저장
-        if (playersUpdateList.length > 0) {
-            const { error: upsertError } = await sb.from('players').upsert(playersUpdateList);
-            if (upsertError) throw upsertError;
-        }
-
-        alert('✅ 반영 성공! (초과 인원 정리 완료)');
-        await loadData();
-    } catch (e) { 
-        console.error(e);
-        alert('❌ 반영 실패'); 
+        alert('✅ 반영 성공!');
+        loadData();
+    } catch (e) {
+        console.error("Error Detail:", e);
+        alert('❌ 반영 실패: ' + (e.message || 'ID 형식 불일치 가능성'));
     }
 }
 loadData();
