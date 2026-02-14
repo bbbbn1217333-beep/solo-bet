@@ -41,7 +41,7 @@
     .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
     .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; }
     .input-group { display: flex; flex-direction: column; align-items: center; }
-    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; }
+    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; transition: 0.3s; }
     .nick-disp, .nick-riot, .lp-input, .score-input { height: 44px !important; box-sizing: border-box !important; }
     .tier-select { height: 44px !important; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; flex: 1.5 !important; text-align: center; text-align-last: center; appearance: none; line-height: 40px; }
     .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
@@ -124,11 +124,69 @@ function toggleResult(btn) {
     else { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
 }
 
+// 라이엇 API 연동 함수 (매니저님 api/get-tier.js 호출)
+async function fetchRiotData(input) {
+    const riotId = input.value.trim();
+    if (!riotId.includes('#')) return;
+
+    const [name, tag] = riotId.split('#');
+    const card = input.closest('.member-card');
+    const statusLabel = input.previousElementSibling;
+    const originalText = "롤 닉네임";
+
+    try {
+        statusLabel.innerText = "🔄 조회중...";
+        statusLabel.style.color = "var(--emerald)";
+
+        const res = await fetch(`/api/get-tier?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`);
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.error);
+
+        // 1. 매치 ID 저장
+        card.dataset.lastMatchId = data.lastMatchId;
+
+        // 2. 티어 반영 (수정 체크가 안 되어 있을 때만)
+        const tierOverride = card.querySelector('.tier-override');
+        const lpOverride = card.querySelector('.lp-override');
+
+        if (!tierOverride.checked) {
+            const tierSelect = card.querySelector('.tier-select');
+            const tierPart = data.tier.split(' (')[0].toUpperCase();
+            // TIER_MAP 키와 매칭되는지 확인 후 값 변경
+            if (TIER_MAP[tierPart]) tierSelect.value = tierPart;
+            else {
+                // 숫자가 포함된 티어 처리 (예: DIAMOND 1)
+                const matchedKey = Object.keys(TIER_MAP).find(k => tierPart.startsWith(k));
+                if (matchedKey) tierSelect.value = matchedKey;
+            }
+        }
+
+        if (!lpOverride.checked) {
+            const lpInput = card.querySelector('.lp-input');
+            const lpMatch = data.tier.match(/\((.*?)LP\)/);
+            if (lpMatch) lpInput.value = lpMatch[1];
+        }
+        
+        card.dataset.existingTier = data.tier;
+
+        statusLabel.innerText = "✅ 조회완료";
+        setTimeout(() => { statusLabel.innerText = originalText; statusLabel.style.color = ""; }, 2000);
+
+    } catch (e) {
+        console.error(e);
+        statusLabel.innerText = "❌ 조회실패";
+        statusLabel.style.color = "var(--red)";
+        setTimeout(() => { statusLabel.innerText = originalText; statusLabel.style.color = ""; }, 2000);
+    }
+}
+
 function createMemberCard(team, data = null) {
     const card = document.createElement('div');
     card.className = 'member-card';
     card.dataset.team = team;
     card.dataset.puuid = data?.puuid || ""; 
+    card.dataset.lastMatchId = data?.last_match_id || ""; // 매치 ID 보존
 
     let historyHTML = '';
     for(let i=0; i<10; i++) {
@@ -153,7 +211,7 @@ function createMemberCard(team, data = null) {
     card.innerHTML = `
         <div class="name-row">
             <div class="input-group"><label style="font-weight:900;">스트리머명</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-            <div class="input-group"><label style="font-weight:900;">롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id || ''}"></div>
+            <div class="input-group"><label style="font-weight:900;">롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}" onblur="fetchRiotData(this)"></div>
             <div class="input-group" style="flex:1.5;">
                 <label style="font-weight:900; color:var(--gold); display:flex; align-items:center; gap:3px; cursor:pointer;">
                     <input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="this.parentElement.nextElementSibling.style.opacity = this.checked ? '1' : '0.4'"> 수정
@@ -247,6 +305,7 @@ async function applyToSupabase() {
             team: card.dataset.team, 
             riot_id: card.querySelector('.nick-riot').value.trim(),
             puuid: card.dataset.puuid || null, 
+            last_match_id: card.dataset.lastMatchId || null, // API로 받아온 매치 ID 저장
             tier: finalTierStr, 
             manual_tier: tierOverride || lpOverride,
             wins: card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length, 
@@ -269,14 +328,11 @@ async function applyToSupabase() {
 
         // 2. 데이터가 있을 때만 실행
         if(playersUpdateList.length > 0) {
-            // [해결책] ON CONFLICT 에러를 피하기 위해 기존 데이터를 먼저 지우고
             const { error: delError } = await sb.from('players').delete().neq('name', '___dummy___'); 
             if (delError) throw delError;
 
-            // [핵심] 0.1초 정도 아주 미세한 대기 시간을 주어 DB 반영을 확실히 함
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // 새로 넣기 (이때 송출 패널에서 INSERT를 감지해서 화면을 그립니다)
             const { error: insError } = await sb.from('players').insert(playersUpdateList);
             if (insError) throw insError;
         }
