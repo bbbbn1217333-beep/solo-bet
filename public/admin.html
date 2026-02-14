@@ -332,6 +332,7 @@ async function applyToSupabase() {
     });
 
     try {
+        // 1. 설정 저장
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -341,11 +342,14 @@ async function applyToSupabase() {
         });
 
         if(playersUpdateList.length > 0) {
-            const { error: delError } = await sb.from('players').delete().neq('id', -1); 
+            // 2. 기존 플레이어 삭제 (UUID 오류 해결을 위해 꼼수 대신 확실한 '모두 삭제' 쿼리 사용)
+            const { error: delError } = await sb.from('players').delete().not('name', 'eq', 'THIS_IS_NEVER_GONNA_MATCH_XXX'); 
             if (delError) throw delError;
 
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // 삭제와 삽입 사이의 짧은 간격
+            await new Promise(resolve => setTimeout(resolve, 300));
 
+            // 3. 새 데이터 삽입
             const { error: insError } = await sb.from('players').insert(playersUpdateList);
             if (insError) throw insError;
         }
