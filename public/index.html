@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&family=Inter:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* 매니저님의 기존 CSS 스타일 그대로 유지 (공간 절약을 위해 생략, 실제 파일에는 유지됨) */
+/* 디자인 스타일 유지 */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -105,10 +105,10 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; // 현재 시즌 최신 버전으로 유지 권장
+const LOL_VER = "16.3.1"; // 요청하신 버전 유지
 
 let champMap = {}; 
-let champIdToKey = {}; // 추가: 숫자 ID를 'Ezreal' 같은 키로 변환용
+let champIdToKey = {};
 let players = [];
 let settings = {};
 let sIdx = 0;
@@ -140,7 +140,7 @@ async function initChampMap() {
         const json = await res.json();
         Object.values(json.data).forEach(champ => { 
             champMap[champ.name] = champ.id; 
-            champIdToKey[champ.key] = champ.id; // 숫자 ID(key) -> 문자 ID(id) 매핑
+            champIdToKey[champ.key] = champ.id;
         });
     } catch (e) { console.error(e); }
 }
@@ -148,11 +148,8 @@ async function initChampMap() {
 const fixChamp = c => {
     if(!c || c === 'None' || c === 'Blank' || c === '') return 'None';
     let raw = c.toString().trim();
-    // 1. 숫자 ID인 경우 (라이엇 API에서 직접 긁어왔을 때)
     if (champIdToKey[raw]) return champIdToKey[raw];
-    // 2. 한글 이름인 경우
     if (champMap[raw]) return champMap[raw];
-    // 3. 영문 이름인 경우 (첫글자 대문자 처리)
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
@@ -186,7 +183,7 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     let lastChamp = 'None';
     if (player.champions && player.champions.length > 0) {
         const validChamps = player.champions.filter(c => c !== 'None' && c !== '');
-        if (validChamps.length > 0) lastChamp = fixChamp(validChamps[0]); // 자동 감시는 0번이 최신
+        if (validChamps.length > 0) lastChamp = fixChamp(validChamps[0]);
     }
 
     targetScene.innerHTML = `
@@ -254,6 +251,10 @@ async function loadData() {
 function setupRealtime() {
     sb.channel('db_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload) => {
+        // 데이터가 변경되면 즉시 다시 그리기
+        loadData();
+
+        // 컷씬 트리거 로직
         if (payload.eventType === 'UPDATE' && payload.new.trigger_cutscene === true) {
             const recent = payload.new.recent || [];
             const lastRes = recent.filter(x => x === 'win' || x === 'lose').pop();
@@ -261,7 +262,6 @@ function setupRealtime() {
                 triggerCutscene(payload.new, lastRes === 'win', payload.new.last_kda || "0/0/0");
             }
         }
-        loadData();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData)
     .subscribe();
