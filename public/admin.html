@@ -206,7 +206,8 @@ async function loadData() {
 }
 
 async function applyToSupabase() {
-    const playersUpdateList = [];
+    const toInsert = []; // 신규 유저용
+    const toUpdate = []; // 기존 유저용
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
     const teamCount = Number(document.getElementById('teamCount').value);
@@ -215,10 +216,9 @@ async function applyToSupabase() {
         const name = card.querySelector('.nick-disp').value.trim();
         if (!name) continue;
 
-        // 1. ID 추출 및 정제
+        // 1. ID 추출 및 엄격한 검증
         let cardUuid = card.dataset.uuid;
-        // 문자열로 된 "null", "undefined" 또는 빈 값을 진짜 null로 변환
-        if (cardUuid === "null" || cardUuid === "undefined" || cardUuid === "") {
+        if (cardUuid === "null" || cardUuid === "undefined" || !cardUuid) {
             cardUuid = null;
         }
         
@@ -256,7 +256,6 @@ async function applyToSupabase() {
             }
         }
 
-        // 2. 데이터 객체 생성 (기본 필드만)
         const playerData = {
             "name": name,
             "team": card.dataset.team,
@@ -273,31 +272,33 @@ async function applyToSupabase() {
             "target_champion": targetChamp || "None"
         };
 
-        // 3. [핵심] ID가 유효할 때만 객체에 추가
+        // 2. [핵심 분리] ID 유무에 따라 다른 리스트에 담기
         if (cardUuid) {
             playerData.id = cardUuid;
+            toUpdate.push(playerData);
+        } else {
+            // id 속성을 아예 생성조차 안 함
+            toInsert.push(playerData);
         }
-
-        playersUpdateList.push(playerData);
     }
 
     try {
-        // 설정 저장
-        await sb.from('settings').upsert({ 
-            id: 1, 
-            red_team_name: document.getElementById('redNameInput').value, 
-            blue_team_name: document.getElementById('blueNameInput').value, 
-            member_count: teamCount,
-            timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
-        });
+        // 1. 설정 저장
+        await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: teamCount });
 
-        // 플레이어 업데이트 (기본 upsert 방식으로 복구)
-        if (playersUpdateList.length > 0) {
-            const { error: pError } = await sb.from('players').upsert(playersUpdateList);
-            if (pError) throw pError;
+        // 2. 신규 데이터는 INSERT (ID 자동생성 유도)
+        if (toInsert.length > 0) {
+            const { error: iError } = await sb.from('players').insert(toInsert);
+            if (iError) throw iError;
         }
 
-        alert('✅ 반영 성공!');
+        // 3. 기존 데이터는 UPSERT (업데이트)
+        if (toUpdate.length > 0) {
+            const { error: uError } = await sb.from('players').upsert(toUpdate);
+            if (uError) throw uError;
+        }
+
+        alert('✅ 이번엔 진짜로 해결되었습니다!');
         loadData();
     } catch (e) {
         console.error("에러 상세:", e);
