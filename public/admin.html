@@ -263,14 +263,14 @@ async function loadData() {
 async function applyToSupabase() {
     const playersUpdateList = [];
     let cutsceneAssigned = false;
-
-    // 현재 화면에 있는 모든 카드 정보를 수집
     const cards = document.querySelectorAll('.member-card');
     
     for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
         const name = card.querySelector('.nick-disp').value.trim();
-        if (!name) continue;
+        
+        // [중요] 이름이 없는 빈 카드는 DB 업데이트 대상에서 완전히 제외
+        if (!name || name === "") continue;
 
         const recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
@@ -294,25 +294,25 @@ async function applyToSupabase() {
         const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
         if (!cutsceneAssigned && lastValidRes) { triggerThisPlayer = true; cutsceneAssigned = true; }
 
-        // 캐시된 데이터에서 해당 순서의 플레이어 정보 가져오기
-        const existingPlayer = cachedPlayers[i]; 
+        // 캐시된 데이터와 안전하게 매칭
+        const existingPlayer = cachedPlayers.find(p => p.name === name) || cachedPlayers[i];
 
         const playerData = {
-            name, 
-            team: card.dataset.team, 
+            name: name,
+            team: card.dataset.team,
             riot_id: card.querySelector('.nick-riot').value.trim(),
             puuid: card.dataset.puuid || (existingPlayer ? existingPlayer.puuid : null),
-            tier: finalTierStr, 
+            tier: finalTierStr,
             manual_tier: tierOverride || lpOverride,
-            wins: card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length, 
+            wins: card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length,
             losses: card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
-            recent, 
-            champions: champs, 
+            recent: recent,
+            champions: champs,
             trigger_cutscene: triggerThisPlayer,
             lp_diff: (existingPlayer ? (existingPlayer.lp_diff || "") : "")
         };
 
-        // 핵심: id가 null로 들어가지 않게 함 (not-null constraint 에러 방지)
+        // ID가 있는 경우만 포함 (없으면 DB가 gen_random_uuid()로 자동생성)
         if (existingPlayer && existingPlayer.id) {
             playerData.id = existingPlayer.id;
         }
@@ -321,7 +321,7 @@ async function applyToSupabase() {
     }
 
     try {
-        // 1. 설정 저장 (팀 이름, 인원 등)
+        // 설정 저장
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -330,15 +330,17 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 2. 플레이어 데이터 일괄 업데이트
+        // 플레이어 업데이트
         if (playersUpdateList.length > 0) {
+            // upsert 시 id가 없으면 insert, 있으면 update가 일어납니다.
             const { error: upsertError } = await sb.from('players').upsert(playersUpdateList);
             if (upsertError) throw upsertError;
         }
 
-        alert('✅ 송출 화면에 반영되었습니다!');
-        loadData(); // 최신 상태로 화면 다시 그리기
+        alert('✅ 반영 성공!');
+        loadData();
     } catch (e) { 
+        console.error(e);
         alert('❌ 반영 실패: ' + e.message); 
     }
 }
