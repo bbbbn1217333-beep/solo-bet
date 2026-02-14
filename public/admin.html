@@ -2,44 +2,107 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이라네 솔랭 내기 - 관리자 패널</title>
+<title>이라네 솔랭 내기 - 관리자 패널 (UI 복구판)</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <style>
-    :root { --bg: #0f1218; --card: #1e232b; --gold: #ffd369; --red: #ff5c5c; --blue: #4db8ff; --border: #383e4a; }
-    body { background: var(--bg); color: #fff; font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
-    .team-container { display: flex; gap: 20px; margin-bottom: 80px; }
-    .team-section { flex: 1; background: var(--card); border-radius: 12px; padding: 15px; border: 1px solid var(--border); }
-    .team-title { font-size: 20px; font-weight: 800; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
-    .red .team-title { color: var(--red); }
-    .blue .team-title { color: var(--blue); }
+    :root { 
+        --bg: #0b0e14; --card: #161a23; --gold: #ffd369; --red: #ff5c5c; --blue: #4db8ff; 
+        --border: rgba(255,255,255,0.1); --input-bg: rgba(0,0,0,0.4); 
+    }
+    body { 
+        background: var(--bg); color: #fff; font-family: 'Pretendard', sans-serif; 
+        margin: 0; padding: 20px; line-height: 1.5;
+    }
     
-    .member-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-    .name-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; }
-    .input-group { display: flex; flex-direction: column; gap: 5px; flex: 1; }
-    .input-group label { font-size: 12px; color: #aaa; }
-    input, select { background: #000; border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 4px; font-size: 13px; }
-    
-    .history-editor { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
-    .history-item { display: flex; flex-direction: column; gap: 3px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 4px; }
-    .history-item span { font-size: 10px; color: #888; text-align: center; }
-    .btn-toggle { border: none; padding: 4px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 800; }
-    .btn-toggle.win { background: var(--gold); color: #000; }
-    .btn-toggle.lose { background: var(--red); color: #fff; }
-    .btn-toggle.ing { background: #444; color: #ccc; }
+    /* 상단 헤더 스타일 */
+    .header { 
+        display: flex; justify-content: space-between; align-items: center; 
+        margin-bottom: 25px; background: linear-gradient(145deg, #1e232b, #161a23);
+        padding: 25px; border-radius: 16px; border: 1px solid var(--border);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .header-title { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 800; color: var(--gold); }
 
-    .controls { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); padding: 15px 30px; display: flex; justify-content: flex-end; gap: 15px; border-top: 2px solid var(--gold); z-index: 1000; }
-    button.main-btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: 800; cursor: pointer; transition: 0.2s; }
-    .btn-apply { background: var(--gold); color: #000; }
-    .btn-apply:hover { transform: scale(1.05); filter: brightness(1.1); }
+    .team-container { display: flex; gap: 25px; margin-bottom: 100px; }
+    .team-section { 
+        flex: 1; background: var(--card); border-radius: 20px; padding: 20px; 
+        border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .team-title { 
+        font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 800; 
+        margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border);
+        text-align: center; letter-spacing: 2px;
+    }
+    .red .team-title { color: var(--red); text-shadow: 0 0 10px rgba(255,92,92,0.3); }
+    .blue .team-title { color: var(--blue); text-shadow: 0 0 10px rgba(77,184,255,0.3); }
     
-    .score-input-wrap { display: flex; flex-direction: column; gap: 2px; width: 45px; }
-    .score-input { text-align: center; font-weight: 800; }
+    /* 멤버 카드 스타일 */
+    .member-card { 
+        background: rgba(255,255,255,0.02); border: 1px solid var(--border); 
+        border-radius: 12px; padding: 18px; margin-bottom: 18px;
+        transition: all 0.3s ease;
+    }
+    .member-card:hover { border-color: rgba(255,211,105,0.3); background: rgba(255,255,255,0.04); }
+    
+    .name-row { display: flex; gap: 12px; margin-bottom: 15px; align-items: flex-end; }
+    .input-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .input-group label { font-size: 11px; color: #888; font-weight: 800; text-transform: uppercase; }
+    
+    input, select { 
+        background: var(--input-bg); border: 1px solid var(--border); color: #fff; 
+        padding: 10px; border-radius: 6px; font-size: 13px; outline: none;
+        transition: border 0.2s;
+    }
+    input:focus { border-color: var(--gold); }
+    
+    /* 전적 에디터 스타일 */
+    .history-editor { 
+        display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; 
+        margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; 
+    }
+    .history-item { 
+        display: flex; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.3); 
+        padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);
+    }
+    .history-item span { font-size: 10px; color: #666; font-weight: 800; text-align: center; }
+    .champ-input { padding: 4px; font-size: 11px; text-align: center; }
+    
+    .btn-toggle { 
+        border: none; padding: 6px; border-radius: 4px; cursor: pointer; 
+        font-size: 11px; font-weight: 800; transition: 0.2s;
+    }
+    .btn-toggle.win { background: rgba(255,211,105,0.15); color: var(--gold); border: 1px solid var(--gold); }
+    .btn-toggle.lose { background: rgba(255,92,92,0.15); color: var(--red); border: 1px solid var(--red); }
+    .btn-toggle.ing { background: #222; color: #888; border: 1px solid #444; }
+
+    /* 하단 고정 컨트롤 바 */
+    .controls { 
+        position: fixed; bottom: 0; left: 0; right: 0; 
+        background: rgba(22, 26, 35, 0.95); backdrop-filter: blur(10px);
+        padding: 20px 40px; display: flex; justify-content: flex-end; gap: 20px; 
+        border-top: 1px solid var(--gold); z-index: 1000;
+        box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+    }
+    button.main-btn { 
+        padding: 14px 30px; border-radius: 10px; border: none; font-size: 15px;
+        font-weight: 800; cursor: pointer; transition: all 0.3s;
+    }
+    .btn-apply { 
+        background: var(--gold); color: #000; 
+        box-shadow: 0 0 15px rgba(255,211,105,0.3);
+    }
+    .btn-apply:hover { transform: translateY(-3px); box-shadow: 0 5px 20px rgba(255,211,105,0.5); }
+    
+    .score-input-wrap { display: flex; flex-direction: column; gap: 4px; width: 50px; }
+    .score-input { text-align: center; font-weight: 800; color: var(--gold); }
+    .status-msg { font-size: 11px; font-weight: 700; }
 </style>
 </head>
 <body>
 
 <div class="header">
+    <div class="header-title">SOLO RANK BET MANAGER</div>
     <div style="display:flex; gap:20px;">
         <div class="input-group">
             <label>종료 일시</label>
@@ -53,8 +116,8 @@
         </div>
     </div>
     <div style="display:flex; gap:15px;">
-        <input type="text" id="redNameInput" placeholder="레드팀 명칭" value="RED TEAM" style="color:var(--red); border-color:var(--red);">
-        <input type="text" id="blueNameInput" placeholder="블루팀 명칭" value="BLUE TEAM" style="color:var(--blue); border-color:var(--blue);">
+        <input type="text" id="redNameInput" placeholder="레드팀 명칭" value="RED TEAM" style="color:var(--red); border-color:var(--red); width: 140px;">
+        <input type="text" id="blueNameInput" placeholder="블루팀 명칭" value="BLUE TEAM" style="color:var(--blue); border-color:var(--blue); width: 140px;">
     </div>
 </div>
 
@@ -70,7 +133,7 @@
 </div>
 
 <div class="controls">
-    <button class="main-btn" style="background:#444; color:#fff;" onclick="loadFromSupabase()">새로고침(DB불러오기)</button>
+    <button class="main-btn" style="background:#333; color:#eee;" onclick="loadFromSupabase()">데이터 새로고침</button>
     <button class="main-btn btn-apply" onclick="applyToSupabase()">★ 송출 화면 반영 ★</button>
 </div>
 
@@ -87,14 +150,11 @@ const TIER_MAP = {
 
 let cachedPlayers = [];
 
-// [1] 멤버 카드 생성
 function createMemberCard(team, data = null) {
     const card = document.createElement('div');
     card.className = 'member-card';
     card.dataset.team = team;
     card.dataset.puuid = data?.puuid || ""; 
-    card.dataset.lastMatchId = data?.last_match_id || ""; 
-    // 중요: 기존 티어를 저장해둠 (나중에 저장 시 활용)
     card.dataset.existingTier = data?.tier || "언랭크";
 
     let historyHTML = '';
@@ -103,10 +163,9 @@ function createMemberCard(team, data = null) {
         const res = data?.recent?.[i] || 'ing';
         const resText = res === 'win' ? '😁 승리' : (res === 'lose' ? '😡 패배' : '🕒 진행');
         const resClass = res === 'win' ? 'win' : (res === 'lose' ? 'lose' : 'ing');
-        historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champ}"><button class="btn-toggle ${resClass}" onclick="toggleResult(this)">${resText}</button></div>`;
+        historyHTML += `<div class="history-item"><span>${i+1} GAME</span><input type="text" class="champ-input" placeholder="챔피언" value="${champ}"><button class="btn-toggle ${resClass}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
 
-    // 티어 파싱해서 선택박스 초기값 잡기
     let currentTierEng = "UNRANKED";
     let currentLP = "";
     if (data?.tier && data.tier !== "언랭크") {
@@ -120,21 +179,21 @@ function createMemberCard(team, data = null) {
 
     card.innerHTML = `
         <div class="name-row">
-            <div class="input-group"><label>스트리머명</label><input class="nick-disp" value="${data?.name || ''}"></div>
-            <div class="input-group"><label>롤 닉네임 (조회용)</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}" onblur="fetchRiotData(this)"></div>
-            <div class="input-group">
-                <label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleLock(this)"> 수동수정</label>
+            <div class="input-group"><label>BJ NAME</label><input class="nick-disp" value="${data?.name || ''}"></div>
+            <div class="input-group"><label>LOL ID (FOR API)</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}" onblur="fetchRiotData(this)"></div>
+            <div class="input-group" style="flex: 1.2;">
+                <label style="color:var(--gold); cursor:pointer;"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleLock(this)"> MANUAL EDIT</label>
                 <select class="tier-select" ${data?.manual_tier ? '' : 'disabled'}>${tierOptions}</select>
             </div>
-            <div class="input-group" style="flex:0.5;">
+            <div class="input-group" style="flex:0.4;">
                 <label>LP</label>
                 <input class="lp-input" value="${currentLP}" ${data?.manual_tier ? '' : 'disabled'}>
             </div>
-            <div class="score-input-wrap"><label>승</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
-            <div class="score-input-wrap"><label>패</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
+            <div class="score-input-wrap"><label>WIN</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
+            <div class="score-input-wrap"><label>LOSS</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>
-        <div class="status-msg" style="font-size:11px; margin-top:5px; color:#888;"></div>`;
+        <div class="status-msg" style="margin-top:8px; color:#666;"></div>`;
     return card;
 }
 
@@ -150,13 +209,13 @@ function toggleLock(cb) {
     card.querySelector('.lp-input').disabled = !cb.checked;
 }
 
-// [2] 라이엇 데이터 조회 (핵심 수정!)
 async function fetchRiotData(input) {
     const val = input.value.trim();
     if(!val.includes('#')) return;
     const card = input.closest('.member-card');
     const msg = card.querySelector('.status-msg');
-    msg.innerText = "⏳ 조회 중...";
+    msg.style.color = var(--gold);
+    msg.innerText = "⏳ API 데이터 조회 중...";
 
     try {
         const [name, tag] = val.split('#');
@@ -164,30 +223,27 @@ async function fetchRiotData(input) {
         const d = await res.json();
         
         if(d.tier) {
-            msg.style.color = "var(--blue)";
-            msg.innerText = `✅ 조회 완료: ${d.tier} ${d.rank} ${d.leaguePoints}LP`;
+            msg.style.color = "#4db8ff";
+            msg.innerText = `✅ 조회 성공: ${d.tier} ${d.rank} (${d.leaguePoints}LP)`;
             
-            // 데이터셋 업데이트
             const tierKor = TIER_MAP[d.tier] || d.tier;
             const finalStr = `${tierKor} ${d.rank} - ${d.leaguePoints}LP`;
             card.dataset.existingTier = finalStr;
             card.dataset.puuid = d.puuid;
 
-            // 화면 선택박스도 동기화 (단, 수동 모드가 아닐 때)
             if(!card.querySelector('.tier-override').checked) {
                 card.querySelector('.tier-select').value = d.tier;
                 card.querySelector('.lp-input').value = d.leaguePoints;
             }
         } else {
-            msg.style.color = "var(--red)";
-            msg.innerText = "❌ 소환사 정보를 찾을 수 없음";
+            msg.style.color = var(--red);
+            msg.innerText = "❌ 소환사 정보를 찾을 수 없습니다.";
         }
     } catch(e) {
-        msg.innerText = "❌ 서버 에러";
+        msg.innerText = "❌ API 서버 응답 없음";
     }
 }
 
-// [3] 슈파베이스 반영 (저장 로직)
 async function applyToSupabase() {
     const playersUpdateList = [];
     let cutsceneAssigned = false;
@@ -202,7 +258,6 @@ async function applyToSupabase() {
             champs.push(item.querySelector('.champ-input').value.trim() || 'None');
         });
 
-        // 티어 결정 로직
         const isManual = card.querySelector('.tier-override').checked;
         let finalTier = "";
         
@@ -212,7 +267,6 @@ async function applyToSupabase() {
             if(selTier === "UNRANKED") finalTier = "언랭크";
             else finalTier = lp ? `${TIER_MAP[selTier]} - ${lp}LP` : TIER_MAP[selTier];
         } else {
-            // 조회된 값이 있으면 그것을 쓰고, 없으면 "언랭크"
             finalTier = card.dataset.existingTier || "언랭크";
         }
 
@@ -242,15 +296,14 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value || null 
         });
 
-        // 전체 삭제 후 재삽입 (UUID 에러 방지용 안전 삭제)
-        await sb.from('players').delete().not('name', 'eq', 'NO_MATCH_ANY_NAME');
+        await sb.from('players').delete().not('name', 'eq', 'SAFE_DELETE_VAL');
         await new Promise(r => setTimeout(r, 200));
         await sb.from('players').insert(playersUpdateList);
 
-        alert("✅ 반영 성공!");
+        alert("🚀 성공적으로 반영되었습니다!");
         cachedPlayers = JSON.parse(JSON.stringify(playersUpdateList));
     } catch(e) {
-        alert("❌ 오류: " + e.message);
+        alert("❌ 오류 발생: " + e.message);
     }
 }
 
