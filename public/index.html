@@ -39,6 +39,19 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
 
+/* 티어별 색상 코드 (복구됨) */
+.tier.iron{--t-clr:#a19d94; color:var(--t-clr);} 
+.tier.bronze{--t-clr:#cd7f32; color:var(--t-clr);} 
+.tier.silver{--t-clr:#c0c0c0; color:var(--t-clr);} 
+.tier.gold{--t-clr:#ffd700; color:var(--t-clr);} 
+.tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr);} 
+.tier.emerald{--t-clr:#2ecc71; color:var(--t-clr);} 
+.tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr);} 
+.tier.master{--t-clr:#9b59b6; color:var(--t-clr);} 
+.tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr);} 
+.tier.challenger{--t-clr:#f1c40f; color:var(--t-clr); text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);} 
+.tier.unranked{--t-clr:#aaa; color:var(--t-clr);}
+
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
@@ -124,7 +137,7 @@ function getTierInfo(tierStr) {
     const t = tierStr.toLowerCase();
     let cls = 'unranked';
     if (t.includes('챌린저') || t.includes('challenger')) cls = 'challenger';
-    else if (t.includes('그랜드') || t.includes('grand')) cls = 'grandmaster';
+    else if (t.includes('그랜드') || t.includes('grandmaster') || t.includes('grand')) cls = 'grandmaster';
     else if (t.includes('마스터') || t.includes('master')) cls = 'master';
     else if (t.includes('다이아') || t.includes('diamond')) cls = 'diamond';
     else if (t.includes('에메랄드') || t.includes('emerald')) cls = 'emerald';
@@ -155,23 +168,21 @@ const fixChamp = c => {
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
-// --- 타이머 실시간 업데이트 (00:00:00 지원) ---
+// --- 타이머 실시간 업데이트 ---
 function updateTimer() {
-    const displayEls = document.querySelectorAll('#timer-display'); // 모든 타이머 영역 대상
-    if (displayEls.length === 0 || !settings || !settings.timer_end_at) return;
+    const timerArea = document.getElementById('timer-display');
+    if (!timerArea || !settings || !settings.timer_end_at) return;
     
     const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
     
-    displayEls.forEach(el => {
-        if (diff <= 0) {
-            el.innerHTML = `<span class="clock clock-shake">⏰</span> <span style="color:#ff4d4d; font-size:36px; font-weight:900; font-family:'Pretendard';">솔랭 내기 종료!!!</span>`;
-        } else {
-            const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
-            const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
-            const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
-            el.innerHTML = `<span class="clock">⏰</span> <span>남은 시간 :</span> <span class="timer-nums">${h}:${m}:${s}</span>`;
-        }
-    });
+    if (diff <= 0) {
+        timerArea.innerHTML = `<span class="clock clock-shake">⏰</span> <span style="color:#ff4d4d; font-size:36px; font-weight:900; font-family:'Pretendard';">솔랭 내기 종료!!!</span>`;
+    } else {
+        const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+        const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+        timerArea.innerHTML = `<span class="clock">⏰</span> <span>남은 시간 :</span> <span class="timer-nums">${h}:${m}:${s}</span>`;
+    }
 }
 
 async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
@@ -285,7 +296,7 @@ function renderAll() {
     renderMainScene(document.getElementById('scene-red'), 'red');
     renderMainScene(document.getElementById('scene-blue'), 'blue');
     renderScoreScene();
-    updateTimer(); // 렌더링 직후 타이머 값 즉시 적용
+    updateTimer(); 
 }
 
 function renderMainScene(container, filterTeam) {
@@ -350,6 +361,7 @@ function renderScoreScene() {
                 <div class="score-box ${bC}"><div class="score-num">${bW}</div><div class="sub-info">패배 : ${bL}</div></div>
             </div>
         </div>`;
+    updateTimer(); 
 }
 
 function nextScene() {
@@ -358,21 +370,20 @@ function nextScene() {
     scenes.forEach(s => s.classList.remove('active'));
     sIdx = (sIdx + 1) % scenes.length;
     scenes[sIdx].classList.add('active');
-    updateTimer(); // 장면 전환 시에도 즉시 타이머 갱신
+    updateTimer(); 
 }
 
 async function start() { 
     await initChampMap(); 
     await loadData(); 
     setupRealtime(); 
-    setInterval(updateTimer, 1000); // 1초마다 모든 타이머 영역 업데이트
+    setInterval(updateTimer, 1000); 
     sceneInterval = setInterval(nextScene, 10000); 
 }
 start();
 </script>
 </body>
 </html>
-
 
 
 
