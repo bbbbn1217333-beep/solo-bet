@@ -181,7 +181,7 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0") {
     const teamDisplayName = player.team === 'red' ? (settings.red_team_name || 'RED TEAM') : (settings.blue_team_name || 'BLUE TEAM');
     
     // 이 부분이 핵심! sync.js가 전달해준 lp_diff 문구를 가져옵니다.
-    const displayLP = player.lp_diff || (isWin ? "(+전적갱신)" : "(-전적갱신)");
+    const displayLP = player.lp_diff || "";
 
     let lastChamp = 'None';
     if (player.champions && player.champions.length > 0) {
