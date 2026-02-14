@@ -106,7 +106,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TIER_MAP = {
     "CHALLENGER": "챌린저", "GRANDMASTER": "그랜드마스터", "MASTER": "마스터",
     "DIAMOND 1": "다이아몬드 1", "DIAMOND 2": "다이아몬드 2", "DIAMOND 3": "다이아몬드 3", "DIAMOND 4": "다이아몬드 4",
-    "EMERALD 1": "에메랄드 1", "EMERALD 2": "에메랄드 2", "EMERALD 3": "에메랄드 3", "EMERALD 4": "에메랄드 4",
+    "EMERALD 1": "에메랄드 1", "EMERALD 2": "에메릴드 2", "EMERALD 3": "에메랄드 3", "EMERALD 4": "에메랄드 4",
     "PLATINUM 1": "플래티넘 1", "PLATINUM 2": "플래티넘 2", "PLATINUM 3": "플래티넘 3", "PLATINUM 4": "플래티넘 4",
     "GOLD 1": "골드 1", "GOLD 2": "골드 2", "GOLD 3": "골드 3", "GOLD 4": "골드 4",
     "SILVER 1": "실버 1", "SILVER 2": "실버 2", "SILVER 3": "실버 3", "SILVER 4": "실버 4",
@@ -181,6 +181,7 @@ function createMemberCard(team, data = null) {
     card.dataset.team = team;
     card.dataset.puuid = data?.puuid || ""; 
     card.dataset.lastMatchId = data?.last_match_id || ""; 
+    card.dataset.id = data?.id || ""; 
 
     let historyHTML = '';
     for(let i=0; i<10; i++) {
@@ -230,8 +231,10 @@ function rebuild(dataList = null) {
     const blueWrap = document.getElementById('bluePlayers');
     const count = Number(document.getElementById('teamCount').value);
     redWrap.innerHTML = ''; blueWrap.innerHTML = '';
+    
     const reds = dataList?.filter(p => p.team === 'red') || [];
     const blues = dataList?.filter(p => p.team === 'blue') || [];
+    
     for(let i=0; i<count; i++) {
         redWrap.appendChild(createMemberCard('red', reds[i]));
         blueWrap.appendChild(createMemberCard('blue', blues[i]));
@@ -251,7 +254,7 @@ async function loadData() {
             }
             updateTeamNames();
         }
-        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
         cachedPlayers = pData || [];
         rebuild(pData);
     } catch (e) { console.error(e); rebuild(); }
@@ -267,24 +270,26 @@ async function applyToSupabase() {
         const name = card.querySelector('.nick-disp').value.trim();
         const currentRiotId = card.querySelector('.nick-riot').value.trim();
         
+        // 이름이 없으면 저장 대상에서 제외 (빈 칸 유지)
         if (!name) continue;
 
-        const existingPlayer = cachedPlayers.find(p => p.name === name);
+        const cardId = card.dataset.id;
+        // 기존 플레이어 찾기 (ID가 있으면 ID로, 없으면 이름으로)
+        const existingPlayer = cachedPlayers.find(p => (cardId && p.id == cardId) || (p.name === name));
+        
         const isRiotIdChanged = existingPlayer && existingPlayer.riot_id !== currentRiotId;
 
         let recent = [], champs = [];
         let wins = 0, losses = 0;
         let finalTierStr = "";
 
-        // 🚩 롤 닉네임이 바뀌었으면 전적 및 티어 초기화
         if (isRiotIdChanged) {
             recent = Array(10).fill("ing");
             champs = Array(10).fill("None");
             wins = 0;
             losses = 0;
-            finalTierStr = "언랭크"; // 닉네임 변경 시 티어 즉시 초기화
+            finalTierStr = "언랭크";
         } else {
-            // 그대로라면 화면의 데이터 수집
             card.querySelectorAll('.history-item').forEach(item => {
                 const btn = item.querySelector('.btn-toggle');
                 recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
@@ -293,7 +298,6 @@ async function applyToSupabase() {
             wins = card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length;
             losses = card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length;
             
-            // 닉네임이 그대로일 때만 티어 수정 체크박스 확인
             const tierOverride = card.querySelector('.tier-override').checked;
             const lpOverride = card.querySelector('.lp-override').checked;
             
@@ -327,6 +331,8 @@ async function applyToSupabase() {
             last_match_id: isRiotIdChanged ? null : (existingPlayer ? existingPlayer.last_match_id : null)
         };
 
+        // 🚩 수정 포인트: ID가 '있을 때만' 데이터에 포함시킵니다.
+        // ID가 없으면 Supabase가 알아서 새로운 행(Row)을 생성합니다.
         if (existingPlayer && existingPlayer.id) {
             playerData.id = existingPlayer.id;
         }
@@ -335,6 +341,7 @@ async function applyToSupabase() {
     }
 
     try {
+        // 설정 업데이트
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -344,6 +351,8 @@ async function applyToSupabase() {
         });
 
         if (playersUpdateList.length > 0) {
+            // 🚩 upsert 옵션에서 순수하게 데이터만 던집니다. 
+            // id가 있는 데이터는 '수정', id가 없는 데이터는 '추가'가 됩니다.
             const { error: upsertError } = await sb.from('players').upsert(playersUpdateList);
             if (upsertError) throw upsertError;
         }
@@ -351,8 +360,8 @@ async function applyToSupabase() {
         alert('✅ 반영 성공!');
         await loadData();
     } catch (e) { 
-        console.error("상세 에러:", e);
-        alert('❌ 반영 실패: ' + e.message); 
+        console.error("에러 발생:", e);
+        alert('❌ 반영 실패: ' + (e.message || "데이터 형식을 확인해주세요.")); 
     }
 }
 loadData();
