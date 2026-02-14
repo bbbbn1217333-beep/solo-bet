@@ -2,122 +2,107 @@ const { createClient } = require('@supabase/supabase-js');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 module.exports = async (req, res) => {
-    // 환경 변수 이름 유연하게 대처
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
-    const riotKey = process.env.RIOT_API_KEY;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+  const riotKey = process.env.RIOT_API_KEY;
 
-    if (!url || !key || !riotKey) {
-        return res.status(500).json({ success: false, error: "환경 변수 설정이 누락되었습니다. URL/KEY/RIOT 확인 필요" });
-    }
+  if (!url || !key || !riotKey) return res.status(500).json({ success: false, error: "환경변수 누락" });
+  const supabase = createClient(url, key);
 
-    const supabase = createClient(url, key);
+  try {
+    const { data: players, error: dbError } = await supabase.from('players').select('*');
+    if (dbError) throw dbError;
 
-    const T_KO = { 'IRON': '아이언', 'BRONZE': '브론즈', 'SILVER': '실버', 'GOLD': '골드', 'PLATINUM': '플래티넘', 'EMERALD': '에메랄드', 'DIAMOND': '다이아몬드', 'MASTER': '마스터', 'GRANDMASTER': '그랜드마스터', 'CHALLENGER': '챌린저' };
-    const R_KO = { 'IV': '4', 'III': '3', 'II': '2', 'I': '1' };
-    const T_ORDER = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
-    const R_ORDER = ['IV', 'III', 'II', 'I'];
+    const updateData = [];
 
-    try {
-        const { data: players, error: dbError } = await supabase.from('players').select('*');
-        if (dbError) throw dbError;
+    for (const player of players) {
+      try {
+        if (!player.riot_id?.includes('#')) continue;
+        const [name, tag] = player.riot_id.split('#');
 
-        const updateData = []; 
+        // 1. PUUID 가져오기
+        const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?api_key=${riotKey}`);
+        if (!accRes.ok) continue;
+        const account = await accRes.json();
+        const puuid = account.puuid;
 
-        for (const player of players) {
-            try {
-                if (player.manual_tier || !player.riot_id?.includes('#')) continue;
-                
-                const [name, tag] = player.riot_id.split('#');
-                const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?api_key=${riotKey}`);
-                if (!accRes.ok) continue;
-                const account = await accRes.json();
-
-                const matchIdRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${account.puuid}/ids?start=0&count=1&api_key=${riotKey}`);
-                const matchIds = await matchIdRes.json();
-                if (!matchIds || matchIds.length === 0) continue;
-                const currentMatchId = matchIds[0];
-
-                const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${account.puuid}?api_key=${riotKey}`);
-                const leagues = await leagueRes.json();
-                const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5');
-
-                if (!solo) continue;
-
-                const tierKo = T_KO[solo.tier.toUpperCase()] || solo.tier;
-                const rankKo = R_KO[solo.rank] || ""; 
-                const fullTierKo = rankKo ? `${tierKo} ${rankKo}` : tierKo; 
-
-                let lpDiffText = "";
-                let shouldTrigger = false;
-                let matchStats = null;
-
-                const getAbsLP = (t, r, lp) => {
-                    const tIdx = T_ORDER.indexOf(t.toUpperCase());
-                    if (tIdx === -1) return 0;
-                    const lpVal = parseInt(lp) || 0;
-                    if (tIdx >= T_ORDER.indexOf('MASTER')) return 2800 + lpVal;
-                    const rIdx = R_ORDER.indexOf(r?.toUpperCase() || "IV");
-                    return (tIdx * 400) + (rIdx * 100) + lpVal;
-                };
-
-                if (currentMatchId && currentMatchId !== player.last_match_id) {
-                    const detailRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${currentMatchId}?api_key=${riotKey}`);
-                    const detail = await detailRes.json();
-                    const me = detail.info?.participants?.find(p => p.puuid === account.puuid);
-
-                    if (me) {
-                        shouldTrigger = true;
-                        // 정규식 방어 코드 강화
-                        const tierMatch = (player.tier || "").match(/([A-Z\s가-힣]+)\s?([0-9I|V|X]+)?\s?[-|]\s?(\d+)LP/);
-                        
-                        if (tierMatch) {
-                            const oldT_KO = tierMatch[1].trim();
-                            const oldT_EN = Object.keys(T_KO).find(k => T_KO[k] === oldT_KO) || oldT_KO;
-                            const oldR_KO = tierMatch[2] ? tierMatch[2].trim() : "I";
-                            const oldR_EN = Object.keys(R_KO).find(k => R_KO[k] === oldR_KO) || oldR_KO;
-                            
-                            const oldLP = getAbsLP(oldT_EN, oldR_EN, tierMatch[3]);
-                            const newLP = getAbsLP(solo.tier, solo.rank || "I", solo.leaguePoints);
-                            const diff = newLP - oldLP;
-
-                            if (oldT_EN.toUpperCase() !== solo.tier.toUpperCase()) {
-                                lpDiffText = `${diff > 0 ? "✨ 승격!" : "↘️ 강등"} (${diff > 0 ? '+' : ''}${diff}LP)`;
-                            } else if (oldR_EN !== (solo.rank || "I")) {
-                                lpDiffText = `${diff > 0 ? "↗️ 승급!" : "↘️ 하락"} (${diff > 0 ? '+' : ''}${diff}LP)`;
-                            } else {
-                                lpDiffText = diff >= 0 ? `(+${diff}LP)` : `(${diff}LP)`;
-                            }
-                        }
-                        matchStats = { kda: `${me.kills}/${me.deaths}/${me.assists}`, champion: me.championName, win: me.win, lpDiff: lpDiffText };
-                    }
-                }
-
-// sync.js 내부의 루프 안쪽 수정
-updateData.push({
-    id: player.id, // DB에서 가져온 고유 ID를 그대로 사용 (매우 중요)
-    name: player.name, // 이름이 바뀌지 않도록 명시
-    tier: `${fullTierKo} - ${solo.leaguePoints}LP`,
-    last_match_id: currentMatchId,
-    last_kda: matchStats ? matchStats.kda : (player.last_kda || "0/0/0"),
-    lp_diff: matchStats ? matchStats.lp_diff : (player.lp_diff || ""),
-    recent: (shouldTrigger && matchStats) ? [...(player.recent || Array(10).fill("ing")).slice(1), matchStats.win ? 'win' : 'lose'] : (player.recent || Array(10).fill("ing")),
-    champions: (shouldTrigger && matchStats) ? [...(player.champions || Array(10).fill("None")).slice(1), matchStats.champion] : (player.champions || Array(10).fill("None")),
-    wins: (shouldTrigger && matchStats?.win) ? (Number(player.wins || 0) + 1) : (player.wins || 0),
-    losses: (shouldTrigger && matchStats && !matchStats.win) ? (Number(player.losses || 0) + 1) : (player.losses || 0),
-    trigger_cutscene: shouldTrigger,
-    puuid: account.puuid // 새로 조회한 PUUID를 정확히 입력
-});
-            } catch (err) { console.error("개별 플레이어 오류:", err); continue; }
+        // 2. 인게임 감지 (spectator-v5)
+        const specRes = await fetch(`https://kr.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}?api_key=${riotKey}`);
+        let liveChamp = null;
+        if (specRes.ok) {
+          const specData = await specRes.json();
+          const me = specData.participants?.find(p => p.puuid === puuid);
+          if (me) liveChamp = me.championId; 
         }
 
-        if (updateData.length > 0) {
-            const { error: upsertError } = await supabase.from('players').upsert(updateData);
-            if (upsertError) throw upsertError;
+        // 3. 최근 매치 ID 및 티어 정보
+        const matchIdRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=1&api_key=${riotKey}`);
+        const matchIds = await matchIdRes.json();
+        const currentMatchId = matchIds[0];
+
+        const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${riotKey}`);
+        const leagues = await leagueRes.json();
+        const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5') || { tier: 'UNRANKED', rank: '', leaguePoints: 0 };
+
+        let pUpdate = {
+          id: player.id,
+          tier: player.manual_tier ? player.tier : `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`.trim(),
+          puuid: puuid
+        };
+
+        // 4. 게임 종료 정산
+        if (currentMatchId && currentMatchId !== player.last_match_id) {
+          const detailRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${currentMatchId}?api_key=${riotKey}`);
+          const detail = await detailRes.json();
+          const me = detail.info?.participants?.find(p => p.puuid === puuid);
+
+          if (me) {
+            // 무효판(다시하기) 체크: 5분 미만 혹은 조기 항복
+            const isRemake = detail.info.gameDuration < 300 || me.gameEndedInEarlySurrender;
+            const newRecent = [...(player.recent || Array(10).fill("ing"))];
+            const newChamps = [...(player.champions || Array(10).fill("None"))];
+            const targetIdx = newRecent.findIndex(r => r === 'ing');
+
+            if (isRemake) {
+              // 무효판이면 챔피언만 비우고 기록 안함
+              if (targetIdx !== -1) newChamps[targetIdx] = "None";
+              pUpdate.recent = newRecent;
+              pUpdate.champions = newChamps;
+              pUpdate.last_match_id = currentMatchId;
+              pUpdate.trigger_cutscene = false;
+            } else {
+              // 정상 판정 (탈주 패배 포함)
+              if (targetIdx !== -1) {
+                newRecent[targetIdx] = me.win ? 'win' : 'lose';
+                newChamps[targetIdx] = me.championName;
+              }
+              pUpdate.recent = newRecent;
+              pUpdate.champions = newChamps;
+              pUpdate.wins = me.win ? (player.wins + 1) : player.wins;
+              pUpdate.losses = !me.win ? (player.losses + 1) : player.losses;
+              pUpdate.last_match_id = currentMatchId;
+              pUpdate.trigger_cutscene = true;
+              pUpdate.target_champion = me.championName;
+              pUpdate.last_kda = `${me.kills}/${me.deaths}/${me.assists}`;
+            }
+          }
+        } else if (liveChamp) {
+          // 게임 진행 중일 때 챔피언 이름 매핑 (ID를 이름으로 변환하는 과정이 필요하지만, 
+          // 간단하게 송출용 패널의 fixChamp 함수가 ID도 처리하므로 ID를 문자열로 저장)
+          const newChamps = [...(player.champions || Array(10).fill("None"))];
+          const targetIdx = (player.recent || []).findIndex(r => r === 'ing');
+          if (targetIdx !== -1) {
+            newChamps[targetIdx] = liveChamp.toString();
+          }
+          pUpdate.champions = newChamps;
+          pUpdate.trigger_cutscene = false;
         }
 
-        return res.status(200).json({ success: true, count: updateData.length });
-    } catch (error) {
-        return res.status(500).json({ success: false, error: error.message });
+        updateData.push(pUpdate);
+      } catch (e) { console.error(player.name, "에러:", e); }
     }
+
+    if (updateData.length > 0) await supabase.from('players').upsert(updateData);
+    return res.status(200).json({ success: true });
+  } catch (error) { return res.status(500).json({ error: error.message }); }
 };
