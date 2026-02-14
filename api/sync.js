@@ -36,18 +36,28 @@ module.exports = async (req, res) => {
             if (!summRes.ok) continue;
             const summoner = await summRes.json();
 
-            // 3. 티어 조회
+// 3. 티어 조회 (솔로랭크 전용 정밀 추적)
             const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-summoner/${summoner.id}?api_key=${riotApiKey}`);
             const leagues = await leagueRes.json();
             
+            // [추가] 라이엇에서 준 데이터가 뭔지 로그로 확인 (fow.kr과 비교용)
+            console.log(`[${name}] 라이엇 응답 raw 데이터:`, JSON.stringify(leagues));
+            
             let tierStr = "언랭크";
             if (Array.isArray(leagues)) {
+                // 오직 솔로랭크만 필터링
                 const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5');
+                
                 if (solo) {
-                    const isHigh = ['CHALLENGER', 'GRANDMASTER', 'MASTER'].includes(solo.tier);
-                    const tierKor = tierNames[solo.tier] || solo.tier;
-                    // 관리자 패널의 형식 "다이아몬드 3 - 45LP" 스타일로 저장
-                    tierStr = `${tierKor}${isHigh ? '' : ' ' + solo.rank} - ${solo.leaguePoints}LP`;
+                    const rawTier = solo.tier.toUpperCase();
+                    const tierKor = tierNames[rawTier] || rawTier;
+                    const isHigh = ['CHALLENGER', 'GRANDMASTER', 'MASTER'].includes(rawTier);
+                    const rank = isHigh ? "" : " " + solo.rank;
+                    
+                    tierStr = `${tierKor}${rank} - ${solo.leaguePoints}LP`;
+                } else {
+                    // 솔로랭크 데이터가 배열에 없을 때
+                    console.warn(`[${name}] 경고: 검색된 리그 중 'RANKED_SOLO_5x5'가 없습니다.`);
                 }
             }
 
