@@ -78,7 +78,7 @@ module.exports = async (req, res) => {
                             lpDiffText = diff >= 0 ? `(+${diff}LP)` : `(${diff}LP)`;
                         }
                     } else {
-                        lpDiffText = "(전적갱신)";
+                        lpDiffText = "";
                     }
 
                     matchStats = {
