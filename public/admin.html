@@ -124,7 +124,6 @@ function toggleResult(btn) {
     else { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
 }
 
-// 라이엇 API 연동 함수 (매니저님 api/get-tier.js 호출)
 async function fetchRiotData(input) {
     const riotId = input.value.trim();
     if (!riotId.includes('#')) return;
@@ -143,20 +142,16 @@ async function fetchRiotData(input) {
 
         if (!data.success) throw new Error(data.error);
 
-        // 1. 매치 ID 저장
         card.dataset.lastMatchId = data.lastMatchId;
 
-        // 2. 티어 반영 (수정 체크가 안 되어 있을 때만)
         const tierOverride = card.querySelector('.tier-override');
         const lpOverride = card.querySelector('.lp-override');
 
         if (!tierOverride.checked) {
             const tierSelect = card.querySelector('.tier-select');
             const tierPart = data.tier.split(' (')[0].toUpperCase();
-            // TIER_MAP 키와 매칭되는지 확인 후 값 변경
             if (TIER_MAP[tierPart]) tierSelect.value = tierPart;
             else {
-                // 숫자가 포함된 티어 처리 (예: DIAMOND 1)
                 const matchedKey = Object.keys(TIER_MAP).find(k => tierPart.startsWith(k));
                 if (matchedKey) tierSelect.value = matchedKey;
             }
@@ -186,7 +181,7 @@ function createMemberCard(team, data = null) {
     card.className = 'member-card';
     card.dataset.team = team;
     card.dataset.puuid = data?.puuid || ""; 
-    card.dataset.lastMatchId = data?.last_match_id || ""; // 매치 ID 보존
+    card.dataset.lastMatchId = data?.last_match_id || ""; 
 
     let historyHTML = '';
     for(let i=0; i<10; i++) {
@@ -200,10 +195,12 @@ function createMemberCard(team, data = null) {
     let currentTierEng = "UNRANKED";
     let currentLP = "";
     if (data?.tier) {
-        const parts = data.tier.split(' - ');
-        const foundEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === parts[0]);
+        // DB에 저장된 "다이아몬드 1 - 50LP" 같은 형식을 분석
+        const fullTierStr = data.tier.split(' - ')[0]; 
+        const foundEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === fullTierStr);
         currentTierEng = foundEng || "UNRANKED";
-        currentLP = parts[1] ? parts[1].replace('LP', '') : "";
+        const lpMatch = data.tier.match(/(\d+)LP/);
+        currentLP = lpMatch ? lpMatch[1] : "";
     }
 
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${currentTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
@@ -284,13 +281,21 @@ async function applyToSupabase() {
 
         const tierOverride = card.querySelector('.tier-override').checked;
         const lpOverride = card.querySelector('.lp-override').checked;
-        let finalTierStr = card.dataset.existingTier;
+        
+        // 기본 티어값 설정
+        let finalTierStr = card.dataset.existingTier || "언랭크";
 
+        // 수정 체크박스가 하나라도 켜져 있으면 선택된 값으로 조합
         if (tierOverride || lpOverride) {
             const tEng = card.querySelector('.tier-select').value;
             const tKor = TIER_MAP[tEng];
             const lpVal = card.querySelector('.lp-input').value.trim();
-            finalTierStr = (tEng === "UNRANKED" || !lpVal || lpVal === "0") ? tKor : `${tKor} - ${lpVal}LP`;
+            
+            if (tEng === "UNRANKED") {
+                finalTierStr = "언랭크";
+            } else {
+                finalTierStr = (lpVal && lpVal !== "0") ? `${tKor} - ${lpVal}LP` : tKor;
+            }
         }
 
         let triggerThisPlayer = false;
@@ -305,7 +310,7 @@ async function applyToSupabase() {
             team: card.dataset.team, 
             riot_id: card.querySelector('.nick-riot').value.trim(),
             puuid: card.dataset.puuid || null, 
-            last_match_id: card.dataset.lastMatchId || null, // API로 받아온 매치 ID 저장
+            last_match_id: card.dataset.lastMatchId || null, 
             tier: finalTierStr, 
             manual_tier: tierOverride || lpOverride,
             wins: card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length, 
@@ -317,7 +322,6 @@ async function applyToSupabase() {
     });
 
     try {
-        // 1. 설정 업데이트
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -326,7 +330,6 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 2. 데이터가 있을 때만 실행
         if(playersUpdateList.length > 0) {
             const { error: delError } = await sb.from('players').delete().neq('name', '___dummy___'); 
             if (delError) throw delError;
