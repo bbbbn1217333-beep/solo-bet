@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>이라네 솔랭 내기 시트지 관리자용 (UUID 호환)</title>
+<title>이라네 솔랭 내기 시트지 관리자용 (UUID 완벽 대응)</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -41,7 +41,7 @@
     .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
     .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; }
     .input-group { display: flex; flex-direction: column; align-items: center; }
-    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; }
+    .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; transition: 0.3s; }
     .nick-disp, .nick-riot, .lp-input, .score-input, .lp-diff-input { height: 44px !important; box-sizing: border-box !important; }
     .tier-select { height: 44px !important; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:13px; font-weight: 800; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; flex: 1.5 !important; text-align: center; appearance: none; }
     .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
@@ -51,6 +51,7 @@
     .lp-input { width: 55px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
     .lp-diff-input { width: 75px !important; background:#000; border: 2px solid var(--emerald) !important; border-radius:6px; color: var(--emerald) !important; text-align: center; font-weight: 900; box-shadow: 0 0 10px rgba(46,204,113,0.4); outline:none; }
     .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; flex: none !important; margin-left: 2px !important; }
+    .score-input-wrap label { font-size: 11px; font-weight: 900; margin-bottom: 6px; }
     .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; }
     .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
     .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
@@ -58,6 +59,7 @@
     .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding: 10px 5px; border-radius: 8px; border: 2px solid; }
     .red .history-item { border-color: var(--red); box-shadow: var(--neon-red); }
     .blue .history-item { border-color: var(--blue); box-shadow: var(--neon-blue); }
+    .history-item span { color: var(--gold); text-shadow: 0 0 8px var(--gold); font-weight: 900; font-size: 12px; }
     .champ-input { width:92%; background:#000; border: 2px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:12px; font-weight: 800; box-shadow: var(--neon-gold); outline: none; }
     .btn-toggle { width:100%; padding:8px 0; font-size:11px; font-weight:900; border:none; border-radius:4px; cursor:pointer; }
     .btn-toggle.win { background: var(--gold); color: #000; }
@@ -80,8 +82,9 @@
         </div>
         <div class="menu-desc">
             <strong>💡 이라네 시트지 필독 관리 매뉴얼</strong>
-            • <span class="neon-point">UUID 호환 모드:</span> 입력하신 SQL의 UUID 형식에 맞게 데이터가 저장됩니다.<br>
-            • <span class="neon-point">변동폭:</span> 자동 감시를 사용하면 점수가 바뀌지만, <strong>+20 승급!</strong> 처럼 직접 적어서 반영하면 컷씬에 그대로 나옵니다.
+            • <span class="neon-point">UUID 호환:</span> SQL 설정에 맞춰 UUID 기반으로 데이터가 안전하게 저장됩니다.<br>
+            • <span class="neon-point">변동폭:</span> 라이엇 자동 감시 외에 직접 <strong>+20 LP</strong> 같은 문구를 적어 반영할 수 있습니다.<br>
+            • <span class="neon-point">초과 인원:</span> [인원]을 줄이고 반영하면 DB에서 초과된 플레이어가 자동 삭제됩니다.
         </div>
     </div>
 
@@ -116,8 +119,7 @@ let autoSyncInterval = null;
 async function toggleWatch() {
     const btn = document.getElementById('watchBtn');
     if (autoSyncInterval) {
-        clearInterval(autoSyncInterval);
-        autoSyncInterval = null;
+        clearInterval(autoSyncInterval); autoSyncInterval = null;
         btn.innerText = "▶️ 자동 감시 시작";
     } else {
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
@@ -127,7 +129,7 @@ async function toggleWatch() {
 }
 
 async function syncWithRiot() {
-    try { await fetch('/api/sync'); await loadData(); } catch (e) { console.error(e); }
+    try { const res = await fetch('/api/sync'); if (res.ok) await loadData(); } catch (e) { console.error(e); }
 }
 
 function updateTeamNames() {
@@ -145,7 +147,7 @@ function createMemberCard(team, data = null) {
     const card = document.createElement('div');
     card.className = 'member-card';
     card.dataset.team = team;
-    card.dataset.uuid = data?.id || ""; // SQL id(uuid) 저장
+    card.dataset.uuid = data?.id || ""; // UUID 기반 ID 저장
 
     let historyHTML = '';
     for(let i=0; i<10; i++) {
@@ -170,13 +172,18 @@ function createMemberCard(team, data = null) {
         <div class="name-row">
             <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
             <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
-            <div class="input-group" style="flex:1.5;"><label style="color:var(--gold);">티어 수정</label><select class="tier-select">${tierOptions}</select></div>
-            <div class="input-group" style="width:65px;"><label style="color:var(--gold);">LP</label><input class="lp-input" value="${currentLP}"></div>
+            <div class="input-group" style="flex:1.5;">
+                <label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label>
+                <select class="tier-select" style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select>
+            </div>
+            <div class="input-group" style="width:65px;"><label style="color:var(--gold);">LP</label><input class="lp-input" placeholder="0" value="${currentLP}" style="opacity:${data?.manual_tier ? '1' : '0.4'};"></div>
             <div class="input-group" style="width:75px;"><label style="color:var(--emerald);">변동폭</label><input class="lp-diff-input" placeholder="+0" value="${data?.lp_diff || ''}"></div>
             <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
             <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
+    card.dataset.existingTier = data?.tier || "언랭크";
+    card.dataset.puuid = data?.puuid || "";
     return card;
 }
 
@@ -218,10 +225,16 @@ async function applyToSupabase() {
     const playersUpdateList = [];
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
+    const teamCount = Number(document.getElementById('teamCount').value);
     
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
+        const currentRiotId = card.querySelector('.nick-riot').value.trim();
         if (!name) continue;
+
+        const cardUuid = card.dataset.uuid;
+        const existingPlayer = cachedPlayers.find(p => (cardUuid && p.id === cardUuid) || (p.name === name));
+        const isRiotIdChanged = existingPlayer && existingPlayer.riot_id !== currentRiotId;
 
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
@@ -230,53 +243,65 @@ async function applyToSupabase() {
             champs.push(item.querySelector('.champ-input').value.trim() || 'None');
         });
 
-        const tEng = card.querySelector('.tier-select').value;
-        const lpVal = card.querySelector('.lp-input').value.trim();
-        const finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
+        const wins = card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length;
+        const losses = card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length;
+
+        let finalTierStr = "";
+        const manualTierChecked = card.querySelector('.tier-override').checked;
+        if (isRiotIdChanged) {
+            finalTierStr = "언랭크";
+        } else if (manualTierChecked) {
+            const tEng = card.querySelector('.tier-select').value;
+            const lpVal = card.querySelector('.lp-input').value.trim();
+            finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
+        } else {
+            finalTierStr = card.dataset.existingTier || "언랭크";
+        }
 
         let triggerThisPlayer = false;
         const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
         if (!cutsceneAssigned && lastValidRes) { triggerThisPlayer = true; cutsceneAssigned = true; }
 
-        const pObj = {
+        const playerData = {
             name: name,
             team: card.dataset.team,
-            riot_id: card.querySelector('.nick-riot').value.trim(),
+            riot_id: currentRiotId,
+            puuid: isRiotIdChanged ? null : (card.dataset.puuid || (existingPlayer ? existingPlayer.puuid : null)),
             tier: finalTierStr,
             lp_diff: card.querySelector('.lp-diff-input').value.trim(),
-            wins: Number(card.querySelector('.win-val').value) || 0,
-            losses: Number(card.querySelector('.lose-val').value) || 0,
+            manual_tier: isRiotIdChanged ? false : manualTierChecked,
+            wins: wins,
+            losses: losses,
             recent: recent,
             champions: champs,
             trigger_cutscene: triggerThisPlayer
         };
 
-        // SQL의 ID(UUID)가 있으면 할당
-        if (card.dataset.uuid) pObj.id = card.dataset.uuid;
-        
-        playersUpdateList.push(pObj);
+        if (existingPlayer && existingPlayer.id) playerData.id = existingPlayer.id;
+        playersUpdateList.push(playerData);
     }
 
     try {
-        // 1. 설정 저장
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
             blue_team_name: document.getElementById('blueNameInput').value, 
-            member_count: Number(document.getElementById('teamCount').value),
+            member_count: teamCount,
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 2. 플레이어 업데이트 (Upsert)
+        const currentUuids = playersUpdateList.map(p => p.id).filter(id => id);
+        if (cachedPlayers.length > 0) {
+            const idsToDelete = cachedPlayers.map(p => p.id).filter(id => !currentUuids.includes(id));
+            if (idsToDelete.length > 0) await sb.from('players').delete().in('id', idsToDelete);
+        }
+
         const { error } = await sb.from('players').upsert(playersUpdateList);
         if (error) throw error;
 
-        alert('✅ 반영 성공!');
+        alert('✅ 반영 성공! (UUID 동기화 완료)');
         loadData();
-    } catch (e) {
-        console.error("Error Detail:", e);
-        alert('❌ 반영 실패: ' + (e.message || 'ID 형식 불일치 가능성'));
-    }
+    } catch (e) { console.error(e); alert('❌ 반영 실패'); }
 }
 loadData();
 </script>
