@@ -38,6 +38,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
 
+/* 티어별 색상 */
 .tier.iron{--t-clr:#a19d94; color:var(--t-clr);} 
 .tier.bronze{--t-clr:#cd7f32; color:var(--t-clr);} 
 .tier.silver{--t-clr:#c0c0c0; color:var(--t-clr);} 
@@ -117,15 +118,17 @@ let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
 
-// [수정] 티어 판별 로직: 문자열이 비어있지 않으면 무조건 표시하고 키워드로 색상 결정
+// [수정] 티어 로직: "언랭크" 한글 표시 및 문자열 매칭 강화
 function getTierInfo(tierStr) {
-    if (!tierStr || tierStr === "언랭크" || tierStr.toLowerCase().includes('unranked')) {
-        return { name: 'UNRANKED', class: 'unranked' };
+    // 텍스트가 아예 없거나 "언랭크", "unranked" 등이 포함되면 무조건 한글 "언랭크" 반환
+    if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked') || tierStr === "언랭크") {
+        return { name: '언랭크', class: 'unranked' };
     }
     
     const t = tierStr.toLowerCase();
     let cls = 'unranked';
     
+    // 키워드 매칭을 통해 클래스 색상 지정
     if (t.includes('챌린저') || t.includes('challenger')) cls = 'challenger';
     else if (t.includes('그랜드') || t.includes('grand')) cls = 'grandmaster';
     else if (t.includes('마스터') || t.includes('master')) cls = 'master';
@@ -137,6 +140,7 @@ function getTierInfo(tierStr) {
     else if (t.includes('브론즈') || t.includes('bronze')) cls = 'bronze';
     else if (t.includes('아이언') || t.includes('iron')) cls = 'iron';
     
+    // DB에 있는 한글 티어명 그대로 반환 (예: "다이아몬드 1")
     return { name: tierStr, class: cls };
 }
 
