@@ -5,19 +5,19 @@ module.exports = async (req, res) => {
     const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const riotApiKey = process.env.RIOT_API_KEY;
 
-    // 티어 순서 정의 (승급 계산용)
-    const TIER_ORDER = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'EMERALD', 'PLATINUM', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
-    const RANK_ORDER = ['IV', 'III', 'II', 'I'];
+    const T_ORDER = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
+    const R_ORDER = ['IV', 'III', 'II', 'I'];
 
     try {
-        const { data: players } = await supabase.from('players').select('*');
+        const { data: players, error: dbError } = await supabase.from('players').select('*');
+        if (dbError) throw dbError;
+
         const updateData = [];
 
         for (const player of players) {
             if (player.manual_tier || !player.riot_id?.includes('#')) continue;
+            
             const [name, tag] = player.riot_id.split('#');
-
-            // 1. 라이엇 데이터 호출 (PUUID -> MatchId -> League 순서)
             const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?api_key=${riotApiKey}`);
             if (!accRes.ok) continue;
             const account = await accRes.json();
@@ -32,12 +32,18 @@ module.exports = async (req, res) => {
 
             if (!solo) continue;
 
-            // 2. 승급/강등 및 점수 변동 계산
             let lpDiffText = "";
             let shouldTrigger = false;
             let matchStats = null;
 
-            // 새 게임 종료가 감지되었을 때만 계산
+            const getAbsoluteLP = (tier, rank, lp) => {
+                const tIdx = T_ORDER.indexOf(tier.toUpperCase());
+                const lpVal = parseInt(lp) || 0;
+                if (tIdx >= T_ORDER.indexOf('MASTER')) return 2800 + lpVal;
+                const rIdx = R_ORDER.indexOf(rank?.toUpperCase() || "IV");
+                return (tIdx * 400) + (rIdx * 100) + lpVal;
+            };
+
             if (currentMatchId && currentMatchId !== player.last_match_id) {
                 const detailRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${currentMatchId}?api_key=${riotApiKey}`);
                 const detail = await detailRes.json();
@@ -45,27 +51,30 @@ module.exports = async (req, res) => {
 
                 if (me) {
                     shouldTrigger = true;
+                    const tierMatch = player.tier.match(/([A-Z\s]+)\s?([I|V|X]+)?\s?-\s?(\d+)LP/);
                     
-                    // 기존 데이터 파싱 (예: "GOLD I - 50LP")
-                    const tierMatch = player.tier.match(/([A-Z]+)\s([I|V|X]+)\s-\s(\d+)LP/);
                     if (tierMatch) {
-                        const oldTier = tierMatch[1];
-                        const oldRank = tierMatch[2];
-                        const oldLP = parseInt(tierMatch[3]);
+                        const oldTier = tierMatch[1].trim().toUpperCase();
+                        const oldRank = tierMatch[2] ? tierMatch[2].trim().toUpperCase() : "I";
+                        const oldLP = tierMatch[3];
 
-                        // 티어 자체가 바뀌었는지 확인
-                        if (oldTier !== solo.tier) {
-                            const isUp = TIER_ORDER.indexOf(solo.tier) > TIER_ORDER.indexOf(oldTier);
-                            lpDiffText = isUp ? "✨ TIER UP! ✨" : "💢 TIER DOWN";
-                        } 
-                        // 같은 티어 내에서 단계(I, II..)가 바뀌었는지 확인
-                        else if (oldRank !== solo.rank) {
-                            const isUp = RANK_ORDER.indexOf(solo.rank) > RANK_ORDER.indexOf(oldRank);
-                            lpDiffText = isUp ? "↗️ RANK UP!" : "↘️ RANK DOWN";
-                        } 
-                        // 단계도 같으면 LP 차이 계산
-                        else {
-                            const diff = solo.leaguePoints - oldLP;
+                        const oldAbsLP = getAbsoluteLP(oldTier, oldRank, oldLP);
+                        const newAbsLP = getAbsoluteLP(solo.tier, solo.rank || "I", solo.leaguePoints);
+                        const diff = newAbsLP - oldAbsLP;
+
+                        const isTierChanged = oldTier !== solo.tier.toUpperCase();
+                        const isRankChanged = !isTierChanged && oldRank !== (solo.rank || "I").toUpperCase();
+
+                        if (isTierChanged) {
+                            // 티어 자체가 변함 (골드 -> 플래 등)
+                            const status = diff > 0 ? "✨ 승격!" : "↘️ 강등";
+                            lpDiffText = `${status} (${diff > 0 ? '+' : ''}${diff}LP)`;
+                        } else if (isRankChanged) {
+                            // 단계만 변함 (골4 -> 골3 등)
+                            const status = diff > 0 ? "↗️ 승급!" : "↘️ 하락";
+                            lpDiffText = `${status} (${diff > 0 ? '+' : ''}${diff}LP)`;
+                        } else {
+                            // 유지
                             lpDiffText = diff >= 0 ? `(+${diff}LP)` : `(${diff}LP)`;
                         }
                     } else {
@@ -81,12 +90,12 @@ module.exports = async (req, res) => {
                 }
             }
 
-            // 3. DB 업데이트 데이터 생성
             updateData.push({
                 id: player.id,
-                tier: `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`,
+                tier: `${solo.tier} ${solo.rank || ""} - ${solo.leaguePoints}LP`.replace(/\s\s/g, ' '),
                 last_match_id: currentMatchId,
                 last_kda: matchStats ? matchStats.kda : player.last_kda,
+                lp_diff: matchStats ? matchStats.lpDiff : player.lp_diff,
                 recent: shouldTrigger ? [...(player.recent || []).slice(1), matchStats.win ? 'win' : 'lose'] : player.recent,
                 champions: shouldTrigger ? [...(player.champions || []).slice(1), matchStats.champion] : player.champions,
                 wins: (shouldTrigger && matchStats.win) ? (player.wins + 1) : player.wins,
@@ -100,8 +109,8 @@ module.exports = async (req, res) => {
             await supabase.from('players').upsert(updateData);
         }
 
-        return res.status(200).json({ success: true });
-    } catch (e) {
-        return res.status(500).json({ error: e.message });
+        return res.status(200).json({ success: true, count: updateData.length });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
     }
 };
