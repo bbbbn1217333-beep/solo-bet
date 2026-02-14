@@ -159,7 +159,7 @@ async function fetchRiotData(input) {
 
         if (!lpOverride.checked) {
             const lpInput = card.querySelector('.lp-input');
-            const lpMatch = data.tier.match(/\((.*?)LP\)/);
+            const lpMatch = data.tier.match(/(\d+)LP/);
             if (lpMatch) lpInput.value = lpMatch[1];
         }
         
@@ -194,12 +194,14 @@ function createMemberCard(team, data = null) {
 
     let currentTierEng = "UNRANKED";
     let currentLP = "";
-    if (data?.tier) {
-        // DB에 저장된 "다이아몬드 1 - 50LP" 같은 형식을 분석
-        const fullTierStr = data.tier.split(' - ')[0]; 
-        const foundEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === fullTierStr);
+    
+    if (data?.tier && data.tier !== "언랭크") {
+        // "다이아몬드 1 - 50LP" 또는 "다이아몬드 1 (50LP)" 모두 대응
+        const fullTierStr = data.tier.split(/[- (]/)[0].trim(); 
+        const foundEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === fullTierStr || TIER_MAP[key].startsWith(fullTierStr));
         currentTierEng = foundEng || "UNRANKED";
-        const lpMatch = data.tier.match(/(\d+)LP/);
+        
+        const lpMatch = data.tier.match(/(\d+)\s*LP/i);
         currentLP = lpMatch ? lpMatch[1] : "";
     }
 
@@ -247,21 +249,31 @@ function rebuild(dataList = null) {
 
 async function loadData() {
     try {
-        const { data: sData } = await sb.from('settings').select('*').eq('id', 1).single();
+        console.log("데이터 로딩 시작...");
+        const { data: sData, error: sError } = await sb.from('settings').select('*').eq('id', 1).single();
+        if (sError) console.error("설정 로드 에러:", sError);
+        
         if (sData) {
-            document.getElementById('redNameInput').value = sData.red_team_name;
-            document.getElementById('blueNameInput').value = sData.blue_team_name;
-            document.getElementById('teamCount').value = sData.member_count;
+            document.getElementById('redNameInput').value = sData.red_team_name || "";
+            document.getElementById('blueNameInput').value = sData.blue_team_name || "";
+            document.getElementById('teamCount').value = sData.member_count || 5;
             if(sData.timer_end_at) {
                 const date = new Date(sData.timer_end_at);
                 document.getElementById('endDateTime').value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             }
             updateTeamNames();
         }
-        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+
+        const { data: pData, error: pError } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        if (pError) console.error("플레이어 로드 에러:", pError);
+        
         cachedPlayers = pData || [];
         rebuild(pData);
-    } catch (e) { rebuild(); }
+        console.log("데이터 로딩 완료");
+    } catch (e) { 
+        console.error("로딩 중 예외 발생:", e);
+        rebuild(); 
+    }
 }
 
 async function applyToSupabase() {
@@ -282,10 +294,8 @@ async function applyToSupabase() {
         const tierOverride = card.querySelector('.tier-override').checked;
         const lpOverride = card.querySelector('.lp-override').checked;
         
-        // 기본 티어값 설정
         let finalTierStr = card.dataset.existingTier || "언랭크";
 
-        // 수정 체크박스가 하나라도 켜져 있으면 선택된 값으로 조합
         if (tierOverride || lpOverride) {
             const tEng = card.querySelector('.tier-select').value;
             const tKor = TIER_MAP[tEng];
@@ -331,10 +341,10 @@ async function applyToSupabase() {
         });
 
         if(playersUpdateList.length > 0) {
-            const { error: delError } = await sb.from('players').delete().neq('name', '___dummy___'); 
+            const { error: delError } = await sb.from('players').delete().neq('id', -1); 
             if (delError) throw delError;
 
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 200));
 
             const { error: insError } = await sb.from('players').insert(playersUpdateList);
             if (insError) throw insError;
@@ -347,7 +357,9 @@ async function applyToSupabase() {
         alert('❌ 반영 실패: ' + e.message); 
     }
 }
-loadData();
+
+// 초기 로딩 실행
+window.onload = loadData;
 </script>
 </body>
 </html>
