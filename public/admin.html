@@ -118,39 +118,29 @@ const TIER_MAP = {
 let cachedPlayers = [];
 let autoSyncInterval = null; 
 
-// [수정] 자동 감시 토글 함수 (45초 주기 최적화)
 async function toggleWatch() {
     const btn = document.getElementById('watchBtn');
-    
     if (autoSyncInterval) {
         clearInterval(autoSyncInterval);
         autoSyncInterval = null;
         btn.innerText = "▶️ 자동 감시 시작";
-        btn.style.color = "var(--gold)";
-        btn.style.borderColor = "var(--gold)";
-        btn.style.boxShadow = "var(--neon-gold)";
+        btn.style.color = "var(--gold)"; btn.style.borderColor = "var(--gold)"; btn.style.boxShadow = "var(--neon-gold)";
     } else {
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
-        btn.style.color = "var(--red)";
-        btn.style.borderColor = "var(--red)";
-        btn.style.boxShadow = "var(--neon-red)";
-        
-        syncWithRiot(); // 즉시 실행
-        autoSyncInterval = setInterval(syncWithRiot, 45000); // 45초 주기로 변경
+        btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)"; btn.style.boxShadow = "var(--neon-red)";
+        syncWithRiot();
+        autoSyncInterval = setInterval(syncWithRiot, 45000); 
     }
 }
 
-// [수정] Vercel API 호출 함수 (로그 메시지 수정)
 async function syncWithRiot() {
     try {
         const res = await fetch('/api/sync');
         if (res.ok) {
-            await loadData(); // DB 변동사항 화면에 로드
+            await loadData(); 
             console.log("라이엇 데이터 동기화 완료 (45초 주기)");
         }
-    } catch (e) {
-        console.error("동기화 에러:", e);
-    }
+    } catch (e) { console.error("동기화 에러:", e); }
 }
 
 function updateTeamNames() {
@@ -164,52 +154,28 @@ function toggleResult(btn) {
     else { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
 }
 
+// [수정] 외부 API 대신 우리 서버(/api/sync)를 활용하여 데이터를 갱신하도록 변경
 async function fetchRiotData(input) {
     const riotId = input.value.trim();
     if (!riotId.includes('#')) return;
 
-    const [name, tag] = riotId.split('#');
-    const card = input.closest('.member-card');
     const statusLabel = input.previousElementSibling;
-    const originalText = "롤 닉네임";
-
     try {
-        statusLabel.innerText = "🔄 조회중...";
+        statusLabel.innerText = "🔄 갱신 요청중...";
         statusLabel.style.color = "var(--emerald)";
 
-        const res = await fetch(`https://solrank-api-production.up.railway.app/api/summoner?name=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag)}`);
-        const data = await res.json();
-
-        if (data.tier) {
-            card.dataset.puuid = data.puuid;
-            const tierKor = TIER_MAP[`${data.tier} ${data.rank}`] || TIER_MAP[data.tier] || data.tier;
-            const finalStr = `${tierKor} - ${data.leaguePoints}LP`;
-            card.dataset.existingTier = finalStr;
-
-            const tierOverride = card.querySelector('.tier-override');
-            const lpOverride = card.querySelector('.lp-override');
-
-            if (!tierOverride.checked) {
-                const tierSelect = card.querySelector('.tier-select');
-                const tierKey = `${data.tier} ${data.rank}`;
-                if (TIER_MAP[tierKey]) tierSelect.value = tierKey;
-                else if (TIER_MAP[data.tier]) tierSelect.value = data.tier;
-            }
-
-            if (!lpOverride.checked) {
-                card.querySelector('.lp-input').value = data.leaguePoints;
-            }
-
-            statusLabel.innerText = "✅ 조회완료";
-        } else {
-            throw new Error("소환사 정보 없음");
-        }
-        setTimeout(() => { statusLabel.innerText = originalText; statusLabel.style.color = ""; }, 2000);
+        // 1. 서버에 최신 데이터 긁어오라고 명령 (sync API 활용)
+        const res = await fetch('/api/sync');
+        if (res.ok) {
+            // 2. 갱신된 데이터를 DB에서 다시 불러오기
+            await loadData();
+            statusLabel.innerText = "✅ 갱신 완료";
+        } else { throw new Error("서버 응답 실패"); }
     } catch (e) {
-        statusLabel.innerText = "❌ 조회실패";
+        statusLabel.innerText = "❌ 갱신 실패";
         statusLabel.style.color = "var(--red)";
-        setTimeout(() => { statusLabel.innerText = originalText; statusLabel.style.color = ""; }, 2000);
     }
+    setTimeout(() => { statusLabel.innerText = "롤 닉네임"; statusLabel.style.color = ""; }, 2000);
 }
 
 function createMemberCard(team, data = null) {
@@ -230,14 +196,12 @@ function createMemberCard(team, data = null) {
 
     let currentTierEng = "UNRANKED";
     let currentLP = "";
-    
     if (data?.tier && data.tier !== "언랭크") {
         const tierPart = data.tier.split(' - ')[0];
         currentTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
         const lpMatch = data.tier.match(/(\d+)LP/);
         currentLP = lpMatch ? lpMatch[1] : "";
     }
-
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${currentTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
 
     card.innerHTML = `
@@ -260,7 +224,6 @@ function createMemberCard(team, data = null) {
             <div class="score-input-wrap"><label style="color:var(--red);">패배</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
-    
     card.dataset.existingTier = data?.tier || "언랭크";
     return card;
 }
@@ -270,10 +233,8 @@ function rebuild(dataList = null) {
     const blueWrap = document.getElementById('bluePlayers');
     const count = Number(document.getElementById('teamCount').value);
     redWrap.innerHTML = ''; blueWrap.innerHTML = '';
-    
     const reds = dataList?.filter(p => p.team === 'red') || [];
     const blues = dataList?.filter(p => p.team === 'blue') || [];
-
     for(let i=0; i<count; i++) {
         redWrap.appendChild(createMemberCard('red', reds[i]));
         blueWrap.appendChild(createMemberCard('blue', blues[i]));
@@ -302,37 +263,27 @@ async function loadData() {
 async function applyToSupabase() {
     const playersUpdateList = [];
     let cutsceneAssigned = false;
-
     document.querySelectorAll('.member-card').forEach(card => {
         const name = card.querySelector('.nick-disp').value.trim();
         if(!name) return;
-
         const recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
             const btn = item.querySelector('.btn-toggle');
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
             champs.push(item.querySelector('.champ-input').value.trim() || 'None');
         });
-
         const tierOverride = card.querySelector('.tier-override').checked;
         const lpOverride = card.querySelector('.lp-override').checked;
-        
         let finalTierStr = card.dataset.existingTier || "언랭크";
-
         if (tierOverride || lpOverride) {
             const tEng = card.querySelector('.tier-select').value;
             const tKor = TIER_MAP[tEng];
             const lpVal = card.querySelector('.lp-input').value.trim();
             finalTierStr = (lpVal && lpVal !== "0" && tEng !== "UNRANKED") ? `${tKor} - ${lpVal}LP` : tKor;
         }
-
         let triggerThisPlayer = false;
         const lastValidRes = recent.filter(r => r === 'win' || r === 'lose').pop();
-        if (!cutsceneAssigned && lastValidRes) {
-            triggerThisPlayer = true;
-            cutsceneAssigned = true;
-        }
-
+        if (!cutsceneAssigned && lastValidRes) { triggerThisPlayer = true; cutsceneAssigned = true; }
         playersUpdateList.push({ 
             name, team: card.dataset.team, riot_id: card.querySelector('.nick-riot').value.trim(),
             puuid: card.dataset.puuid || null, tier: finalTierStr, manual_tier: tierOverride || lpOverride,
@@ -341,16 +292,13 @@ async function applyToSupabase() {
             recent, champions: champs, trigger_cutscene: triggerThisPlayer
         });
     });
-
     try {
         await sb.from('settings').upsert({ 
-            id: 1, 
-            red_team_name: document.getElementById('redNameInput').value, 
+            id: 1, red_team_name: document.getElementById('redNameInput').value, 
             blue_team_name: document.getElementById('blueNameInput').value, 
             member_count: Number(document.getElementById('teamCount').value), 
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
-
         if(playersUpdateList.length > 0) {
             await sb.from('players').delete().not('name', 'eq', 'SAFE_DELETE_NONE'); 
             await new Promise(resolve => setTimeout(resolve, 300));
@@ -361,7 +309,6 @@ async function applyToSupabase() {
         cachedPlayers = [...playersUpdateList]; 
     } catch (e) { alert('❌ 반영 실패: ' + e.message); }
 }
-
 window.onload = loadData;
 </script>
 </body>
