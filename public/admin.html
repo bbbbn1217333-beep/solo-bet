@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-    /* [기존 UI 스타일 완벽 유지] */
+    /* [기존 UI 스타일 유지] */
     :root { 
         --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; 
         --emerald: #2ecc71; 
@@ -115,7 +115,6 @@ const TIER_MAP = {
     "UNRANKED": "언랭크"
 };
 
-// 티어 비교를 위한 순위 데이터
 const TIER_RANK = { "챌린저":30, "그랜드마스터":29, "마스터":28, "다이아몬드 1":27, "다이아몬드 2":26, "다이아몬드 3":25, "다이아몬드 4":24, "에메랄드 1":23, "에메랄드 2":22, "에메랄드 3":21, "에메랄드 4":20, "플래티넘 1":19, "플래티넘 2":18, "플래티넘 3":17, "플래티넘 4":16, "골드 1":15, "골드 2":14, "골드 3":13, "골드 4":12, "실버 1":11, "실버 2":10, "실버 3":9, "실버 4":8, "브론즈 1":7, "브론즈 2":6, "브론즈 3":5, "브론즈 4":4, "아이언 1":3, "아이언 2":2, "아이언 3":1, "아이언 4":0, "언랭크": -1 };
 
 let cachedPlayers = [];
@@ -191,7 +190,16 @@ function rebuild(dataList = null) {
 async function loadData() {
     try {
         const { data: sData } = await sb.from('settings').select('*').eq('id', 1).single();
-        if (sData) { document.getElementById('redNameInput').value = sData.red_team_name || ""; document.getElementById('blueNameInput').value = sData.blue_team_name || ""; document.getElementById('teamCount').value = sData.member_count || 5; if(sData.timer_end_at) { const date = new Date(sData.timer_end_at); document.getElementById('endDateTime').value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); } updateTeamNames(); }
+        if (sData) { 
+            document.getElementById('redNameInput').value = sData.red_team_name || ""; 
+            document.getElementById('blueNameInput').value = sData.blue_team_name || ""; 
+            document.getElementById('teamCount').value = sData.member_count || 5; 
+            if(sData.timer_end_at) { 
+                const date = new Date(sData.timer_end_at); 
+                document.getElementById('endDateTime').value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); 
+            } 
+            updateTeamNames(); 
+        }
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         cachedPlayers = pData || []; rebuild(pData);
     } catch (e) { console.error(e); }
@@ -207,6 +215,7 @@ async function applyToSupabase() {
         const name = card.querySelector('.nick-disp').value.trim();
         if (!name) continue;
 
+        // 캐시 데이터에서 정확한 매칭 찾기
         const cardUuid = card.dataset.uuid;
         const existingPlayer = cachedPlayers.find(p => (cardUuid && p.id === cardUuid) || (p.name === name));
 
@@ -242,7 +251,7 @@ async function applyToSupabase() {
             }
         }
 
-        // [중요] 컬럼명을 문자열로 감싸서 API 전송 (캐시 오류 완화)
+        // [중요] ID 처리 로직: null 전송 방지
         const playerData = {
             "name": name,
             "team": card.dataset.team,
@@ -254,11 +263,12 @@ async function applyToSupabase() {
             "recent": recent,
             "champions": champs,
             "trigger_cutscene": trigger,
-            "event_type": event,
-            "lp_diff": lpDiff,
-            "target_champion": targetChamp
+            "event_type": event || null,
+            "lp_diff": lpDiff || "",
+            "target_champion": targetChamp || "None"
         };
 
+        // 기존 유저면 id를 넣고, 신규 유저면 id 속성 자체를 보내지 않음 (DB 자동생성 유도)
         if (existingPlayer && existingPlayer.id) {
             playerData.id = existingPlayer.id;
         }
@@ -267,7 +277,7 @@ async function applyToSupabase() {
     }
 
     try {
-        // 1. 설정 저장
+        // 1. 설정 저장 (Single Range Optimization)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -276,9 +286,8 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
-        // 2. 플레이어 업데이트 (UPSERT)
+        // 2. 플레이어 일괄 업데이트 (Single Range Optimization)
         if (playersUpdateList.length > 0) {
-            // .select()를 추가하면 API가 강제로 스키마를 다시 확인하게 유도할 수 있습니다.
             const { error: pError } = await sb.from('players').upsert(playersUpdateList).select();
             if (pError) throw pError;
         }
@@ -287,7 +296,6 @@ async function applyToSupabase() {
         loadData();
     } catch (e) {
         console.error(e);
-        // 에러가 지속될 경우를 대비한 구체적인 안내
         if (e.message.includes('event_type')) {
             alert("❌ 아직 DB 컬럼을 인식하지 못하고 있습니다.\n관리자 페이지를 완전히 끄고 다시 접속해 보시거나, 1~2분 뒤에 시도해 주세요.");
         } else {
