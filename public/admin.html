@@ -75,7 +75,7 @@
             <div class="header-group"><label class="label-red">🚩 레드 팀 명칭</label><input id="redNameInput" oninput="updateTeamNames()" placeholder="레드 팀"></div>
             <div class="header-group"><label class="label-blue">🚩 블루 팀 명칭</label><input id="blueNameInput" oninput="updateTeamNames()" placeholder="블루 팀"></div>
             <div class="header-group"><label class="label-gold">⏰ 목표 종료 시간</label><div class="timer-input-wrap"><input id="endDateTime" type="datetime-local"></div></div>
-            <div class="header-group"><label class="label-gold">👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuild()"></div>
+            <div class="header-group"><label class="label-gold">👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuildWithCache()"></div>
             
             <button id="watchBtn" class="btn-load-data" onclick="toggleWatch()" style="color:var(--gold); border-color:var(--gold); box-shadow: var(--neon-gold);">▶️ 자동 감시 시작</button>
             
@@ -124,10 +124,8 @@ async function toggleWatch() {
         clearInterval(autoSyncInterval);
         autoSyncInterval = null;
         btn.innerText = "▶️ 자동 감시 시작";
-        btn.style.color = "var(--gold)"; btn.style.borderColor = "var(--gold)"; btn.style.boxShadow = "var(--neon-gold)";
     } else {
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
-        btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)"; btn.style.boxShadow = "var(--neon-red)";
         syncWithRiot();
         autoSyncInterval = setInterval(syncWithRiot, 45000); 
     }
@@ -136,11 +134,8 @@ async function toggleWatch() {
 async function syncWithRiot() {
     try {
         const res = await fetch('/api/sync');
-        if (res.ok) {
-            await loadData(); 
-            console.log("라이엇 데이터 동기화 완료 (45초 주기)");
-        }
-    } catch (e) { console.error("동기화 에러:", e); }
+        if (res.ok) await loadData(); 
+    } catch (e) { console.error(e); }
 }
 
 function updateTeamNames() {
@@ -157,31 +152,18 @@ function toggleResult(btn) {
 async function fetchRiotData(input) {
     const riotId = input.value.trim();
     if (!riotId.includes('#')) return;
-
-    const statusLabel = input.previousElementSibling;
     try {
-        statusLabel.innerText = "🔄 갱신 요청중...";
-        statusLabel.style.color = "var(--emerald)";
-
         const res = await fetch('/api/sync');
-        if (res.ok) {
-            await loadData();
-            statusLabel.innerText = "✅ 갱신 완료";
-        } else { throw new Error("서버 응답 실패"); }
-    } catch (e) {
-        statusLabel.innerText = "❌ 갱신 실패";
-        statusLabel.style.color = "var(--red)";
-    }
-    setTimeout(() => { statusLabel.innerText = "롤 닉네임"; statusLabel.style.color = ""; }, 2000);
+        if (res.ok) await loadData();
+    } catch (e) { console.error(e); }
 }
 
 function createMemberCard(team, data = null) {
     const card = document.createElement('div');
     card.className = 'member-card';
     card.dataset.team = team;
-    card.dataset.puuid = data?.puuid || ""; 
-    card.dataset.lastMatchId = data?.last_match_id || ""; 
     card.dataset.id = data?.id || ""; 
+    card.dataset.puuid = data?.puuid || ""; 
 
     let historyHTML = '';
     for(let i=0; i<10; i++) {
@@ -204,19 +186,15 @@ function createMemberCard(team, data = null) {
 
     card.innerHTML = `
         <div class="name-row">
-            <div class="input-group"><label style="font-weight:900;">스트리머명</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-            <div class="input-group"><label style="font-weight:900;">롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}" onblur="fetchRiotData(this)"></div>
+            <div class="input-group"><label>스트리머명</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
+            <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}" onblur="fetchRiotData(this)"></div>
             <div class="input-group" style="flex:1.5;">
-                <label style="font-weight:900; color:var(--gold); display:flex; align-items:center; gap:3px; cursor:pointer;">
-                    <input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="this.parentElement.nextElementSibling.style.opacity = this.checked ? '1' : '0.4'"> 수정
-                </label>
-                <select class="tier-select" style="opacity:${data?.manual_tier ? '1' : '0.4'}; transition: 0.3s;">${tierOptions}</select>
+                <label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label>
+                <select class="tier-select" style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select>
             </div>
             <div class="input-group" style="width:65px; flex:none;">
-                <label style="font-weight:900; color:var(--gold); display:flex; align-items:center; gap:3px; cursor:pointer;">
-                    <input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''} onchange="this.parentElement.nextElementSibling.style.opacity = this.checked ? '1' : '0.4'"> 수정
-                </label>
-                <input class="lp-input" placeholder="0" value="${currentLP}" style="opacity:${data?.manual_tier ? '1' : '0.4'}; transition: 0.3s;">
+                <label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label>
+                <input class="lp-input" placeholder="0" value="${currentLP}" style="opacity:${data?.manual_tier ? '1' : '0.4'};">
             </div>
             <div class="score-input-wrap"><label style="color:var(--gold);">승리</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
             <div class="score-input-wrap"><label style="color:var(--red);">패배</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
@@ -224,6 +202,12 @@ function createMemberCard(team, data = null) {
         <div class="history-editor">${historyHTML}</div>`;
     card.dataset.existingTier = data?.tier || "언랭크";
     return card;
+}
+
+// 🚩 인원 조절 시 호출되는 함수 (현재 로컬 입력값을 잃지 않도록 수정)
+function rebuildWithCache() {
+    const pData = cachedPlayers; // 마지막으로 로드된 DB 데이터 기준
+    rebuild(pData);
 }
 
 function rebuild(dataList = null) {
@@ -257,7 +241,7 @@ async function loadData() {
         const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
         cachedPlayers = pData || [];
         rebuild(pData);
-    } catch (e) { console.error(e); rebuild(); }
+    } catch (e) { console.error(e); }
 }
 
 async function applyToSupabase() {
@@ -270,37 +254,32 @@ async function applyToSupabase() {
         const name = card.querySelector('.nick-disp').value.trim();
         const currentRiotId = card.querySelector('.nick-riot').value.trim();
         
-        // 이름이 없으면 저장 대상에서 제외 (빈 칸 유지)
+        // 이름이 아예 없으면 DB에 저장하지 않음
         if (!name) continue;
 
+        // 🚩 화면의 값을 최우선으로 가져오기 위해 캐시에서 해당 이름을 가진 기존 데이터를 찾음
         const cardId = card.dataset.id;
-        // 기존 플레이어 찾기 (ID가 있으면 ID로, 없으면 이름으로)
         const existingPlayer = cachedPlayers.find(p => (cardId && p.id == cardId) || (p.name === name));
         
         const isRiotIdChanged = existingPlayer && existingPlayer.riot_id !== currentRiotId;
 
         let recent = [], champs = [];
-        let wins = 0, losses = 0;
-        let finalTierStr = "";
+        card.querySelectorAll('.history-item').forEach(item => {
+            const btn = item.querySelector('.btn-toggle');
+            recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
+            champs.push(item.querySelector('.champ-input').value.trim() || 'None');
+        });
 
+        const wins = card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length;
+        const losses = card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length;
+
+        // 🚩 닉네임 변경 시 티어 초기화 로직 유지
+        let finalTierStr = "";
         if (isRiotIdChanged) {
-            recent = Array(10).fill("ing");
-            champs = Array(10).fill("None");
-            wins = 0;
-            losses = 0;
             finalTierStr = "언랭크";
         } else {
-            card.querySelectorAll('.history-item').forEach(item => {
-                const btn = item.querySelector('.btn-toggle');
-                recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
-                champs.push(item.querySelector('.champ-input').value.trim() || 'None');
-            });
-            wins = card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length;
-            losses = card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length;
-            
             const tierOverride = card.querySelector('.tier-override').checked;
             const lpOverride = card.querySelector('.lp-override').checked;
-            
             if (tierOverride || lpOverride) {
                 const tEng = card.querySelector('.tier-select').value;
                 const tKor = TIER_MAP[tEng];
@@ -327,21 +306,15 @@ async function applyToSupabase() {
             recent: recent,
             champions: champs,
             trigger_cutscene: triggerThisPlayer,
-            lp_diff: isRiotIdChanged ? "" : (existingPlayer ? (existingPlayer.lp_diff || "") : ""),
             last_match_id: isRiotIdChanged ? null : (existingPlayer ? existingPlayer.last_match_id : null)
         };
 
-        // 🚩 수정 포인트: ID가 '있을 때만' 데이터에 포함시킵니다.
-        // ID가 없으면 Supabase가 알아서 새로운 행(Row)을 생성합니다.
-        if (existingPlayer && existingPlayer.id) {
-            playerData.id = existingPlayer.id;
-        }
-
+        if (existingPlayer && existingPlayer.id) playerData.id = existingPlayer.id;
         playersUpdateList.push(playerData);
     }
 
     try {
-        // 설정 업데이트
+        // 1. 설정값 저장 (인원수 포함)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -350,18 +323,19 @@ async function applyToSupabase() {
             timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null 
         });
 
+        // 2. 플레이어 데이터 저장
         if (playersUpdateList.length > 0) {
-            // 🚩 upsert 옵션에서 순수하게 데이터만 던집니다. 
-            // id가 있는 데이터는 '수정', id가 없는 데이터는 '추가'가 됩니다.
             const { error: upsertError } = await sb.from('players').upsert(playersUpdateList);
             if (upsertError) throw upsertError;
         }
 
         alert('✅ 반영 성공!');
+        
+        // 🚩 중요: 반영 직후에는 다시 불러오기(loadData)를 호출하여 DB와 화면을 동기화함
         await loadData();
     } catch (e) { 
-        console.error("에러 발생:", e);
-        alert('❌ 반영 실패: ' + (e.message || "데이터 형식을 확인해주세요.")); 
+        console.error(e);
+        alert('❌ 반영 실패'); 
     }
 }
 loadData();
