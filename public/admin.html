@@ -250,21 +250,21 @@ async function applyToSupabase() {
         }
 
         // 업데이트 객체 생성
-        const playerData = {
-            name: name,
-            team: card.dataset.team,
-            riot_id: card.querySelector('.nick-riot').value.trim(),
-            tier: finalTierStr,
-            manual_tier: card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked,
-            wins: card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length,
-            losses: card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
-            recent: recent,
-            champions: champs,
-            trigger_cutscene: trigger,
-            event_type: event,
-            lp_diff: lpDiff,
-            target_champion: targetChamp
-        };
+const playerData = {
+    "name": name,
+    "team": card.dataset.team,
+    "riot_id": card.querySelector('.nick-riot').value.trim(),
+    "tier": finalTierStr,
+    "manual_tier": card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked,
+    "wins": card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length,
+    "losses": card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length,
+    "recent": recent,
+    "champions": champs,
+    "trigger_cutscene": trigger,
+    "event_type": event, // 여기 컬럼명들이 SQL과 정확히 일치해야 합니다.
+    "lp_diff": lpDiff,
+    "target_champion": targetChamp
+};
 
         // 핵심: ID가 있을 때만 객체에 추가 (신규 추가 시 ID가 포함되면 에러남)
         if (existingPlayer && existingPlayer.id) {
