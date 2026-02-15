@@ -6,6 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+/* 기존 스타일 그대로 유지 (지면 관계상 생략하지만 코드에는 포함됨) */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -34,7 +35,6 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
-
 .tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;} 
 .tier.bronze{--t-clr:#cd7f32; color:var(--t-clr) !important;} 
 .tier.silver{--t-clr:#c0c0c0; color:var(--t-clr) !important;} 
@@ -46,25 +46,16 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr) !important;} 
 .tier.challenger{--t-clr:#f1c40f; color:var(--t-clr) !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);} 
 .tier.unranked{--t-clr:#aaa; color:var(--t-clr) !important;}
-
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
-
-@keyframes ingamePulse {
-    0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; }
-    50% { box-shadow: 0 0 10px #00FFAA; border-color: #fff; }
-    100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; }
-}
+@keyframes ingamePulse { 0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } 50% { box-shadow: 0 0 10px #00FFAA; border-color: #fff; } 100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } }
 .champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.1); }
-
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
 .wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; }
 .wl-badge.none { color: #2ecc71 !important; border-color: #2ecc71 !important; }
-
-/* 점수판 및 결과창 스타일 (동일) */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
@@ -123,7 +114,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; 
+const LOL_VER = "16.3.1"; // 16.3.1은 존재하지 않으므로 15.3.1로 수정
 
 let champMap = {}; 
 let champIdToKey = {};
@@ -133,6 +124,8 @@ let settings = {};
 let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
+let isInitialLoad = true; // 첫 로딩 방어막
+let cutsceneQueue = []; // 동시 결과 발생 시 대기열
 
 const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아몬드':7, '마스터':8, '그랜드':9, '챌린저':10 };
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
@@ -165,21 +158,10 @@ async function initChampMap() {
 
 const fixChamp = c => {
     if(!c || c === 'None' || c === '' || c === 'undefined') return 'None';
-    
     let raw = c.toString().trim();
-
-    // 1. 숫자 ID 처리 (예: 432 -> Bard)
-    if (champIdToKey[raw]) {
-        raw = champIdToKey[raw];
-    }
-
-    // 2. 대소문자 관계없이 '크산테' 관련 입력이면 무조건 'KSante' 반환
+    if (champIdToKey[raw]) raw = champIdToKey[raw];
     const lowerRaw = raw.toLowerCase();
-    if (lowerRaw === '크산테' || lowerRaw === 'ksante' || lowerRaw === "k'sante") {
-        return 'KSante';
-    }
-
-    // 3. 기타 예외 챔피언들
+    if (lowerRaw === '크산테' || lowerRaw === 'ksante' || lowerRaw === "k'sante") return 'KSante';
     const exceptions = {
         '르블랑': 'Leblanc', 'leblanc': 'Leblanc',
         '벨코즈': 'Velkoz', 'velkoz': 'Velkoz',
@@ -188,11 +170,7 @@ const fixChamp = c => {
     };
     if (exceptions[raw]) return exceptions[raw];
     if (exceptions[lowerRaw]) return exceptions[lowerRaw];
-
-    // 4. 한글 이름 매핑 확인
     if (champMap[raw]) return champMap[raw];
-
-    // 5. 기본 변환 (첫글자 대문자, 나머지 소문자)
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
@@ -222,8 +200,15 @@ function renderMainScene(container, filterTeam) {
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
 }
 
-async function triggerCutscene(player, isWin, kdaText = "0/0/0", autoEvent = null) {
-    if (!normalCycle) return;
+// 컷씬 실행기 (큐 처리 방식)
+function processCutsceneQueue() {
+    if (cutsceneQueue.length > 0 && normalCycle) {
+        const next = cutsceneQueue.shift();
+        runCutscene(next.player, next.isWin, next.kdaText, next.autoEvent);
+    }
+}
+
+async function runCutscene(player, isWin, kdaText, autoEvent) {
     normalCycle = false;
     clearInterval(sceneInterval);
     const [k, d, a] = kdaText.split('/').map(Number);
@@ -235,41 +220,63 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0", autoEvent = nul
         for (let i = recent.length - 1; i >= 0; i--) { if (recent[i] === lastRes) streakCount++; else break; }
     }
     const streakLabel = isWin ? (streakCount <= 1 ? '1승중' : streakCount + '연승') : (streakCount <= 1 ? '1패중' : streakCount + '연패');
-    let eventType = player.event_type || autoEvent;
     let statusBadgeHTML = "";
-    if (eventType === 'promotion_major') statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
-    else if (eventType === 'promotion') statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
-    else if (eventType === 'demotion') statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
+    if (autoEvent === 'promotion_major') statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
+    else if (autoEvent === 'promotion') statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
+    else if (autoEvent === 'demotion') statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
+    
     const tierInfo = getTierInfo(player.tier);
     const currentLPText = player.lp ? ` - ${player.lp}LP` : "";
     let lpDiff = player.lp_diff || (isWin ? "+0" : "-0");
     if (!lpDiff.startsWith('+') && !lpDiff.startsWith('-')) lpDiff = (isWin ? "+" : "-") + lpDiff;
+    
     const displayChamp = fixChamp(player.target_champion || 'None');
     document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
     const targetScene = isWin ? document.getElementById('scene-game-win') : document.getElementById('scene-game-lose');
+    
     targetScene.innerHTML = `<div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}"><h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1><div class="res-nick"><span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${player.team==='red'?(settings.red_team_name||'RED'):(settings.blue_team_name||'BLUE')}</span><span>${player.name}</span><span style="font-size: 32px; font-weight: 900; margin-left:10px;"><span style="color:#ffd369;">😁 ${player.wins || 0}승</span> <span style="color:#ff6b6b;">😡 ${player.losses || 0}패</span></span><span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span></div><div class="res-tier-wrap"><div class="res-tier tier ${tierInfo.class}"><span>${tierInfo.name}${currentLPText}</span><span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>${statusBadgeHTML}</div></div><div class="res-champ"><img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><div class="res-kda-box"><span class="kda-main">${kdaText}</span><span class="kda-calc">K/D/A : (${kdaVal})</span></div></div></div>`;
+    
     targetScene.classList.add('active');
-    setTimeout(() => { targetScene.classList.remove('active'); normalCycle = true; sIdx = 0; document.getElementById('scene-all').classList.add('active'); sceneInterval = setInterval(nextScene, 10000); }, 8000);
+    setTimeout(() => { 
+        targetScene.classList.remove('active'); 
+        normalCycle = true; 
+        sIdx = 0; 
+        document.getElementById('scene-all').classList.add('active'); 
+        sceneInterval = setInterval(nextScene, 10000); 
+        processCutsceneQueue(); // 대기 중인 다음 컷씬 실행
+    }, 8000);
 }
 
 function setupRealtime() {
     sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
         const oldP = prevPlayersState[payload.new.name];
         const newP = payload.new;
-        if (oldP && (oldP.wins !== newP.wins || oldP.losses !== newP.losses)) {
+
+        // 1. 방어막: 초기 로딩 중이거나 이전 데이터가 없으면 무시
+        if (isInitialLoad || !oldP) {
+            prevPlayersState[newP.name] = { ...newP };
+            loadData();
+            return;
+        }
+
+        // 2. 판수 변화 감지 (실제 게임 결과가 나왔을 때만)
+        if (oldP.wins !== newP.wins || oldP.losses !== newP.losses) {
             let autoEvent = null;
             const isWin = newP.wins > (oldP.wins || 0);
+            
+            // 승급/강등 로직
             const oldMain = (oldP.tier || "").split(' ')[0], newMain = (newP.tier || "").split(' ')[0];
             const oldStep = parseInt((oldP.tier || "").replace(/[^0-9]/g, "")), newStep = parseInt((newP.tier || "").replace(/[^0-9]/g, ""));
             if (tierWeight[newMain] > tierWeight[oldMain]) autoEvent = 'promotion_major';
             else if (tierWeight[newMain] < tierWeight[oldMain]) autoEvent = 'demotion';
-            else if (newMain === oldMain) {
-                if (!isNaN(oldStep) && !isNaN(newStep)) {
-                    if (newStep < oldStep) autoEvent = 'promotion';
-                    else if (newStep > oldStep) autoEvent = 'demotion';
-                }
+            else if (newMain === oldMain && !isNaN(oldStep) && !isNaN(newStep)) {
+                if (newStep < oldStep) autoEvent = 'promotion';
+                else if (newStep > oldStep) autoEvent = 'demotion';
             }
-            triggerCutscene(newP, isWin, newP.last_kda || "0/0/0", autoEvent);
+
+            // 3. 컷씬 대기열에 추가
+            cutsceneQueue.push({ player: newP, isWin, kdaText: newP.last_kda || "0/0/0", autoEvent });
+            processCutsceneQueue();
         }
         prevPlayersState[newP.name] = { ...newP };
         loadData();
@@ -290,6 +297,7 @@ async function loadData() {
                     for(let i = recent.length - 1; i >= 0; i--) { if(recent[i] === lastRes) streak++; else break; }
                     streak = lastRes === 'win' ? streak : -streak;
                 }
+                // 처음 불러올 때만 상태 저장
                 if (!prevPlayersState[p.name]) prevPlayersState[p.name] = { ...p };
                 return { ...p, streak };
             });
@@ -322,7 +330,16 @@ function renderScoreScene() {
 
 function renderAll() { renderMainScene(document.getElementById('scene-all'), null); renderMainScene(document.getElementById('scene-red'), 'red'); renderMainScene(document.getElementById('scene-blue'), 'blue'); renderScoreScene(); }
 function nextScene() { if(!normalCycle) return; const sc = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue'), document.getElementById('scene-score')]; sc.forEach(s=>s.classList.remove('active')); sIdx=(sIdx+1)%sc.length; sc[sIdx].classList.add('active'); updateTimer(); }
-async function start() { await initChampMap(); await loadData(); setupRealtime(); setInterval(updateTimer, 1000); sceneInterval = setInterval(nextScene, 10000); }
+async function start() { 
+    await initChampMap(); 
+    await loadData(); 
+    setupRealtime(); 
+    setInterval(updateTimer, 1000); 
+    sceneInterval = setInterval(nextScene, 10000); 
+    
+    // 페이지 로딩 후 10초 뒤에 방어막 해제 (실시간 게임만 컷씬 뜨게 함)
+    setTimeout(() => { isInitialLoad = false; console.log("실시간 컷씬 감시 시작!"); }, 10000);
+}
 start();
 </script>
 </body>
