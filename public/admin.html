@@ -194,6 +194,8 @@ function mergeRebuild(dbData) {
         const uuid = card.dataset.uuid;
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
+
+        // 1. 전적 및 챔피언 데이터 자동 갱신
         const items = card.querySelectorAll('.history-item');
         let wCount = 0, lCount = 0;
         items.forEach((item, idx) => {
@@ -211,6 +213,27 @@ function mergeRebuild(dbData) {
         });
         card.querySelector('.win-val').value = wCount;
         card.querySelector('.lose-val').value = lCount;
+
+        // 2. [추가] 실시간 티어 및 LP 정보 UI 반영 (수동 수정이 꺼져있을 때만)
+        const tCheck = card.querySelector('.tier-override');
+        const lCheck = card.querySelector('.lp-override');
+        
+        if (!tCheck.checked || !lCheck.checked) {
+            if (dbPlayer.tier) {
+                const tierPart = dbPlayer.tier.split(' - ')[0];
+                const curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
+                const curLP = dbPlayer.tier.match(/(\d+)LP/)?.[1] || "0";
+
+                if (!tCheck.checked) {
+                    const tSelect = card.querySelector('.tier-select');
+                    tSelect.value = curTierEng;
+                    tSelect.setAttribute('data-tier', TIER_MAP[curTierEng]);
+                }
+                if (!lCheck.checked) {
+                    card.querySelector('.lp-input').value = curLP;
+                }
+            }
+        }
     });
 }
 
