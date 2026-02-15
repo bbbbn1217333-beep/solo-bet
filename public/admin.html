@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>이라네 솔랭 내기 시트지 관리자용 (Optimized)</title>
+    <title>이라네 솔랭 내기 시트지 관리자용 (Final Optimized)</title>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -84,9 +84,9 @@
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
         </div>
         <div class="menu-desc">
-            <strong>💡 전적 및 관리자 패널 개선 사항</strong>
-            • <span class="neon-point">한글 챔피언명:</span> 챔피언 입력 칸에 한글을 적으면 자동으로 인식되어 저장됩니다.<br>
-            • <span class="neon-point">컷신 로직 수정:</span> 승리/패배 기록 시 점수 변동과 컷신이 꼬이지 않도록 데이터 전송 방식을 최적화했습니다.
+            <strong>💡 로직 업데이트 (v1.2)</strong>
+            • <span class="neon-point">자동 감시:</span> 감시 버튼을 누른 <b>이후</b> 종료된 게임만 컷신이 뜹니다. (과거 전적 무시)<br>
+            • <span class="neon-point">결과 보정:</span> 이긴 판에 패배 문구가 뜨는 현상을 수정했습니다.
         </div>
     </div>
 
@@ -116,16 +116,10 @@ async function initChampMap() {
         const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/14.3.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
-            champNameMap[c.id] = c.name; // Garen : 가렌
-            idToNameMap[c.key] = c.name; // 86 : 가렌
+            champNameMap[c.id] = c.name;
+            idToNameMap[c.key] = c.name;
         });
     } catch (e) { console.error("챔피언 로드 실패:", e); }
-}
-
-function getChampIdByName(name) {
-    if (!name) return 'None';
-    const found = Object.keys(champNameMap).find(id => champNameMap[id] === name);
-    return found || name; 
 }
 
 function getChampNameById(id) {
@@ -133,22 +127,10 @@ function getChampNameById(id) {
     return idToNameMap[id] || champNameMap[id] || id;
 }
 
-function resetHistoryUI(keepIngData = false) {
-    const cards = document.querySelectorAll('.member-card');
-    cards.forEach(card => {
-        const items = card.querySelectorAll('.history-item');
-        items.forEach(item => {
-            const btn = item.querySelector('.btn-toggle');
-            const input = item.querySelector('.champ-input');
-            if (!keepIngData || (!btn.classList.contains('win') && !btn.classList.contains('lose'))) {
-                btn.innerText = '🕒 진행';
-                btn.className = 'btn-toggle ing';
-                input.value = '';
-            }
-        });
-        card.querySelector('.win-val').value = 0;
-        card.querySelector('.lose-val').value = 0;
-    });
+function getChampIdByName(name) {
+    if (!name) return 'None';
+    const found = Object.keys(champNameMap).find(id => champNameMap[id] === name);
+    return found || name; 
 }
 
 async function toggleWatch() {
@@ -158,8 +140,11 @@ async function toggleWatch() {
         btn.innerText = "▶️ 자동 감시 시작";
         watchStartTime = null;
     } else {
+        // 감시 시작 시점의 데이터로 먼저 캐싱하여 과거 전적 무시
+        const { data: currentPlayers } = await sb.from('players').select('*');
+        cachedPlayers = currentPlayers || [];
+        
         watchStartTime = Date.now(); 
-        resetHistoryUI(false); 
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         await syncWithRiot();
         autoSyncInterval = setInterval(syncWithRiot, 45000); 
@@ -168,30 +153,51 @@ async function toggleWatch() {
 
 async function syncWithRiot() { 
     try { 
-        const { data: beforeData } = await sb.from('players').select('id, tier').order('created_at', { ascending: true });
-        const lpMapBefore = {};
-        beforeData.forEach(p => {
-            const lpMatch = p.tier?.match(/(\d+)LP/);
-            lpMapBefore[p.id] = lpMatch ? parseInt(lpMatch[1]) : 0;
-        });
+        // 1. 현재 DB 상태 백업
+        const { data: beforeData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        if (!beforeData) return;
 
+        // 2. 동기화 API 호출 (startTime 전달하여 과거 게임 제외)
         const syncUrl = watchStartTime ? `/api/sync?startTime=${watchStartTime}` : `/api/sync`;
         await fetch(syncUrl); 
         
-        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        // 3. 동기화된 최신 데이터 가져오기
+        const { data: afterData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         
-        if (pData) {
-            const toUpdateDiff = [];
-            pData.forEach(newP => {
-                const oldLp = lpMapBefore[newP.id] || 0;
-                const newLpMatch = newP.tier?.match(/(\d+)LP/);
-                const newLp = newLpMatch ? parseInt(newLpMatch[1]) : 0;
-                let diff = newLp - oldLp;
-                toUpdateDiff.push({ id: newP.id, lp_diff: diff >= 0 ? `+${diff}` : `${diff}` });
-            });
-            if (toUpdateDiff.length > 0) await sb.from('players').upsert(toUpdateDiff);
+        const updates = [];
+        afterData.forEach(newP => {
+            const oldP = beforeData.find(p => p.id === newP.id);
+            if (!oldP) return;
+
+            // 승패 횟수 차이 계산
+            const winDiff = (newP.wins || 0) - (oldP.wins || 0);
+            const lossDiff = (newP.losses || 0) - (oldP.losses || 0);
+
+            // 실제로 승리나 패배가 늘어났을 때만 트리거
+            const hasChange = winDiff > 0 || lossDiff > 0;
+            
+            if (hasChange) {
+                updates.push({
+                    id: newP.id,
+                    trigger_cutscene: true,
+                    last_result: winDiff > 0 ? 'win' : 'lose' // 이긴 판이면 정확히 win
+                });
+            }
+
+            // LP 변동폭 업데이트
+            const oldLp = oldP.tier?.match(/(\d+)LP/)?.[1] || 0;
+            const newLp = newP.tier?.match(/(\d+)LP/)?.[1] || 0;
+            const diff = parseInt(newLp) - parseInt(oldLp);
+            if (diff !== 0) {
+                updates.push({ id: newP.id, lp_diff: diff > 0 ? `+${diff}` : `${diff}` });
+            }
+        });
+
+        if (updates.length > 0) {
+            await sb.from('players').upsert(updates);
         }
-        mergeRebuild(pData || []); 
+
+        mergeRebuild(afterData); 
     } catch (e) { console.error("동기화 실패:", e); } 
 }
 
@@ -204,27 +210,23 @@ function mergeRebuild(dbData) {
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
 
+        // 티어 자동 동기화 (수정 체크 안 된 경우만)
         const tCheck = card.querySelector('.tier-override');
         const lCheck = card.querySelector('.lp-override');
-        if (tCheck && !tCheck.checked && lCheck && !lCheck.checked) {
+        if (!tCheck?.checked && !lCheck?.checked && dbPlayer.tier) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
-            if (dbPlayer.tier) {
-                const tierPart = dbPlayer.tier.split(' - ')[0]; 
-                const lpMatch = dbPlayer.tier.match(/(\d+)LP/);
-                const engTier = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart);
-                if (engTier) {
-                    tSelect.value = engTier;
-                    lInput.value = lpMatch ? lpMatch[1] : "";
-                    tSelect.setAttribute('data-tier', TIER_MAP[engTier]);
-                } else if (dbPlayer.tier.includes("언랭크")) {
-                    tSelect.value = "UNRANKED";
-                    lInput.value = "";
-                    tSelect.setAttribute('data-tier', "언랭크");
-                }
+            const tierPart = dbPlayer.tier.split(' - ')[0]; 
+            const lpMatch = dbPlayer.tier.match(/(\d+)LP/);
+            const engTier = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart);
+            if (engTier) {
+                tSelect.value = engTier;
+                lInput.value = lpMatch ? lpMatch[1] : "";
+                tSelect.setAttribute('data-tier', TIER_MAP[engTier]);
             }
         }
 
+        // 전적 UI 업데이트
         const items = card.querySelectorAll('.history-item');
         let wCount = 0, lCount = 0;
         items.forEach((item, idx) => {
@@ -238,10 +240,8 @@ function mergeRebuild(dbData) {
                     btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
                 } else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
                     btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
-                } else if (['remake', 'remake_loss', 'remake_win'].includes(dbRes)) {
-                    btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; champInp.value = ''; 
                 }
-                if (!['remake', 'remake_loss', 'remake_win'].includes(dbRes) && dbChamp && dbChamp !== 'None') {
+                if (dbChamp && dbChamp !== 'None') {
                     champInp.value = getChampNameById(dbChamp);
                 }
             }
@@ -271,21 +271,15 @@ function createMemberCard(team, data = null) {
     for(let i=0; i<10; i++) {
         const res = data?.recent?.[i] || 'ing';
         const resText = res === 'win' ? '😁 승리' : (res === 'lose' ? '😡 패배' : '🕒 진행');
-        let rawChamp = data?.champions?.[i];
-        let champDisp = getChampNameById(rawChamp);
+        let champDisp = getChampNameById(data?.champions?.[i]);
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
     
     let curTierEng = "UNRANKED", curLP = "";
     if (data?.tier) {
-        if (data.tier.includes("언랭크")) {
-            curTierEng = "UNRANKED";
-            curLP = "";
-        } else {
-            const tierPart = data.tier.split(' - ')[0];
-            curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
-            curLP = data.tier.match(/(\d+)LP/)?.[1] || "";
-        }
+        const tierPart = data.tier.split(' - ')[0];
+        curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
+        curLP = data.tier.match(/(\d+)LP/)?.[1] || "";
     }
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
@@ -363,49 +357,26 @@ async function applyToSupabase() {
         card.querySelectorAll('.history-item').forEach(item => {
             const btn = item.querySelector('.btn-toggle');
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
-            let korChamp = item.querySelector('.champ-input').value.trim();
-            champs.push(getChampIdByName(korChamp)); // 내부저장은 영어ID
+            champs.push(getChampIdByName(item.querySelector('.champ-input').value.trim()));
         });
 
-        const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
-        let finalTierStr = "언랭크";
-        if (isManual) {
-            const tEng = card.querySelector('.tier-select').value;
-            const lpVal = card.querySelector('.lp-input').value.trim();
-            finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
-        } else {
-            finalTierStr = dbP ? dbP.tier : "언랭크";
-        }
-
-        // 컷신 로직 개선: 이전 Wins/Losses와 비교하여 변동이 있을 때만 트리거
         const curW = Number(card.querySelector('.win-val').value);
         const curL = Number(card.querySelector('.lose-val').value);
         const hasNewWin = dbP && curW > (dbP.wins || 0);
         const hasNewLoss = dbP && curL > (dbP.losses || 0);
 
         toUpdate.push({ 
-            "id": cardUuid, 
-            "name": name, 
-            "team": card.dataset.team, 
-            "riot_id": card.querySelector('.nick-riot').value.trim(), 
-            "tier": finalTierStr, 
-            "manual_tier": isManual, 
-            "wins": curW, 
-            "losses": curL, 
-            "recent": recent, 
-            "champions": champs, 
+            "id": cardUuid, "name": name, "team": card.dataset.team, 
+            "wins": curW, "losses": curL, "recent": recent, "champions": champs, 
             "trigger_cutscene": hasNewWin || hasNewLoss,
             "last_result": hasNewWin ? 'win' : (hasNewLoss ? 'lose' : null)
         });
     }
 
     try {
-        await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
-        if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
-        alert('✅ 송출 화면 반영 완료!');
-        // 반영 후 최신 데이터로 캐시 업데이트
-        const { data: refreshed } = await sb.from('players').select('*').order('created_at', { ascending: true });
-        cachedPlayers = refreshed || [];
+        await sb.from('players').upsert(toUpdate);
+        alert('✅ 반영 완료!');
+        loadData();
     } catch (e) { console.error(e); } finally {
         applyBtn.innerText = originalText;
         applyBtn.disabled = false;
