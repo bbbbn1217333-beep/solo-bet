@@ -122,7 +122,6 @@ async function initChampMap() {
     } catch (e) { console.error("챔피언 로드 실패:", e); }
 }
 
-// 화면 UI 초기화 로직 (true 시 진행 중인 정보는 보존)
 function resetHistoryUI(keepIngData = false) {
     const cards = document.querySelectorAll('.member-card');
     cards.forEach(card => {
@@ -130,7 +129,6 @@ function resetHistoryUI(keepIngData = false) {
         items.forEach(item => {
             const btn = item.querySelector('.btn-toggle');
             const input = item.querySelector('.champ-input');
-            // 승/패 확정된 것들만 골라서 초기화
             if (!keepIngData || (!btn.classList.contains('win') && !btn.classList.contains('lose'))) {
                 btn.innerText = '🕒 진행';
                 btn.className = 'btn-toggle ing';
@@ -157,11 +155,8 @@ async function toggleWatch() {
     }
 }
 
-// ... (상단 변수 및 initChampMap, resetHistoryUI, toggleWatch 함수는 동일)
-
 async function syncWithRiot() { 
     try { 
-        // 1. 현재 DB의 최신 상태를 먼저 가져와서 비교군 생성
         const { data: beforeData } = await sb.from('players').select('id, tier').order('created_at', { ascending: true });
         const lpMapBefore = {};
         beforeData.forEach(p => {
@@ -172,7 +167,6 @@ async function syncWithRiot() {
         const syncUrl = watchStartTime ? `/api/sync?startTime=${watchStartTime}` : `/api/sync`;
         await fetch(syncUrl); 
         
-        // 2. 동기화 후 업데이트된 데이터 가져오기
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         
         if (pData) {
@@ -181,23 +175,11 @@ async function syncWithRiot() {
                 const oldLp = lpMapBefore[newP.id] || 0;
                 const newLpMatch = newP.tier?.match(/(\d+)LP/);
                 const newLp = newLpMatch ? parseInt(newLpMatch[1]) : 0;
-                
                 let diff = newLp - oldLp;
-                let diffStr = diff >= 0 ? `+${diff}` : `${diff}`;
-
-                toUpdateDiff.push({
-                    id: newP.id,
-                    lp_diff: diffStr
-                });
+                toUpdateDiff.push({ id: newP.id, lp_diff: diff >= 0 ? `+${diff}` : `${diff}` });
             });
-
-            // 3. 계산된 lp_diff만 빠르게 DB에 업데이트 (최적화 규칙 준수)
-            if (toUpdateDiff.length > 0) {
-                await sb.from('players').upsert(toUpdateDiff);
-            }
+            if (toUpdateDiff.length > 0) await sb.from('players').upsert(toUpdateDiff);
         }
-
-        // 4. UI 갱신
         mergeRebuild(pData || []); 
     } catch (e) { console.error("동기화 실패:", e); } 
 }
@@ -211,25 +193,19 @@ function mergeRebuild(dbData) {
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
 
-        // [수정] 티어/LP 화면 동기화 로직
+        // [티어 동기화]
         const tCheck = card.querySelector('.tier-override');
         const lCheck = card.querySelector('.lp-override');
-        
-        // 수동 수정이 아닐 때만 DB 값으로 덮어쓰기
         if (tCheck && !tCheck.checked && lCheck && !lCheck.checked) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
-            
             if (dbPlayer.tier) {
                 const tierPart = dbPlayer.tier.split(' - ')[0]; 
                 const lpMatch = dbPlayer.tier.match(/(\d+)LP/);
-                const lpPart = lpMatch ? lpMatch[1] : "";
-
                 const engTier = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart);
-                
                 if (engTier) {
                     tSelect.value = engTier;
-                    lInput.value = lpPart;
+                    lInput.value = lpMatch ? lpMatch[1] : "";
                     tSelect.setAttribute('data-tier', TIER_MAP[engTier]);
                 } else if (dbPlayer.tier.includes("언랭크")) {
                     tSelect.value = "UNRANKED";
@@ -239,10 +215,9 @@ function mergeRebuild(dbData) {
             }
         }
 
-        // [수정] 전적 및 챔피언 정보 동기화 로직
+        // [전적 동기화]
         const items = card.querySelectorAll('.history-item');
         let wCount = 0, lCount = 0;
-        
         items.forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
             const champInp = item.querySelector('.champ-input');
@@ -251,72 +226,19 @@ function mergeRebuild(dbData) {
 
             if (btn.classList.contains('ing')) {
                 if (dbRes === 'win') {
-                    btn.innerText = '😁 승리';
-                    btn.className = 'btn-toggle win';
+                    btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
                 } else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
-                    btn.innerText = '😡 패배';
-                    btn.className = 'btn-toggle lose';
+                    btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
                 } else if (['remake', 'remake_loss', 'remake_win'].includes(dbRes)) {
-                    btn.innerText = '🕒 진행';
-                    btn.className = 'btn-toggle ing';
-                    champInp.value = ''; 
+                    btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; champInp.value = ''; 
                 }
-
                 if (!['remake', 'remake_loss', 'remake_win'].includes(dbRes) && dbChamp && dbChamp !== 'None') {
                     champInp.value = idToNameMap[dbChamp] || dbChamp;
                 }
             }
-
             if (btn.innerText.includes('승리')) wCount++;
             if (btn.innerText.includes('패배')) lCount++;
         });
-
-        card.querySelector('.win-val').value = wCount;
-        card.querySelector('.lose-val').value = lCount;
-    });
-}
-// ... (이하 createMemberCard, applyToSupabase 등 나머지 함수는 기존과 동일)
-
-        const items = card.querySelectorAll('.history-item');
-        let wCount = 0, lCount = 0;
-        
-        items.forEach((item, idx) => {
-            const btn = item.querySelector('.btn-toggle');
-            const champInp = item.querySelector('.champ-input');
-            const dbRes = dbPlayer.recent?.[idx];
-            const dbChamp = dbPlayer.champions?.[idx];
-
-            if (btn.classList.contains('ing')) {
-                if (dbRes === 'win') {
-                    btn.innerText = '😁 승리';
-                    btn.className = 'btn-toggle win';
-                } 
-                // 본인 탈주 패배(leaver_loss) 또는 일반 패배(lose)만 패배 처리
-                else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
-                    btn.innerText = '😡 패배';
-                    btn.className = 'btn-toggle lose';
-                }
-                // 본인 탈주가 아닌 모든 다시하기성 판정은 무효화(챔피언 삭제)
-                else if (['remake', 'remake_loss', 'remake_win'].includes(dbRes)) {
-                    btn.innerText = '🕒 진행';
-                    btn.className = 'btn-toggle ing';
-                    champInp.value = ''; 
-                }
-                else if (dbRes === 'ing') {
-                    btn.innerText = '🕒 진행';
-                    btn.className = 'btn-toggle ing';
-                }
-
-                // 무효판이 아닐 때만 챔피언 이름 갱신
-                if (!['remake', 'remake_loss', 'remake_win'].includes(dbRes) && dbChamp && dbChamp !== 'None') {
-                    champInp.value = idToNameMap[dbChamp] || dbChamp;
-                }
-            }
-
-            if (btn.innerText.includes('승리')) wCount++;
-            if (btn.innerText.includes('패배')) lCount++;
-        });
-
         card.querySelector('.win-val').value = wCount;
         card.querySelector('.lose-val').value = lCount;
     });
@@ -415,17 +337,15 @@ async function applyToSupabase() {
     applyBtn.disabled = true;
 
     watchStartTime = Date.now();
-    resetHistoryUI(true); // 진행 중인 챔피언 정보만 보존하고 나머지는 초기화
+    resetHistoryUI(true); 
 
     const toUpdate = []; 
     const cards = document.querySelectorAll('.member-card');
     
-    // [최적화] 모든 유저 정보를 한 번에 배열로 수집
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
         if (!name) continue;
         const cardUuid = card.dataset.uuid;
-
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
             const btn = item.querySelector('.btn-toggle');
@@ -434,24 +354,20 @@ async function applyToSupabase() {
             const engKey = Object.keys(champNameMap).find(key => champNameMap[key] === rawChamp);
             champs.push(engKey || rawChamp);
         });
-
         const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
-        let finalTierStr = card.dataset.existingTier || "언랭크";
+        let finalTierStr = "언랭크";
         if (isManual) {
             const tEng = card.querySelector('.tier-select').value;
             const lpVal = card.querySelector('.lp-input').value.trim();
             finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
+        } else {
+            const dbP = cachedPlayers.find(p => p.id === cardUuid);
+            finalTierStr = dbP ? dbP.tier : "언랭크";
         }
-
-        toUpdate.push({
-            "id": cardUuid, "name": name, "team": card.dataset.team, "riot_id": card.querySelector('.nick-riot').value.trim(),
-            "tier": finalTierStr, "manual_tier": isManual, "wins": Number(card.querySelector('.win-val').value), "losses": Number(card.querySelector('.lose-val').value),
-            "recent": recent, "champions": champs, "trigger_cutscene": false
-        });
+        toUpdate.push({ "id": cardUuid, "name": name, "team": card.dataset.team, "riot_id": card.querySelector('.nick-riot').value.trim(), "tier": finalTierStr, "manual_tier": isManual, "wins": Number(card.querySelector('.win-val').value), "losses": Number(card.querySelector('.lose-val').value), "recent": recent, "champions": champs, "trigger_cutscene": false });
     }
 
     try {
-        // [최적화] 한 번의 upsert API 호출로 모든 데이터를 업데이트
         await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
         if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
         alert('✅ 송출 화면 반영 완료!');
