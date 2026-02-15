@@ -226,7 +226,7 @@ function updateTimer() {
     const diff = new Date(settings.timer_end_at) - new Date();
     const el = document.getElementById('timer-display-score');
     if (!el) return;
-    if (diff <= 0) { el.innerHTML = "⏰ <span style='color:#ffd369;'>내기 종료!!!</span>"; return; }
+    if (diff <= 0) { el.innerHTML = "⏰ <span style='color:#ffd369;'>솔랭 내기 종료!!!</span>"; return; }
     const h=String(Math.floor(diff/3600000)).padStart(2,'0'), m=String(Math.floor((diff%3600000)/60000)).padStart(2,'0'), s=String(Math.floor((diff%60000)/1000)).padStart(2,'0');
     el.innerHTML = `⏰ <span class="timer-nums">${h}:${m}:${s}</span>`;
 }
