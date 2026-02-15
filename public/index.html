@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* 기존 스타일 유지 */
+/* 스타일 유지 및 티어 색상 선택자 수정 */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -35,17 +35,20 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
-.tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;} 
-.tier.bronze{--t-clr:#cd7f32; color:var(--t-clr) !important;} 
-.tier.silver{--t-clr:#c0c0c0; color:var(--t-clr) !important;} 
-.tier.gold{--t-clr:#ffd700; color:var(--t-clr) !important;} 
-.tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr) !important;} 
-.tier.emerald{--t-clr:#2ecc71; color:var(--t-clr) !important;} 
-.tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr) !important;} 
-.tier.master{--t-clr:#9b59b6; color:var(--t-clr) !important;} 
-.tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr) !important;} 
-.tier.challenger{--t-clr:#f1c40f; color:var(--t-clr) !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);} 
+
+/* 티어별 색상 클래스 (공백 제거 및 정확한 매칭) */
+.tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;}
+.tier.bronze{--t-clr:#cd7f32; color:var(--t-clr) !important;}
+.tier.silver{--t-clr:#c0c0c0; color:var(--t-clr) !important;}
+.tier.gold{--t-clr:#ffd700; color:var(--t-clr) !important;}
+.tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr) !important;}
+.tier.emerald{--t-clr:#2ecc71; color:var(--t-clr) !important;}
+.tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr) !important;}
+.tier.master{--t-clr:#9b59b6; color:var(--t-clr) !important;}
+.tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr) !important;}
+.tier.challenger{--t-clr:#f1c40f; color:var(--t-clr) !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);}
 .tier.unranked{--t-clr:#aaa; color:var(--t-clr) !important;}
+
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
@@ -119,7 +122,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; 
+const LOL_VER = "16.3.1"; // 챔피언 에셋이 가장 안정적인 버전으로 세팅
 
 let champMap = {}; 
 let champIdToKey = {};
@@ -132,7 +135,6 @@ let sceneInterval;
 let isInitialLoad = true; 
 let cutsceneQueue = []; 
 
-const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아몬드':7, '마스터':8, '그랜드':9, '챌린저':10 };
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
 
 function getTierInfo(tierStr) {
@@ -152,7 +154,7 @@ function getTierInfo(tierStr) {
     
     if (cls !== 'unranked') {
         korName = tierStr.replace(new RegExp(cls, 'gi'), TIER_KOR_MAP[cls]);
-        if (cls === 'master' || cls === 'grandmaster' || cls === 'challenger') {
+        if (['master', 'grandmaster', 'challenger'].includes(cls)) {
             korName = korName.replace(/ I(?= -| |$)/, "");
         }
     }
@@ -171,12 +173,18 @@ const fixChamp = c => {
     if(!c || c === 'None' || c === '' || c === 'undefined') return 'None';
     let raw = c.toString().trim();
     if (champIdToKey[raw]) raw = champIdToKey[raw];
-    const lowerRaw = raw.toLowerCase();
+    
+    // 미스 포츈 등 특수 케이스 및 공백 처리
+    const lowerRaw = raw.toLowerCase().replace(/\s+/g, '');
+    if (lowerRaw === '미스포츈' || lowerRaw === 'missfortune') return 'MissFortune';
     if (lowerRaw === '크산테' || lowerRaw === 'ksante' || lowerRaw === "k'sante") return 'KSante';
+    
     const exceptions = { '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai', '누누와 윌럼프': 'Nunu', '누누': 'Nunu' };
     if (exceptions[raw]) return exceptions[raw];
     if (champMap[raw]) return champMap[raw];
-    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    
+    // 공백 제거 후 첫글자 대문자화 (Miss Fortune -> MissFortune)
+    return raw.split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join('');
 };
 
 function renderMainScene(container, filterTeam) {
@@ -197,9 +205,8 @@ function renderMainScene(container, filterTeam) {
                 const isIngame = (r === 'ing' && c !== 'None');
                 const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
                 const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
-                const imgClass = isIngame ? 'ingame' : '';
                 return `<div class="champ">
-                    <img src="${c==='None'?'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7':`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${c}.png`}" class="${imgClass}">
+                    <img src="${c==='None'?'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7':`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${c}.png`}" class="${isIngame?'ingame':''}">
                     <span class="wl-badge ${badgeClass}">${badgeText}</span>
                 </div>`
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
@@ -255,11 +262,8 @@ function setupRealtime() {
         const oldP = prevPlayersState[payload.new.name];
         const newP = payload.new;
 
-        // [수정] 명시적으로 관리자가 trigger_cutscene을 true로 보냈을 때만 컷씬 발생
         if (!isInitialLoad && newP.trigger_cutscene === true) {
-            // 현재 승리 여부 판단 (기존 판수보다 늘었는지)
             const isWin = newP.event_type?.includes('victory') || newP.event_type?.includes('promotion') || (newP.wins > (oldP?.wins || 0));
-            
             cutsceneQueue.push({ 
                 player: newP, 
                 isWin: isWin, 
