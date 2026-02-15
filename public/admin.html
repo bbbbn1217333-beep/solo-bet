@@ -204,7 +204,6 @@ async function syncWithRiot() {
     } catch (e) { console.error("동기화 실패:", e); } 
 }
 
-// [이어서] mergeRebuild 함수의 시작 부분
 function mergeRebuild(dbData) {
     cachedPlayers = dbData;
     const cards = document.querySelectorAll('.member-card');
@@ -214,22 +213,38 @@ function mergeRebuild(dbData) {
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
 
-        // 티어 업데이트 (수동 수정 체크박스가 꺼져있을 때만)
+        // [핵심 수정] 수동 수정 체크박스가 꺼져있을 때만 DB 값으로 화면 갱신
         const tierOverride = card.querySelector('.tier-override');
         if (tierOverride && !tierOverride.checked) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
+            
             if (dbPlayer.tier) {
-                const tierPart = dbPlayer.tier.split(' - ')[0];
-                const lpPart = dbPlayer.tier.match(/(\d+)LP/)?.[1] || "";
+                // DB 예시: "다이아몬드 2 - 45LP" 또는 "언랭크"
+                const tierPart = dbPlayer.tier.split(' - ')[0]; 
+                const lpMatch = dbPlayer.tier.match(/(\d+)LP/);
+                const lpPart = lpMatch ? lpMatch[1] : "";
+
+                // 한글 티어명을 TIER_MAP의 영어 키값으로 역추적
                 const engTier = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart);
+                
                 if (engTier) {
-                    tSelect.value = engTier;
-                    lInput.value = lpPart;
+                    tSelect.value = engTier; // 셀렉트 박스 변경
+                    lInput.value = lpPart;   // LP 인풋창 변경
+                    
+                    // 색상 업데이트를 위해 속성 부여
                     tSelect.setAttribute('data-tier', TIER_MAP[engTier]);
+                } else if (dbPlayer.tier.includes("언랭크")) {
+                    tSelect.value = "UNRANKED";
+                    lInput.value = "";
+                    tSelect.setAttribute('data-tier', "언랭크");
                 }
             }
         }
+
+        // ... (이하 전적/승패 카운트 로직은 그대로 유지)
+    });
+}
 
         const items = card.querySelectorAll('.history-item');
         let wCount = 0, lCount = 0;
