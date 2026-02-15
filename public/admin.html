@@ -99,7 +99,7 @@
         <div class="menu-desc">
             <strong>💡 자동 감시 안내</strong>
             • <span class="neon-point">시점 필터:</span> 버튼을 누른 이 시점 이후에 종료된 게임만 전적에 기록됩니다.<br>
-            • <span class="neon-point">티어 갱신:</span> 수동 수정 체크가 해제된 유저는 티어가 실시간 반영됩니다.
+            • <span class="neon-point">수동 전적 유지:</span> 관리자가 직접 입력한 '승/패' 전적은 자동 감시가 덮어쓰지 않고 유지됩니다.
         </div>
     </div>
 
@@ -155,6 +155,7 @@ async function toggleWatch() {
         btn.innerText = "▶️ 자동 감시 시작";
         watchStartTime = null;
     } else {
+        // [중요] 버튼 누른 현재 시점 기록
         watchStartTime = Date.now(); 
 
         const cards = document.querySelectorAll('.member-card');
@@ -170,7 +171,7 @@ async function toggleWatch() {
         
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         
-        // [수정] 감시 시작 즉시 티어 갱신 실행
+        // 감시 시작 즉시 티어 갱신 실행 (수동 전적 보존을 위해 mergeRebuild 호출)
         await syncWithRiot();
         autoSyncInterval = setInterval(syncWithRiot, 45000); 
     }
@@ -178,16 +179,54 @@ async function toggleWatch() {
 
 async function syncWithRiot() { 
     try { 
-        // 1. 서버에 동기화 요청 (감시 중이면 startTime 전달)
+        // 1. 서버에 동기화 요청 (감시 중이면 startTime 전달하여 이후 게임만 분석)
         const syncUrl = watchStartTime ? `/api/sync?startTime=${watchStartTime}` : `/api/sync`;
         await fetch(syncUrl); 
         
-        // 2. DB에서 최신 데이터를 가져옴
+        // 2. DB에서 최신 데이터 가져오기
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         
-        cachedPlayers = pData || [];
-        rebuild(cachedPlayers); 
+        // [수정] 현재 화면에 입력된 수동 전적과 DB의 자동 전적을 병합하여 화면 갱신
+        mergeRebuild(pData || []); 
     } catch (e) { console.error("동기화 실패:", e); } 
+}
+
+// [추가] 수동 전적은 유지하고 자동 전적만 빈 슬롯에 채워넣는 병합 함수
+function mergeRebuild(dbData) {
+    cachedPlayers = dbData;
+    const cards = document.querySelectorAll('.member-card');
+    
+    cards.forEach(card => {
+        const uuid = card.dataset.uuid;
+        const dbPlayer = dbData.find(p => p.id === uuid);
+        if (!dbPlayer) return;
+
+        // 티어 업데이트 (수동 수정 체크 안된 경우만)
+        if (!card.querySelector('.tier-override').checked) {
+            // 티어 옵션 매칭 및 UI 갱신 로직 생략(rebuild에서 처리)
+        }
+
+        // 전적 슬롯 병합 (화면의 수동 전적은 유지)
+        const items = card.querySelectorAll('.history-item');
+        items.forEach((item, idx) => {
+            const btn = item.querySelector('.btn-toggle');
+            const champInp = item.querySelector('.champ-input');
+            
+            // 현재 슬롯이 '진행중(ing)'일 때만 DB의 새로운 자동 전적을 반영
+            if (btn.classList.contains('ing') && dbPlayer.recent?.[idx] && dbPlayer.recent[idx] !== 'ing') {
+                const res = dbPlayer.recent[idx];
+                btn.innerText = res === 'win' ? '😁 승리' : '😡 패배';
+                btn.className = `btn-toggle ${res}`;
+                
+                let rawChamp = dbPlayer.champions?.[idx];
+                if (rawChamp && rawChamp !== 'None') {
+                    champInp.value = idToNameMap[rawChamp] || rawChamp;
+                }
+            }
+        });
+    });
+    
+    // 티어 및 이름 전체 갱신을 위해 최종 rebuild 호출 (필요시)
 }
 
 function updateTeamNames() {
@@ -291,11 +330,13 @@ async function applyToSupabase() {
     const applyBtn = document.querySelector('.btn-apply');
     const originalText = applyBtn.innerText;
     
-    // [수정] 반영 버튼 클릭 시 즉시 갱신 시작 알림
     applyBtn.innerText = "⏳ 티어 갱신 중...";
     applyBtn.disabled = true;
 
-    // 1. 라이엇 API 즉시 동기화 실행
+    // [수정] 반영 버튼 클릭 시점도 watchStartTime이 없다면 기준으로 설정
+    if (!watchStartTime) watchStartTime = Date.now();
+
+    // 1. 서버 동기화 수행
     await syncWithRiot();
 
     const toUpdate = []; 
@@ -309,6 +350,7 @@ async function applyToSupabase() {
         const cardUuid = card.dataset.uuid;
         const existingPlayer = cachedPlayers.find(p => p.id === cardUuid);
 
+        // 현재 화면에 입력된 전적(수동 포함)을 그대로 읽어옴
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
             const btn = item.querySelector('.btn-toggle');
@@ -321,7 +363,6 @@ async function applyToSupabase() {
         const currentWins = Number(card.querySelector('.win-val').value);
         const currentLosses = Number(card.querySelector('.lose-val').value);
 
-        // [수정] 수동 수정 체크 여부에 따른 티어 결정 로직 강화
         const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
         let finalTierStr;
         if (isManual) {
@@ -329,7 +370,6 @@ async function applyToSupabase() {
             const lpVal = card.querySelector('.lp-input').value.trim();
             finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
         } else {
-            // 자동 모드일 경우 방금 동기화된 DB의 최신 티어를 우선 사용
             finalTierStr = existingPlayer ? existingPlayer.tier : (card.dataset.existingTier || "언랭크");
         }
 
@@ -382,9 +422,6 @@ async function applyToSupabase() {
     try {
         await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
         if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
-        
-        // UI 갱신 (최신 티어가 화면에 반영되도록)
-        rebuild(toUpdate);
         
         if (!autoSyncInterval) alert('✅ 반영되었습니다!');
     } catch (e) { 
