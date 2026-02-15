@@ -6,7 +6,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* 기존 스타일 유지 */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -52,7 +51,6 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
 
-/* 인게임 펄스 애니메이션 */
 @keyframes ingamePulse {
     0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; }
     50% { box-shadow: 0 0 10px #00FFAA; border-color: #fff; }
@@ -60,15 +58,13 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 }
 .champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.1); }
 
-/* 배지 스타일 */
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
 .wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; }
-/* 빈칸(...)일 때 에메랄드색 테두리 배지 */
 .wl-badge.none { color: #2ecc71 !important; border-color: #2ecc71 !important; }
 
-/* 나머지 점수판/결과창 스타일 동일 */
+/* 점수판 및 결과창 스타일 (동일) */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
@@ -124,7 +120,6 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 <div class="scene" id="scene-game-lose"></div>
 
 <script>
-// [생략된 Supabase 및 초기화 코드는 기존과 동일]
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -145,8 +140,7 @@ const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '�
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked')) return { name: '언랭크', class: 'unranked' };
     const t = tierStr.toLowerCase();
-    let cls = 'unranked';
-    let korName = tierStr;
+    let cls = 'unranked', korName = tierStr;
     if (t.includes('challenger')) cls = 'challenger';
     else if (t.includes('grandmaster')) cls = 'grandmaster';
     else if (t.includes('master')) cls = 'master';
@@ -172,18 +166,19 @@ async function initChampMap() {
 const fixChamp = c => {
     if(!c || c === 'None' || c === '' || c === 'undefined') return 'None';
     let raw = c.toString().trim();
-    
-    // 크산테 예외 처리 (파일명이 KSante여야 함)
-    if (raw === '크산테' || raw.toLowerCase() === "k'sante" || raw.toLowerCase() === "ksante") {
-        return 'KSante';
-    }
-
+    const ex = {
+        '크산테': 'KSante', "K'Sante": 'KSante', 'ksante': 'KSante',
+        '르블랑': 'Leblanc', '벨코즈': 'Velkoz',
+        '누누와 윌럼프': 'Nunu', '누누': 'Nunu',
+        '레나타 글라스크': 'Renata', '레나타': 'Renata',
+        '렉사이': 'RekSai', '초가스': 'Chogath', '카직스': 'Khazix'
+    };
+    if (ex[raw]) return ex[raw];
     if (champIdToKey[raw]) return champIdToKey[raw];
     if (champMap[raw]) return champMap[raw];
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
-// [주요 렌더링 수정 로직]
 function renderMainScene(container, filterTeam) {
     const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
     container.innerHTML = `<div class="container">${teams.map(t => {
@@ -200,15 +195,9 @@ function renderMainScene(container, filterTeam) {
                 const c = fixChamp(p.champions ? p.champions[i] : 'None');
                 const isResult = (r === 'win' || r === 'lose');
                 const isIngame = (r === 'ing' && c !== 'None');
-                
-                // 텍스트 결정
                 const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
-                // 배지 클래스 결정 (none 클래스가 에메랄드색)
                 const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
-                
-                // 챔피언 칸 이미지 클래스 (인게임일 때만 애니메이션 테두리)
                 const imgClass = isIngame ? 'ingame' : '';
-
                 return `<div class="champ">
                     <img src="${c==='None'?'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7':`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${c}.png`}" class="${imgClass}">
                     <span class="wl-badge ${badgeClass}">${badgeText}</span>
@@ -216,7 +205,6 @@ function renderMainScene(container, filterTeam) {
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
 }
 
-// [이하 기존과 동일한 로직]
 async function triggerCutscene(player, isWin, kdaText = "0/0/0", autoEvent = null) {
     if (!normalCycle) return;
     normalCycle = false;
