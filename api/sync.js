@@ -3,6 +3,21 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// 티어 한글 변환용 객체
+const TIER_KR = {
+  'CHALLENGER': '챌린저',
+  'GRANDMASTER': '그랜드마스터',
+  'MASTER': '마스터',
+  'DIAMOND': '다이아몬드',
+  'EMERALD': '에메랄드',
+  'PLATINUM': '플래티넘',
+  'GOLD': '골드',
+  'SILVER': '실버',
+  'BRONZE': '브론즈',
+  'IRON': '아이언',
+  'UNRANKED': '언랭크'
+};
+
 module.exports = async (req, res) => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
@@ -22,7 +37,7 @@ module.exports = async (req, res) => {
         if (!player.riot_id?.includes('#')) continue;
         const [name, tag] = player.riot_id.split('#');
 
-        // 1. PUUID 확인 (캐싱 적용)
+        // 1. PUUID 확인 (캐싱)
         let puuid = player.puuid; 
         if (!puuid) {
           const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?api_key=${riotKey}`);
@@ -33,44 +48,41 @@ module.exports = async (req, res) => {
           await delay(100);
         }
 
-        // 2. 인게임 감지 및 상태 확인
+        // 2. 인게임 및 매치 ID 확인
         const specRes = await fetch(`https://kr.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}?api_key=${riotKey}`);
         let liveChamp = null;
         let isNowIngame = false;
-
         if (specRes.ok) {
           const specData = await specRes.json();
           const me = specData.participants?.find(p => p.puuid === puuid);
-          if (me) {
-            liveChamp = me.championId;
-            isNowIngame = true;
-          }
+          if (me) { liveChamp = me.championId; isNowIngame = true; }
         }
 
         const matchIdRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=1&api_key=${riotKey}`);
         const matchIds = await matchIdRes.json();
-        const currentMatchId = matchIds[0];
+        const currentMatchId = (matchIds && matchIds.length > 0) ? matchIds[0] : player.last_match_id;
 
-        let pUpdate = { 
-          id: player.id, 
-          puuid: puuid, 
-          is_ingame: isNowIngame, // 인게임 상태 업데이트
-          trigger_cutscene: false 
-        };
+        let pUpdate = { id: player.id, puuid: puuid, is_ingame: isNowIngame, trigger_cutscene: false };
 
-        // 3. 티어 및 전적 정산 조건
-        // - 게임이 새로 끝났거나 (Match ID 변경)
-        // - 아직 티어 정보가 없거나 (초기 실행)
+        // 3. 티어 및 정산 판단 로직
         const isMatchChanged = currentMatchId && currentMatchId !== player.last_match_id;
-        const isFirstTime = !player.tier || player.tier === "UNRANKED";
+        
+        // 티어가 없거나, 언랭크이거나, NULL인 경우 체크 (한글/영어 모두 대응)
+        const checkTier = player.tier ? player.tier.toUpperCase() : "";
+        const isFirstTime = !checkTier || checkTier.includes("UNRANKED") || checkTier.includes("언랭크") || checkTier === "NULL";
 
         if (isMatchChanged || isFirstTime) {
-          // 티어 정보 조회
           const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${riotKey}`);
           const leagues = await leagueRes.json();
-          const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5') || { tier: 'UNRANKED', rank: '', leaguePoints: 0 };
+          const solo = Array.isArray(leagues) ? leagues.find(l => l.queueType === 'RANKED_SOLO_5x5') : null;
           
-          pUpdate.tier = player.manual_tier ? player.tier : `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`.trim();
+          if (solo) {
+            const krTier = TIER_KR[solo.tier] || solo.tier;
+            const hasRank = !['CHALLENGER', 'GRANDMASTER', 'MASTER'].includes(solo.tier);
+            pUpdate.tier = player.manual_tier ? player.tier : `${krTier}${hasRank ? ' ' + solo.rank : ''} (${solo.leaguePoints}LP)`;
+          } else {
+            pUpdate.tier = player.manual_tier ? player.tier : "언랭크";
+          }
 
           // 게임 종료 정산
           if (isMatchChanged) {
@@ -103,7 +115,6 @@ module.exports = async (req, res) => {
             }
           }
         } else {
-          // 평시(게임 중이거나 대기 중) - 티어 조회 생략하여 API 아낌
           pUpdate.tier = player.tier;
           if (isNowIngame && liveChamp) {
             const newChamps = [...(player.champions || Array(10).fill("None"))];
@@ -114,12 +125,11 @@ module.exports = async (req, res) => {
         }
 
         updateData.push(pUpdate);
-        await delay(250); // 라이엇 API 호출 간격 마진
+        await delay(250);
 
       } catch (e) { console.error(player.name, "에러:", e); }
     }
 
-    // [중요] 한 번에 업데이트 (Consolidated Update)
     if (updateData.length > 0) {
       await supabase.from('players').upsert(updateData);
     }
