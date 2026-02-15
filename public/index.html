@@ -245,34 +245,30 @@ async function runCutscene(player, isWin, kdaText, autoEvent) {
         normalCycle = true; 
         sIdx = 0; 
         document.getElementById('scene-all').classList.add('active'); 
-        sceneInterval = setInterval(nextScene, 8000); // 메인 사이클 8초로 복귀
+        sceneInterval = setInterval(nextScene, 8000); 
         processCutsceneQueue(); 
-    }, 6000); // 이벤트 컷씬 6초 노출
+    }, 6000); 
 }
 
 function setupRealtime() {
     sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
         const oldP = prevPlayersState[payload.new.name];
         const newP = payload.new;
-        if (isInitialLoad || !oldP) {
-            prevPlayersState[newP.name] = { ...newP };
-            loadData();
-            return;
-        }
-        if (oldP.wins !== newP.wins || oldP.losses !== newP.losses) {
-            let autoEvent = null;
-            const isWin = newP.wins > (oldP.wins || 0);
-            const oldMain = (oldP.tier || "").split(' ')[0], newMain = (newP.tier || "").split(' ')[0];
-            const oldStep = parseInt((oldP.tier || "").replace(/[^0-9]/g, "")), newStep = parseInt((newP.tier || "").replace(/[^0-9]/g, ""));
-            if (tierWeight[newMain] > tierWeight[oldMain]) autoEvent = 'promotion_major';
-            else if (tierWeight[newMain] < tierWeight[oldMain]) autoEvent = 'demotion';
-            else if (newMain === oldMain && !isNaN(oldStep) && !isNaN(newStep)) {
-                if (newStep < oldStep) autoEvent = 'promotion';
-                else if (newStep > oldStep) autoEvent = 'demotion';
-            }
-            cutsceneQueue.push({ player: newP, isWin, kdaText: newP.last_kda || "0/0/0", autoEvent });
+
+        // [수정] 명시적으로 관리자가 trigger_cutscene을 true로 보냈을 때만 컷씬 발생
+        if (!isInitialLoad && newP.trigger_cutscene === true) {
+            // 현재 승리 여부 판단 (기존 판수보다 늘었는지)
+            const isWin = newP.event_type?.includes('victory') || newP.event_type?.includes('promotion') || (newP.wins > (oldP?.wins || 0));
+            
+            cutsceneQueue.push({ 
+                player: newP, 
+                isWin: isWin, 
+                kdaText: newP.last_kda || "0/0/0", 
+                autoEvent: newP.event_type 
+            });
             processCutsceneQueue();
         }
+
         prevPlayersState[newP.name] = { ...newP };
         loadData();
     }).on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData).subscribe();
@@ -329,8 +325,8 @@ async function start() {
     await loadData(); 
     setupRealtime(); 
     setInterval(updateTimer, 1000); 
-    sceneInterval = setInterval(nextScene, 8000); // 메인 사이클 8초 설정
-    setTimeout(() => { isInitialLoad = false; console.log("실시간 컷씬 감시 시작!"); }, 10000);
+    sceneInterval = setInterval(nextScene, 8000); 
+    setTimeout(() => { isInitialLoad = false; console.log("실시간 컷씬 감시 시작!"); }, 5000);
 }
 start();
 </script>
