@@ -26,7 +26,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .info-line{display:flex; justify-content:center; align-items:baseline; gap:6px; margin-bottom:8px; white-space:nowrap;}
 .name{font-family:'Orbitron',sans-serif; font-size:15px; font-weight:800; flex-shrink: 0;}
 
-/* [중요] 티어 공통 스타일 및 색상 설정 */
+/* 티어 공통 스타일 */
 .tier{font-size:13px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}
 .tier.iron { color: #a19d94 !important; }
 .tier.bronze { color: #cd7f32 !important; }
@@ -46,20 +46,23 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
 
-/* 하단 챔피언 히스토리 */
+/* 하단 챔피언 히스토리 및 테두리 복구 */
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
-.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.2); }
-@keyframes ingamePulse { 0% { box-shadow: 0 0 2px #00FFAA; } 50% { box-shadow: 0 0 12px #00FFAA; } 100% { box-shadow: 0 0 2px #00FFAA; } }
+
+/* [복구] 진행 중(ingame)일 때 에메랄드 테두리 효과 */
+.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #2ecc71 !important; filter: brightness(1.1); }
+@keyframes ingamePulse { 0% { box-shadow: 0 0 2px #2ecc71; } 50% { box-shadow: 0 0 10px #2ecc71; } 100% { box-shadow: 0 0 2px #2ecc71; } }
+
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
-.wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; }
+.wl-badge.ing { color: #2ecc71 !important; border-color: #2ecc71 !important; }
 
-/* 스코어보드 및 기타 애니메이션 (기존 코드 유지) */
+/* 스코어보드 스타일 */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
-.timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
+.timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #2ecc71; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
 .vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
 .score-wrap{display:flex; justify-content:center; gap:140px;}
@@ -73,38 +76,26 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 <div class="scene" id="scene-red"></div>
 <div class="scene" id="scene-blue"></div>
 <div class="scene" id="scene-score"></div>
-<div class="scene" id="scene-game-win"></div>
-<div class="scene" id="scene-game-lose"></div>
 
 <script>
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; 
+const LOL_VER = "14.3.1"; // 챔피언 이미지를 위한 안정적인 버전
 
 let champMap = {}; 
 let champIdToKey = {};
 let players = [];
-let prevPlayersState = {}; 
 let settings = {};
 let sIdx = 0;
 let normalCycle = true;
-let sceneInterval;
-let isInitialLoad = true; 
 
-/**
- * [수정된 핵심 함수] 
- * 한글 티어명을 분석하여 적절한 CSS 클래스를 반환합니다.
- */
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.trim() === "" || tierStr.includes('언랭크') || tierStr.toLowerCase().includes('unranked')) {
         return { name: '언랭크', class: 'unranked' };
     }
-
     const t = tierStr.toLowerCase();
     let cls = 'unranked';
-    
-    // 1. 클래스 판정 (한글/영어 모두 대응)
     if (t.includes('challenger') || t.includes('챌린저')) cls = 'challenger';
     else if (t.includes('grandmaster') || t.includes('그랜드')) cls = 'grandmaster';
     else if (t.includes('master') || t.includes('마스터')) cls = 'master';
@@ -115,13 +106,10 @@ function getTierInfo(tierStr) {
     else if (t.includes('silver') || t.includes('실버')) cls = 'silver';
     else if (t.includes('bronze') || t.includes('브론즈')) cls = 'bronze';
     else if (t.includes('iron') || t.includes('아이언')) cls = 'iron';
-
-    // 2. 출력용 이름 처리 (마스터 이상 로마자 제거 등)
     let displayName = tierStr;
     if (['master', 'grandmaster', 'challenger'].includes(cls)) {
         displayName = displayName.replace(/ I(?= -| |$)/, "");
     }
-
     return { name: displayName, class: cls };
 }
 
@@ -129,23 +117,39 @@ async function initChampMap() {
     try {
         const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/data/ko_KR/champion.json`);
         const json = await res.json();
-        Object.values(json.data).forEach(champ => { champMap[champ.name] = champ.id; champIdToKey[champ.key] = champ.id; });
+        Object.values(json.data).forEach(champ => { 
+            champMap[champ.name] = champ.id; 
+            champIdToKey[champ.key] = champ.id; 
+        });
     } catch (e) { console.error(e); }
 }
 
 const fixChamp = c => {
     if(!c || c === 'None' || c === '' || c === 'undefined') return 'None';
     let raw = c.toString().trim();
-    if (champIdToKey[raw]) raw = champIdToKey[raw];
-    const exceptions = { '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai', '누누와 윌럼프': 'Nunu' };
+    
+    // 1. Key(숫자)인 경우 매핑
+    if (champIdToKey[raw]) return champIdToKey[raw];
+    
+    // 2. 특수 예외 처리 (이미지 파일명 불일치 해결)
+    const exceptions = { 
+        '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai', 
+        '누누와 윌럼프': 'Nunu', '미스 포츈': 'MissFortune', '미스포츈': 'MissFortune',
+        '카이사': 'Kaisa', '초가스': 'Chogath', '카직스': 'Khazix',
+        '코그모': 'KogMaw', '문도 박사': 'DrMundo', '자르반 4세': 'JarvanIV'
+    };
     if (exceptions[raw]) return exceptions[raw];
+    
+    // 3. 한글 이름 매핑
     if (champMap[raw]) return champMap[raw];
-    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    
+    // 4. 영어 이름 처리 (공백 및 특수문자 제거 후 첫글자 대문자)
+    let engName = raw.replace(/[^a-zA-Z]/g, '');
+    return engName.charAt(0).toUpperCase() + engName.slice(1).toLowerCase();
 };
 
 function renderMainScene(container, filterTeam) {
     const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
-    
     container.innerHTML = `<div class="container">${teams.map(t => {
         const teamPlayers = players.filter(p => p.team === t);
         const tW = teamPlayers.reduce((a,b)=>a+(b.wins||0),0), tL = teamPlayers.reduce((a,b)=>a+(b.losses||0),0);
@@ -153,11 +157,9 @@ function renderMainScene(container, filterTeam) {
         ${teamPlayers.map(p => {
             const level = Math.min(Math.abs(p.streak), 5);
             const streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
-            const tInfo = getTierInfo(p.tier); // [핵심] 여기서 클래스와 이름을 가져옴
-            
-            let icon = p.streak>=3?'<span class="status-icon crown-glow">👑</span>':(p.streak<=-3?'<span class="status-icon skull-shake">💀</span>':'');
+            const tInfo = getTierInfo(p.tier);
+            let icon = p.streak>=3?'<span class="status-icon">👑</span>':(p.streak<=-3?'<span class="status-icon">💀</span>':'');
             let sText = p.streak > 0 ? (p.streak === 1 ? '1승중' : p.streak + '연승') : (p.streak < 0 ? (p.streak === -1 ? '1패중' : Math.abs(p.streak) + '연패') : '');
-            
             return `<div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">${icon}<div class="info-line"><span class="name">${p.name}</span>
             <span class="tier ${tInfo.class}">${tInfo.name}</span>
             <div class="record"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div>${sText?`<span class="streak ${p.streak>0?'win':'lose'}">${sText}</span>`:''}</div><div class="history">
@@ -174,7 +176,6 @@ function renderMainScene(container, filterTeam) {
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
 }
 
-// 이하 데이터 로드 및 씬 전환 로직 (기본 동일)
 async function loadData() {
     try {
         const { data: sData } = await sb.from('settings').select('*');
@@ -204,7 +205,7 @@ function renderAll() {
 
 function nextScene() { 
     if(!normalCycle) return; 
-    const sc = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue'), document.getElementById('scene-score')]; 
+    const sc = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue')]; 
     sc.forEach(s=>s.classList.remove('active')); 
     sIdx=(sIdx+1)%sc.length; 
     sc[sIdx].classList.add('active'); 
@@ -214,7 +215,7 @@ async function start() {
     await initChampMap(); 
     await loadData(); 
     sb.channel('db_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData).subscribe();
-    sceneInterval = setInterval(nextScene, 8000); 
+    setInterval(nextScene, 8000); 
 }
 start();
 </script>
