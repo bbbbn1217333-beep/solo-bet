@@ -1,12 +1,18 @@
 const { createClient } = require('@supabase/supabase-js');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
+// [추가] 영문 티어를 한글로 매핑하는 테이블
+const TIER_KOR = {
+  "CHALLENGER": "챌린저", "GRANDMASTER": "그랜드마스터", "MASTER": "마스터",
+  "DIAMOND": "다이아몬드", "EMERALD": "에메랄드", "PLATINUM": "플래티넘",
+  "GOLD": "골드", "SILVER": "실버", "BRONZE": "브론즈", "IRON": "아이언"
+};
+
 module.exports = async (req, res) => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
   const riotKey = process.env.RIOT_API_KEY;
   
-  // [수정] 관리자 패널에서 보낸 startTime 가져오기
   const { startTime } = req.query;
   const watchTimeLimit = startTime ? parseInt(startTime) : 0;
 
@@ -41,37 +47,35 @@ module.exports = async (req, res) => {
         const matchIds = await matchIdRes.json();
         const currentMatchId = matchIds[0];
 
-// ... (기존 코드 동일)
-
         const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${riotKey}`);
         const leagues = await leagueRes.json();
-        const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5') || { tier: 'UNRANKED', rank: '', leaguePoints: 0 };
+        const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5');
 
-        // [수정 포인트] 티어 문자열 생성 방식 및 manual_tier 상태 유지
-        const apiTierStr = solo.tier === 'UNRANKED' 
-            ? '언랭크' 
-            : `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`.trim();
+        // [핵심수정] 티어 텍스트를 관리자 페이지와 100% 일치시킴
+        let apiTierStr = "언랭크";
+        if (solo) {
+          const korTier = TIER_KOR[solo.tier] || solo.tier;
+          // 마스터 이상은 단계(rank)가 없으므로 별도 처리
+          const hasRank = !['CHALLENGER', 'GRANDMASTER', 'MASTER'].includes(solo.tier);
+          apiTierStr = `${korTier}${hasRank ? ' ' + solo.rank : ''} - ${solo.leaguePoints}LP`;
+        }
 
         let pUpdate = {
           id: player.id,
-          // manual_tier가 true(수동)이면 기존 티어 유지, false(자동)이면 API 티어로 갱신
           tier: player.manual_tier ? player.tier : apiTierStr,
           puuid: puuid,
-          manual_tier: player.manual_tier // 현재 수동 상태를 유지해서 보냄
+          manual_tier: !!player.manual_tier
         };
 
-        // 4. 게임 종료 정산
         if (currentMatchId && currentMatchId !== player.last_match_id) {
           const detailRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${currentMatchId}?api_key=${riotKey}`);
           const detail = await detailRes.json();
           
-          // [핵심 추가] 게임 종료 시간(gameEndTimestamp)이 버튼 누른 시간(watchTimeLimit)보다 이전이면 기록하지 않음
           const gameEndTime = detail.info.gameEndTimestamp; 
           const isNewGame = watchTimeLimit === 0 || gameEndTime > watchTimeLimit;
-
           const me = detail.info?.participants?.find(p => p.puuid === puuid);
 
-          if (me && isNewGame) { // 새 게임일 때만 정산 로직 실행
+          if (me && isNewGame) {
             const isRemake = detail.info.gameDuration < 300 || me.gameEndedInEarlySurrender;
             const newRecent = [...(player.recent || Array(10).fill("ing"))];
             const newChamps = [...(player.champions || Array(10).fill("None"))];
@@ -93,12 +97,13 @@ module.exports = async (req, res) => {
               pUpdate.wins = me.win ? (player.wins + 1) : player.wins;
               pUpdate.losses = !me.win ? (player.losses + 1) : player.losses;
               pUpdate.last_match_id = currentMatchId;
+              
+              // 컷씬 관련 데이터 (점수 변동 노출을 위해 중요)
               pUpdate.trigger_cutscene = true;
               pUpdate.target_champion = me.championName;
               pUpdate.last_kda = `${me.kills}/${me.deaths}/${me.assists}`;
             }
           } else if (me && !isNewGame) {
-            // [추가] 옛날 게임이면 last_match_id만 업데이트해서 다음 감시 때 중복 체크 안 되게 함
             pUpdate.last_match_id = currentMatchId;
           }
         } else if (liveChamp) {
