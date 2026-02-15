@@ -85,7 +85,7 @@
         </div>
         <div class="menu-desc">
             <strong>💡 UI 유지 + 스마트 연동 매뉴얼</strong>
-            • <span class="neon-point">감시 시작 버튼:</span> 클릭한 시점 이후에 끝난 게임만 자동으로 기록됩니다.<br>
+            • <span class="neon-point">감시 시작 버튼:</span> 클릭한 시점 이후에 종료된 게임만 순차적으로 기록됩니다.<br>
             • <span class="neon-point">수동 입력 보존:</span> 이미 작성된 전적 슬롯은 건드리지 않고 비어있는 슬롯부터 자동 갱신됩니다.
         </div>
     </div>
@@ -120,7 +120,7 @@ const TIER_RANK = { "챌린저":30, "그랜드마스터":29, "마스터":28, "�
 let cachedPlayers = [];
 let autoSyncInterval = null; 
 let champNameMap = {}; 
-let watchStartTime = null; // 감시 시작 버튼 누른 시점 저장
+let watchStartTime = null; // 감시 시작 버튼 누른 시점
 
 async function initChampMap() {
     try {
@@ -139,7 +139,7 @@ async function toggleWatch() {
         btn.innerText = "▶️ 자동 감시 시작";
         watchStartTime = null;
     } else {
-        // [수정] 현재 시각을 기록하여 이 이후의 판만 가져오도록 설정
+        // [수정] 버튼 누르는 시점을 기준점으로 설정
         watchStartTime = Date.now();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         syncWithRiot();
@@ -149,8 +149,7 @@ async function toggleWatch() {
 
 async function syncWithRiot() { 
     try { 
-        // [수정] 서버 측에 watchStartTime을 전달하여 이전 게임 무시 로직 작동 (API가 지원한다고 가정)
-        // 만약 API가 지원하지 않더라도 프론트엔드 applyToSupabase에서 시간/필터링 로직이 작동함
+        // 서버 API 호출 시 startTime을 넘겨서 과거 데이터를 가져오지 않도록 제어
         await fetch(`/api/sync?startTime=${watchStartTime}`); 
         await loadData(); 
     } catch (e) { console.error(e); } 
@@ -344,7 +343,6 @@ start();
 </script>
 </body>
 </html>
-
 
 
 
