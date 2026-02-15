@@ -193,7 +193,7 @@ function mergeRebuild(dbData) {
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
 
-        // [티어 동기화]
+        // [티어 동기화] - 수정 체크박스가 해제된 경우에만 덮어쓰기
         const tCheck = card.querySelector('.tier-override');
         const lCheck = card.querySelector('.lp-override');
         if (tCheck && !tCheck.checked && lCheck && !lCheck.checked) {
@@ -267,11 +267,17 @@ function createMemberCard(team, data = null) {
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
     
+    // [초기 로드 시 티어 반영 로직]
     let curTierEng = "UNRANKED", curLP = "";
-    if (data?.tier && !data.tier.includes("언랭크")) {
-        const tierPart = data.tier.split(' - ')[0];
-        curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
-        curLP = data.tier.match(/(\d+)LP/)?.[1] || "";
+    if (data?.tier) {
+        if (data.tier.includes("언랭크")) {
+            curTierEng = "UNRANKED";
+            curLP = "";
+        } else {
+            const tierPart = data.tier.split(' - ')[0];
+            curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
+            curLP = data.tier.match(/(\d+)LP/)?.[1] || "";
+        }
     }
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
