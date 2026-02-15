@@ -36,7 +36,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
 
-/* 티어별 색상 클래스 - 특수문자 제거 완료 */
+/* 티어별 색상 클래스 */
 .tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;}
 .tier.bronze{--t-clr:#cd7f32; color:var(--t-clr) !important;}
 .tier.silver{--t-clr:#c0c0c0; color:var(--t-clr) !important;}
@@ -59,7 +59,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
 .wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; font-size: 9px; }
 .wl-badge.none { color: #00FFAA !important; border-color: #00FFAA !important; background: rgba(0, 255, 170, 0.1); }
-/* 결과 및 스코어보드 스타일 동일하게 유지 */
+
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
@@ -132,30 +132,45 @@ let cutsceneQueue = [];
 
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
 
+/** [수정] 티어 표기법 및 색상 클래스 판별 로직 **/
 function getTierInfo(tierStr) {
-    if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked')) return { name: '언랭크', class: 'unranked' };
-    const t = tierStr.toLowerCase();
-    let cls = 'unranked', korName = tierStr;
-    
-    if (t.includes('challenger')) cls = 'challenger';
-    else if (t.includes('grandmaster')) cls = 'grandmaster';
-    else if (t.includes('master')) cls = 'master';
-    else if (t.includes('diamond')) cls = 'diamond';
-    else if (t.includes('emerald')) cls = 'emerald';
-    else if (t.includes('platinum')) cls = 'platinum';
-    else if (t.includes('gold')) cls = 'gold';
-    else if (t.includes('silver')) cls = 'silver';
-    else if (t.includes('bronze')) cls = 'bronze';
-    else if (t.includes('iron')) cls = 'iron';
-    
-    if (cls !== 'unranked') {
-        korName = tierStr.replace(new RegExp(cls, 'gi'), TIER_KOR_MAP[cls]);
-        // 로마 숫자 -> 아라비아 숫자 변환 (IV -> 4, III -> 3, II -> 2, I -> 1)
-        korName = korName.replace(/\sIV/g, ' 4').replace(/\sIII/g, ' 3').replace(/\sII/g, ' 2').replace(/\sI/g, ' 1');
-        if (['master', 'grandmaster', 'challenger'].includes(cls)) {
-            korName = korName.replace(/\s1(?= -| |$)/, "");
-        }
+    if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked') || tierStr.includes('언랭크')) {
+        return { name: '언랭크', class: 'unranked' };
     }
+
+    const t = tierStr.toLowerCase();
+    let cls = 'unranked';
+    
+    // 색상 클래스 판별
+    if (t.includes('challenger') || t.includes('챌린저')) cls = 'challenger';
+    else if (t.includes('grandmaster') || t.includes('그랜드마스터')) cls = 'grandmaster';
+    else if (t.includes('master') || t.includes('마스터')) cls = 'master';
+    else if (t.includes('diamond') || t.includes('다이아몬드')) cls = 'diamond';
+    else if (t.includes('emerald') || t.includes('에메랄드')) cls = 'emerald';
+    else if (t.includes('platinum') || t.includes('플래티넘')) cls = 'platinum';
+    else if (t.includes('gold') || t.includes('골드')) cls = 'gold';
+    else if (t.includes('silver') || t.includes('실버')) cls = 'silver';
+    else if (t.includes('bronze') || t.includes('브론즈')) cls = 'bronze';
+    else if (t.includes('iron') || t.includes('아이언')) cls = 'iron';
+    
+    // 텍스트 변환 (영어 -> 한글, 로마자 -> 숫자)
+    let korName = tierStr;
+    Object.keys(TIER_KOR_MAP).forEach(eng => {
+        const reg = new RegExp(eng, 'gi');
+        korName = korName.replace(reg, TIER_KOR_MAP[eng]);
+    });
+
+    // 로마자 -> 숫자 변환 (순서가 중요함)
+    korName = korName.replace(/\sIV/g, ' 4')
+                     .replace(/\sIII/g, ' 3')
+                     .replace(/\sII/g, ' 2')
+                     .replace(/\sI(?=\s|-|$)/g, ' 1');
+
+    // 마스터 이상급 뒤의 숫자 1 제거 (예: 마스터 1 -> 마스터)
+    if (['master', 'grandmaster', 'challenger'].includes(cls)) {
+        korName = korName.replace(/\s1(?=\s|-|$)/g, "");
+    }
+
     return { name: korName, class: cls };
 }
 
