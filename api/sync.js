@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
         if (!player.riot_id?.includes('#')) continue;
         const [name, tag] = player.riot_id.split('#');
 
-        // 1. PUUID 확인 (없으면 가져오기)
+        // 1. PUUID 확인 (캐싱 적용)
         let puuid = player.puuid; 
         if (!puuid) {
           const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?api_key=${riotKey}`);
@@ -33,34 +33,46 @@ module.exports = async (req, res) => {
           await delay(100);
         }
 
-        // 2. 상태 체크 (인게임 & 최근 매치 ID)
+        // 2. 인게임 감지 및 상태 확인
         const specRes = await fetch(`https://kr.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}?api_key=${riotKey}`);
         let liveChamp = null;
+        let isNowIngame = false;
+
         if (specRes.ok) {
           const specData = await specRes.json();
           const me = specData.participants?.find(p => p.puuid === puuid);
-          if (me) liveChamp = me.championId; 
+          if (me) {
+            liveChamp = me.championId;
+            isNowIngame = true;
+          }
         }
 
         const matchIdRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=1&api_key=${riotKey}`);
         const matchIds = await matchIdRes.json();
         const currentMatchId = matchIds[0];
 
-        let pUpdate = { id: player.id, puuid: puuid, trigger_cutscene: false };
+        let pUpdate = { 
+          id: player.id, 
+          puuid: puuid, 
+          is_ingame: isNowIngame, // 인게임 상태 업데이트
+          trigger_cutscene: false 
+        };
 
-        // --- [수정 포인트] 티어 업데이트 결정 로직 ---
-        // 조건: 게임이 끝났거나(ID변경) OR 아직 티어 정보가 아예 없는 경우(초기 실행)
+        // 3. 티어 및 전적 정산 조건
+        // - 게임이 새로 끝났거나 (Match ID 변경)
+        // - 아직 티어 정보가 없거나 (초기 실행)
         const isMatchChanged = currentMatchId && currentMatchId !== player.last_match_id;
         const isFirstTime = !player.tier || player.tier === "UNRANKED";
 
         if (isMatchChanged || isFirstTime) {
+          // 티어 정보 조회
           const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${riotKey}`);
           const leagues = await leagueRes.json();
           const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5') || { tier: 'UNRANKED', rank: '', leaguePoints: 0 };
           
           pUpdate.tier = player.manual_tier ? player.tier : `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`.trim();
 
-          // 게임 종료 시 상세 정산 로직
+          // 게임 종료 정산
           if (isMatchChanged) {
             const detailRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${currentMatchId}?api_key=${riotKey}`);
             const detail = await detailRes.json();
@@ -91,9 +103,9 @@ module.exports = async (req, res) => {
             }
           }
         } else {
-          // 게임 중이거나 대기 중일 때는 기존 데이터 유지 (라이엇 호출 X)
+          // 평시(게임 중이거나 대기 중) - 티어 조회 생략하여 API 아낌
           pUpdate.tier = player.tier;
-          if (liveChamp) {
+          if (isNowIngame && liveChamp) {
             const newChamps = [...(player.champions || Array(10).fill("None"))];
             const targetIdx = (player.recent || []).findIndex(r => r === 'ing');
             if (targetIdx !== -1) newChamps[targetIdx] = liveChamp.toString();
@@ -102,11 +114,12 @@ module.exports = async (req, res) => {
         }
 
         updateData.push(pUpdate);
-        await delay(200); // 플레이어 간 간격
+        await delay(250); // 라이엇 API 호출 간격 마진
 
       } catch (e) { console.error(player.name, "에러:", e); }
     }
 
+    // [중요] 한 번에 업데이트 (Consolidated Update)
     if (updateData.length > 0) {
       await supabase.from('players').upsert(updateData);
     }
