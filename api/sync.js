@@ -41,16 +41,26 @@ module.exports = async (req, res) => {
         const matchIds = await matchIdRes.json();
         const currentMatchId = matchIds[0];
 
+// ... (기존 코드 동일)
+
         const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${riotKey}`);
         const leagues = await leagueRes.json();
         const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5') || { tier: 'UNRANKED', rank: '', leaguePoints: 0 };
 
+        // [수정 포인트] 티어 문자열 생성 방식 및 manual_tier 상태 유지
+        const apiTierStr = solo.tier === 'UNRANKED' 
+            ? '언랭크' 
+            : `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`.trim();
+
         let pUpdate = {
           id: player.id,
-          tier: player.manual_tier ? player.tier : `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`.trim(),
-          puuid: puuid
+          // manual_tier가 true(수동)이면 기존 티어 유지, false(자동)이면 API 티어로 갱신
+          tier: player.manual_tier ? player.tier : apiTierStr,
+          puuid: puuid,
+          manual_tier: player.manual_tier // 현재 수동 상태를 유지해서 보냄
         };
 
+        // 4. 게임 종료 정산
         if (currentMatchId && currentMatchId !== player.last_match_id) {
           const detailRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${currentMatchId}?api_key=${riotKey}`);
           const detail = await detailRes.json();
