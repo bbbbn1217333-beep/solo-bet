@@ -76,9 +76,9 @@
             <button class="btn-load-data btn-reset-all" onclick="resetUIForNewGame()">⚠️ 전적 초기화</button>
         </div>
         <div class="menu-desc">
-            <strong>💡 로직 업데이트 (v1.5)</strong>
-            • <span class="neon-point">롤 닉네임 복구:</span> 사라졌던 롤 닉네임(#태그) 입력칸을 복구했습니다.<br>
-            • <span class="neon-point">전적 초기화:</span> 초기화 후 반영 시 DB의 모든 데이터가 완벽하게 리셋됩니다.
+            <strong>💡 로직 업데이트 (v1.6)</strong>
+            • <span class="neon-point">실시간 티어 동기화:</span> 송출 화면과 동일한 티어 데이터를 관리자 페이지에도 실시간으로 꽂아줍니다.<br>
+            • <span class="neon-point">수동 수정 고정:</span> 수정 체크박스를 켜면 반영 후에도 데이터가 돌아가지 않고 유지됩니다.
         </div>
     </div>
 
@@ -139,9 +139,6 @@ function resetUIForNewGame() {
             item.querySelector('.champ-input').value = '';
         });
     });
-    cachedPlayers = cachedPlayers.map(p => ({
-        ...p, wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None')
-    }));
 }
 
 async function toggleWatch() {
@@ -214,35 +211,33 @@ function mergeRebuild(dbData) {
         card.querySelector('.win-val').value = wCount;
         card.querySelector('.lose-val').value = lCount;
 
-        // 2. 티어/LP 동기화 (송출화면과 동일 데이터 파싱)
+        // 2. 티어/LP 동기화
         const tCheck = card.querySelector('.tier-override');
         const lCheck = card.querySelector('.lp-override');
+        const tSelect = card.querySelector('.tier-select');
+        const lInput = card.querySelector('.lp-input');
         
-        // manual_tier가 true면 자동 갱신을 건너뜁니다 (수정 중인 값 보호)
         if (dbPlayer.manual_tier) {
             tCheck.checked = true;
             lCheck.checked = true;
-            card.querySelector('.tier-select').disabled = false;
-            card.querySelector('.lp-input').disabled = false;
-            card.querySelector('.tier-select').style.opacity = "1";
-            card.querySelector('.lp-input').style.opacity = "1";
-            return; 
+            tSelect.disabled = false;
+            lInput.disabled = false;
+            tSelect.style.opacity = "1";
+            lInput.style.opacity = "1";
         }
 
         if (dbPlayer.tier && !dbPlayer.tier.includes("UNRANKED")) {
             const parts = dbPlayer.tier.split(' - ');
             const tierKor = parts[0].trim(); 
-            const lpPart = parts[1] ? parts[1].replace('LP', '').trim() : "";
-
+            const lpPart = parts[1] ? parts[1].replace('LP', '').trim() : "0";
             const curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierKor);
 
-            if (curTierEng) {
-                const tSelect = card.querySelector('.tier-select');
+            if (curTierEng && !tCheck.checked) {
                 tSelect.value = curTierEng;
                 tSelect.setAttribute('data-tier', TIER_MAP[curTierEng]);
             }
-            if (lpPart !== "") {
-                card.querySelector('.lp-input').value = lpPart;
+            if (lpPart !== "" && !lCheck.checked) {
+                lInput.value = lpPart;
             }
         }
     });
@@ -272,13 +267,12 @@ function createMemberCard(team, data = null) {
     
     let curTierEng = "UNRANKED", curLP = "";
     if (data?.tier) {
-        const tierPart = data.tier.split(' - ')[0];
+        const tierPart = data.tier.split(' - ')[0].trim();
         curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
         curLP = data.tier.match(/(\d+)LP/)?.[1] || "";
     }
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
-    // **핵심: 롤 닉네임 필드 복구**
     card.innerHTML = `
         <div class="name-row">
             <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
@@ -291,7 +285,7 @@ function createMemberCard(team, data = null) {
         <div class="history-editor">${historyHTML}</div>`;
     
     const tSelect = card.querySelector('.tier-select');
-    const updateTierColor = () => tSelect.setAttribute('data-tier', tSelect.options[tSelect.selectedIndex].text);
+    const updateTierColor = () => tSelect.setAttribute('data-tier', TIER_MAP[tSelect.value]);
     tSelect.addEventListener('change', updateTierColor);
     updateTierColor(); 
 
@@ -353,7 +347,7 @@ async function applyToSupabase() {
         
         const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
         const selectedTierKor = TIER_MAP[card.querySelector('.tier-select').value];
-        const inputLP = card.querySelector('.lp-input').value;
+        const inputLP = card.querySelector('.lp-input').value || "0";
 
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
@@ -372,8 +366,8 @@ async function applyToSupabase() {
             "wins": curW, "losses": curL, "recent": recent, "champions": champs, 
             "trigger_cutscene": (!isReset && (curW > baseW || curL > baseL)),
             "last_result": curW > baseW ? 'win' : (curL > baseL ? 'lose' : null),
-            "manual_tier": isManual, // 이 값을 저장해야 체크박스가 유지됩니다
-            "tier": isManual ? `${selectedTierKor} - ${inputLP}LP` : (dbP?.tier || "UNRANKED")
+            "manual_tier": isManual,
+            "tier": `${selectedTierKor} - ${inputLP}LP`
         });
     }
 
