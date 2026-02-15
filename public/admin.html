@@ -22,10 +22,8 @@
         #teamCount { width:90px; text-align: center; }
         .btn-load-data { padding:0 20px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); font-size: 14px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .btn-load-data:hover { background: var(--emerald); color: #000; }
-        /* 초기화 버튼 전용 스타일 */
         .btn-reset-all { color: var(--red) !important; border-color: var(--red) !important; box-shadow: 0 0 15px rgba(255, 59, 59, 0.5) !important; }
         .btn-reset-all:hover { background: var(--red) !important; color: #fff !important; }
-
         .menu-desc { font-size:14px; color:#ccc; line-height:1.8; background:#111; padding:22px; border-radius:10px; border: 2px solid var(--gold); box-shadow: inset 0 0 15px rgba(255,211,105,0.1), var(--neon-gold); margin-top: 10px; font-weight: 800; }
         .menu-desc strong { color: var(--gold); font-size: 18px; text-shadow: 0 0 10px var(--gold); display: block; margin-bottom: 8px; font-weight: 900; }
         .neon-point { color: var(--gold); text-shadow: 0 0 10px var(--gold); font-weight: 900; }
@@ -139,11 +137,11 @@ function getChampIdByName(name) {
     return found || name; 
 }
 
-// [핵심: UI 및 캐시 완전 초기화 로직]
+// [수정: 전적 초기화 로직 강화]
 function resetUIForNewGame() {
     if(!confirm("모든 전적을 0으로 초기화할까요? (반영 버튼을 눌러야 확정됩니다)")) return;
     
-    // 1. UI 요소들 초기화
+    // 1. UI 초기화
     document.querySelectorAll('.member-card').forEach(card => {
         card.querySelector('.win-val').value = 0;
         card.querySelector('.lose-val').value = 0;
@@ -155,8 +153,7 @@ function resetUIForNewGame() {
         });
     });
 
-    // 2. 중요: 내부 캐시 데이터(cachedPlayers)도 즉시 초기화
-    // 이렇게 해야 applyToSupabase() 실행 시 이전 데이터와 비교하지 않고 0부터 다시 시작합니다.
+    // 2. 캐시 메모리 초기화 (applyToSupabase에서 비교할 기준값을 0으로 만듦)
     cachedPlayers = cachedPlayers.map(p => ({
         ...p, 
         wins: 0, 
@@ -167,7 +164,7 @@ function resetUIForNewGame() {
         last_result: null
     }));
 
-    alert("화면과 데이터가 초기화되었습니다. [송출 화면 반영] 버튼을 눌러 서버에 저장하세요.");
+    window.isResetting = true; // 초기화 모드 플래그 활성화
 }
 
 async function toggleWatch() {
@@ -333,6 +330,7 @@ async function applyToSupabase() {
 
     const toUpdate = []; 
     const cards = document.querySelectorAll('.member-card');
+    const isReset = window.isResetting === true;
     
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
@@ -349,8 +347,10 @@ async function applyToSupabase() {
 
         const curW = Number(card.querySelector('.win-val').value);
         const curL = Number(card.querySelector('.lose-val').value);
-        const hasNewWin = dbP && curW > (dbP.wins || 0);
-        const hasNewLoss = dbP && curL > (dbP.losses || 0);
+        
+        // 초기화 중이면 컷신 트리거 방지, 평소엔 점수 상승 시 트리거
+        const hasNewWin = !isReset && dbP && curW > (dbP.wins || 0);
+        const hasNewLoss = !isReset && dbP && curL > (dbP.losses || 0);
 
         toUpdate.push({ 
             "id": cardUuid, "name": name, "team": card.dataset.team, 
@@ -362,8 +362,9 @@ async function applyToSupabase() {
 
     try {
         await sb.from('players').upsert(toUpdate);
+        if (isReset) window.isResetting = false; // 플래그 해제
         alert('✅ 반영 완료!');
-        loadData();
+        await loadData();
     } catch (e) { console.error(e); } finally {
         applyBtn.innerText = originalText;
         applyBtn.disabled = false;
