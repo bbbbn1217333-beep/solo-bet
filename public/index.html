@@ -136,23 +136,20 @@ let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
 
-const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아몬드':7, '마스터':8, '그랜드':9, '챌린저':10 };
+const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아':7, '마스터':8, '그랜드':9, '챌린저':10 };
 
-// 영문 티어를 한글로 변환하기 위한 맵핑
 const TIER_KOR_MAP = {
     'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드',
-    'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드',
+    'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아',
     'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저',
     'unranked': '언랭크'
 };
 
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked')) return { name: '언랭크', class: 'unranked' };
-    
     const t = tierStr.toLowerCase();
     let cls = 'unranked';
     let korName = tierStr;
-
     if (t.includes('challenger')) cls = 'challenger';
     else if (t.includes('grandmaster')) cls = 'grandmaster';
     else if (t.includes('master')) cls = 'master';
@@ -163,12 +160,9 @@ function getTierInfo(tierStr) {
     else if (t.includes('silver')) cls = 'silver';
     else if (t.includes('bronze')) cls = 'bronze';
     else if (t.includes('iron')) cls = 'iron';
-
-    // 영문이 포함되어 있다면 한글로 치환
     if (cls !== 'unranked') {
         korName = tierStr.replace(new RegExp(cls, 'gi'), TIER_KOR_MAP[cls]);
     }
-
     return { name: korName, class: cls };
 }
 
@@ -181,7 +175,7 @@ async function initChampMap() {
 }
 
 const fixChamp = c => {
-    if(!c || c === 'None' || c === '') return 'None';
+    if(!c || c === 'None' || c === '' || c === 'undefined') return 'None';
     let raw = c.toString().trim();
     if (champIdToKey[raw]) return champIdToKey[raw];
     if (champMap[raw]) return champMap[raw];
@@ -208,11 +202,17 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0", autoEvent = nul
     else if (eventType === 'demotion') statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
     const tierInfo = getTierInfo(player.tier);
     const currentLPText = player.lp ? ` - ${player.lp}LP` : "";
-    const lpDiff = player.lp_diff || "";
+    
+    // 점수 변동 반영 (lp_diff 값이 있으면 표시, 없으면 +0/-0 처리)
+    let lpDiff = player.lp_diff || (isWin ? "+0" : "-0");
+    if (!lpDiff.startsWith('+') && !lpDiff.startsWith('-')) lpDiff = (isWin ? "+" : "-") + lpDiff;
+
     const displayChamp = fixChamp(player.target_champion || 'None');
     document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
     const targetScene = isWin ? document.getElementById('scene-game-win') : document.getElementById('scene-game-lose');
-    targetScene.innerHTML = `<div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}"><h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1><div class="res-nick"><span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${player.team==='red'?(settings.red_team_name||'RED'):(settings.blue_team_name||'BLUE')}</span><span>${player.name}</span><span style="font-size: 32px; font-weight: 900; margin-left:10px;"><span style="color:#ffd369;">😁 ${player.wins}승</span> <span style="color:#ff6b6b;">😡 ${player.losses}패</span></span><span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span></div><div class="res-tier-wrap"><div class="res-tier tier ${tierInfo.class}"><span>${tierInfo.name}${currentLPText}</span><span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>${statusBadgeHTML}</div></div><div class="res-champ"><img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><div class="res-kda-box"><span class="kda-main">${kdaText}</span><span class="kda-calc">K/D/A : (${kdaVal})</span></div></div></div>`;
+    
+    targetScene.innerHTML = `<div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}"><h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1><div class="res-nick"><span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${player.team==='red'?(settings.red_team_name||'RED'):(settings.blue_team_name||'BLUE')}</span><span>${player.name}</span><span style="font-size: 32px; font-weight: 900; margin-left:10px;"><span style="color:#ffd369;">😁 ${player.wins || 0}승</span> <span style="color:#ff6b6b;">😡 ${player.losses || 0}패</span></span><span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span></div><div class="res-tier-wrap"><div class="res-tier tier ${tierInfo.class}"><span>${tierInfo.name}${currentLPText}</span><span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>${statusBadgeHTML}</div></div><div class="res-champ"><img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><div class="res-kda-box"><span class="kda-main">${kdaText}</span><span class="kda-calc">K/D/A : (${kdaVal})</span></div></div></div>`;
+    
     targetScene.classList.add('active');
     setTimeout(() => { targetScene.classList.remove('active'); normalCycle = true; sIdx = 0; document.getElementById('scene-all').classList.add('active'); sceneInterval = setInterval(nextScene, 10000); }, 8000);
 }
@@ -223,9 +223,9 @@ function setupRealtime() {
         const newP = payload.new;
         if (oldP && (oldP.wins !== newP.wins || oldP.losses !== newP.losses)) {
             let autoEvent = null;
-            const isWin = newP.wins > oldP.wins;
-            const oldMain = oldP.tier.split(' ')[0], newMain = newP.tier.split(' ')[0];
-            const oldStep = parseInt(oldP.tier.replace(/[^0-9]/g, "")), newStep = parseInt(newP.tier.replace(/[^0-9]/g, ""));
+            const isWin = newP.wins > (oldP.wins || 0);
+            const oldMain = (oldP.tier || "").split(' ')[0], newMain = (newP.tier || "").split(' ')[0];
+            const oldStep = parseInt((oldP.tier || "").replace(/[^0-9]/g, "")), newStep = parseInt((newP.tier || "").replace(/[^0-9]/g, ""));
             if (tierWeight[newMain] > tierWeight[oldMain]) autoEvent = 'promotion_major';
             else if (tierWeight[newMain] < tierWeight[oldMain]) autoEvent = 'demotion';
             else if (newMain === oldMain) {
@@ -288,19 +288,18 @@ function renderMainScene(container, filterTeam) {
             const tInfo = getTierInfo(p.tier);
             let icon = p.streak>=3?'<span class="status-icon crown-glow">👑</span>':(p.streak<=-3?'<span class="status-icon skull-shake">💀</span>':'');
             let sText = p.streak > 0 ? (p.streak === 1 ? '1승중' : p.streak + '연승') : (p.streak < 0 ? (p.streak === -1 ? '1패중' : Math.abs(p.streak) + '연패') : '');
-            return `<div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">${icon}<div class="info-line"><span class="name">${p.name}</span><span class="tier ${tInfo.class}">${tInfo.name}</span><div class="record"><span class="win">😁${p.wins}승</span> <span class="lose">😡${p.losses}패</span></div>${sText?`<span class="streak ${p.streak>0?'win':'lose'}">${sText}</span>`:''}</div><div class="history">
-            ${(p.recent||[]).map((r,i)=>{
-                const c=fixChamp(p.champions[i]);
+            return `<div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">${icon}<div class="info-line"><span class="name">${p.name}</span><span class="tier ${tInfo.class}">${tInfo.name}</span><div class="record"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div>${sText?`<span class="streak ${p.streak>0?'win':'lose'}">${sText}</span>`:''}</div><div class="history">
+            ${(p.recent || Array(10).fill(null)).map((r,i)=>{
+                const c = fixChamp(p.champions ? p.champions[i] : 'None');
                 const isResult = (r === 'win' || r === 'lose');
                 const isIngame = (r === 'ing' && c !== 'None'); 
                 
                 const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
                 const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
-                const badgeStyle = !isResult ? (isIngame ? '' : 'style="color:#2ecc71; border-color:#2ecc71;"') : '';
                 
                 return `<div class="champ">
                     <img src="${c==='None'?'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7':`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${c}.png`}" class="${isIngame ? 'ingame' : ''}">
-                    <span class="wl-badge ${badgeClass}" ${badgeStyle}>${badgeText}</span>
+                    <span class="wl-badge ${badgeClass}">${badgeText}</span>
                 </div>`
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
 }
