@@ -120,14 +120,16 @@ const TIER_RANK = { "챌린저":30, "그랜드마스터":29, "마스터":28, "�
 let cachedPlayers = [];
 let autoSyncInterval = null; 
 let champNameMap = {}; 
-let watchStartTime = null; // 감시 시작 버튼 누른 시점
+let idToNameMap = {}; // [추가] 숫자 ID를 한글 이름으로 매핑하기 위한 객체
+let watchStartTime = null; 
 
 async function initChampMap() {
     try {
         const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
-            champNameMap[c.id] = c.name; 
+            champNameMap[c.id] = c.name; // ID(문자열키) -> 한글명
+            idToNameMap[c.key] = c.name; // ID(숫자형태키) -> 한글명
         });
     } catch (e) { console.error("챔피언 로드 실패:", e); }
 }
@@ -139,7 +141,6 @@ async function toggleWatch() {
         btn.innerText = "▶️ 자동 감시 시작";
         watchStartTime = null;
     } else {
-        // [수정] 버튼 누르는 시점을 기준점으로 설정
         watchStartTime = Date.now();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         syncWithRiot();
@@ -149,7 +150,6 @@ async function toggleWatch() {
 
 async function syncWithRiot() { 
     try { 
-        // 서버 API 호출 시 startTime을 넘겨서 과거 데이터를 가져오지 않도록 제어
         await fetch(`/api/sync?startTime=${watchStartTime}`); 
         await loadData(); 
     } catch (e) { console.error(e); } 
@@ -171,12 +171,28 @@ function createMemberCard(team, data = null) {
     card.className = 'member-card'; card.dataset.team = team; card.dataset.uuid = data?.id || ""; 
     let historyHTML = '';
     for(let i=0; i<10; i++) {
-        let champ = (data?.champions?.[i] === 'None' || !data?.champions?.[i]) ? '' : data.champions[i];
-        if (champ && champNameMap[champ]) champ = champNameMap[champ];
+        let rawChamp = data?.champions?.[i];
+        let champDisp = '';
+
+        // [수정] 챔피언 이름 한글화 로직 강화
+        if (rawChamp && rawChamp !== 'None') {
+            // 1. 숫자 ID인 경우 (idToNameMap 확인)
+            if (idToNameMap[rawChamp]) {
+                champDisp = idToNameMap[rawChamp];
+            } 
+            // 2. 영어 이름 키인 경우 (champNameMap 확인)
+            else if (champNameMap[rawChamp]) {
+                champDisp = champNameMap[rawChamp];
+            } 
+            // 3. 이미 한글이거나 매핑 정보가 없을 경우 원본 유지
+            else {
+                champDisp = rawChamp;
+            }
+        }
         
         const res = data?.recent?.[i] || 'ing';
         const resText = res === 'win' ? '😁 승리' : (res === 'lose' ? '😡 패배' : '🕒 진행');
-        historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champ}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
+        historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
     let curTierEng = "UNRANKED", curLP = "";
     if (data?.tier && data.tier !== "언랭크") {
@@ -255,6 +271,7 @@ async function applyToSupabase() {
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
             
             let rawChamp = item.querySelector('.champ-input').value.trim() || 'None';
+            // 역으로 저장할 때도 가능한 영어 키로 변환 시도 (필요한 경우)
             const engKey = Object.keys(champNameMap).find(key => champNameMap[key] === rawChamp);
             champs.push(engKey || rawChamp);
         });
