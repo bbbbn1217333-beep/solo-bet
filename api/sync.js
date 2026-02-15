@@ -1,6 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 module.exports = async (req, res) => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
@@ -20,13 +22,18 @@ module.exports = async (req, res) => {
         if (!player.riot_id?.includes('#')) continue;
         const [name, tag] = player.riot_id.split('#');
 
-        // 1. PUUID 가져오기
-        const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?api_key=${riotKey}`);
-        if (!accRes.ok) continue;
-        const account = await accRes.json();
-        const puuid = account.puuid;
+        // 1. PUUID 확인 (없으면 가져오기)
+        let puuid = player.puuid; 
+        if (!puuid) {
+          const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?api_key=${riotKey}`);
+          if (accRes.ok) {
+            const account = await accRes.json();
+            puuid = account.puuid;
+          } else { continue; }
+          await delay(100);
+        }
 
-        // 2. 인게임 감지 (spectator-v5)
+        // 2. 상태 체크 (인게임 & 최근 매치 ID)
         const specRes = await fetch(`https://kr.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}?api_key=${riotKey}`);
         let liveChamp = null;
         if (specRes.ok) {
@@ -35,74 +42,77 @@ module.exports = async (req, res) => {
           if (me) liveChamp = me.championId; 
         }
 
-        // 3. 최근 매치 ID 및 티어 정보
         const matchIdRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=1&api_key=${riotKey}`);
         const matchIds = await matchIdRes.json();
         const currentMatchId = matchIds[0];
 
-        const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${riotKey}`);
-        const leagues = await leagueRes.json();
-        const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5') || { tier: 'UNRANKED', rank: '', leaguePoints: 0 };
+        let pUpdate = { id: player.id, puuid: puuid, trigger_cutscene: false };
 
-        let pUpdate = {
-          id: player.id,
-          tier: player.manual_tier ? player.tier : `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`.trim(),
-          puuid: puuid
-        };
+        // --- [수정 포인트] 티어 업데이트 결정 로직 ---
+        // 조건: 게임이 끝났거나(ID변경) OR 아직 티어 정보가 아예 없는 경우(초기 실행)
+        const isMatchChanged = currentMatchId && currentMatchId !== player.last_match_id;
+        const isFirstTime = !player.tier || player.tier === "UNRANKED";
 
-        // 4. 게임 종료 정산
-        if (currentMatchId && currentMatchId !== player.last_match_id) {
-          const detailRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${currentMatchId}?api_key=${riotKey}`);
-          const detail = await detailRes.json();
-          const me = detail.info?.participants?.find(p => p.puuid === puuid);
+        if (isMatchChanged || isFirstTime) {
+          const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${riotKey}`);
+          const leagues = await leagueRes.json();
+          const solo = leagues.find(l => l.queueType === 'RANKED_SOLO_5x5') || { tier: 'UNRANKED', rank: '', leaguePoints: 0 };
+          
+          pUpdate.tier = player.manual_tier ? player.tier : `${solo.tier} ${solo.rank} - ${solo.leaguePoints}LP`.trim();
 
-          if (me) {
-            // 무효판(다시하기) 체크: 5분 미만 혹은 조기 항복
-            const isRemake = detail.info.gameDuration < 300 || me.gameEndedInEarlySurrender;
-            const newRecent = [...(player.recent || Array(10).fill("ing"))];
-            const newChamps = [...(player.champions || Array(10).fill("None"))];
-            const targetIdx = newRecent.findIndex(r => r === 'ing');
+          // 게임 종료 시 상세 정산 로직
+          if (isMatchChanged) {
+            const detailRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/${currentMatchId}?api_key=${riotKey}`);
+            const detail = await detailRes.json();
+            const me = detail.info?.participants?.find(p => p.puuid === puuid);
 
-            if (isRemake) {
-              // 무효판이면 챔피언만 비우고 기록 안함
-              if (targetIdx !== -1) newChamps[targetIdx] = "None";
-              pUpdate.recent = newRecent;
-              pUpdate.champions = newChamps;
-              pUpdate.last_match_id = currentMatchId;
-              pUpdate.trigger_cutscene = false;
-            } else {
-              // 정상 판정 (탈주 패배 포함)
-              if (targetIdx !== -1) {
-                newRecent[targetIdx] = me.win ? 'win' : 'lose';
-                newChamps[targetIdx] = me.championName;
+            if (me) {
+              const isRemake = detail.info.gameDuration < 300 || me.gameEndedInEarlySurrender;
+              const newRecent = [...(player.recent || Array(10).fill("ing"))];
+              const newChamps = [...(player.champions || Array(10).fill("None"))];
+              const targetIdx = newRecent.findIndex(r => r === 'ing');
+
+              if (!isRemake) {
+                if (targetIdx !== -1) {
+                  newRecent[targetIdx] = me.win ? 'win' : 'lose';
+                  newChamps[targetIdx] = me.championName;
+                }
+                pUpdate.recent = newRecent;
+                pUpdate.champions = newChamps;
+                pUpdate.wins = me.win ? (player.wins + 1) : player.wins;
+                pUpdate.losses = !me.win ? (player.losses + 1) : player.losses;
+                pUpdate.last_match_id = currentMatchId;
+                pUpdate.trigger_cutscene = true;
+                pUpdate.target_champion = me.championName;
+                pUpdate.last_kda = `${me.kills}/${me.deaths}/${me.assists}`;
+              } else {
+                pUpdate.last_match_id = currentMatchId;
               }
-              pUpdate.recent = newRecent;
-              pUpdate.champions = newChamps;
-              pUpdate.wins = me.win ? (player.wins + 1) : player.wins;
-              pUpdate.losses = !me.win ? (player.losses + 1) : player.losses;
-              pUpdate.last_match_id = currentMatchId;
-              pUpdate.trigger_cutscene = true;
-              pUpdate.target_champion = me.championName;
-              pUpdate.last_kda = `${me.kills}/${me.deaths}/${me.assists}`;
             }
           }
-        } else if (liveChamp) {
-          // 게임 진행 중일 때 챔피언 이름 매핑 (ID를 이름으로 변환하는 과정이 필요하지만, 
-          // 간단하게 송출용 패널의 fixChamp 함수가 ID도 처리하므로 ID를 문자열로 저장)
-          const newChamps = [...(player.champions || Array(10).fill("None"))];
-          const targetIdx = (player.recent || []).findIndex(r => r === 'ing');
-          if (targetIdx !== -1) {
-            newChamps[targetIdx] = liveChamp.toString();
+        } else {
+          // 게임 중이거나 대기 중일 때는 기존 데이터 유지 (라이엇 호출 X)
+          pUpdate.tier = player.tier;
+          if (liveChamp) {
+            const newChamps = [...(player.champions || Array(10).fill("None"))];
+            const targetIdx = (player.recent || []).findIndex(r => r === 'ing');
+            if (targetIdx !== -1) newChamps[targetIdx] = liveChamp.toString();
+            pUpdate.champions = newChamps;
           }
-          pUpdate.champions = newChamps;
-          pUpdate.trigger_cutscene = false;
         }
 
         updateData.push(pUpdate);
+        await delay(200); // 플레이어 간 간격
+
       } catch (e) { console.error(player.name, "에러:", e); }
     }
 
-    if (updateData.length > 0) await supabase.from('players').upsert(updateData);
+    if (updateData.length > 0) {
+      await supabase.from('players').upsert(updateData);
+    }
+    
     return res.status(200).json({ success: true });
-  } catch (error) { return res.status(500).json({ error: error.message }); }
+  } catch (error) { 
+    return res.status(500).json({ error: error.message }); 
+  }
 };
