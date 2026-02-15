@@ -197,6 +197,22 @@ const fixChamp = c => {
 
 function renderMainScene(container, filterTeam) {
     const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
+    
+    // 티어별 색상 맵 (직접 지정)
+    const tierColorMap = {
+        'challenger': '#f1c40f',
+        'grandmaster': '#e74c3c',
+        'master': '#9b59b6',
+        'diamond': '#b9f2ff',
+        'emerald': '#2ecc71',
+        'platinum': '#4e99af',
+        'gold': '#ffd700',
+        'silver': '#c0c0c0',
+        'bronze': '#cd7f32',
+        'iron': '#a19d94',
+        'unranked': '#aaaaaa'
+    };
+
     container.innerHTML = `<div class="container">${teams.map(t => {
         const teamPlayers = players.filter(p => p.team === t);
         const tW = teamPlayers.reduce((a,b)=>a+(b.wins||0),0), tL = teamPlayers.reduce((a,b)=>a+(b.losses||0),0);
@@ -204,9 +220,17 @@ function renderMainScene(container, filterTeam) {
         ${teamPlayers.map(p => {
             const level = Math.min(Math.abs(p.streak), 5), streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
             const tInfo = getTierInfo(p.tier);
+            
+            // [중요] 여기서 직접 색상을 결정합니다.
+            const forcedColor = tierColorMap[tInfo.class] || '#ffffff';
+            const shadow = tInfo.class === 'challenger' ? 'text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);' : '';
+
             let icon = p.streak>=3?'<span class="status-icon crown-glow">👑</span>':(p.streak<=-3?'<span class="status-icon skull-shake">💀</span>':'');
             let sText = p.streak > 0 ? (p.streak === 1 ? '1승중' : p.streak + '연승') : (p.streak < 0 ? (p.streak === -1 ? '1패중' : Math.abs(p.streak) + '연패') : '');
-            return `<div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">${icon}<div class="info-line"><span class="name">${p.name}</span><span class="tier ${tInfo.class}">${tInfo.name}</span><div class="record"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div>${sText?`<span class="streak ${p.streak>0?'win':'lose'}">${sText}</span>`:''}</div><div class="history">
+            
+            return `<div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">${icon}<div class="info-line"><span class="name">${p.name}</span>
+            <span class="tier" style="color:${forcedColor} !important; ${shadow} font-weight:900;">${tInfo.name}</span>
+            <div class="record"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div>${sText?`<span class="streak ${p.streak>0?'win':'lose'}">${sText}</span>`:''}</div><div class="history">
             ${(p.recent || Array(10).fill(null)).map((r,i)=>{
                 const c = fixChamp(p.champions ? p.champions[i] : 'None');
                 const isResult = (r === 'win' || r === 'lose');
