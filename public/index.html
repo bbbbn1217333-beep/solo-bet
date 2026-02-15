@@ -58,9 +58,11 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
 .wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; font-size: 9px; }
-.wl-badge.none { color: #777 !important; border-color: #444 !important; }
 
-/* 스코어보드 및 결과 카드 스타일 생략 (기존과 동일) */
+/* ... 상태 배지 에메랄드색으로 복구 */
+.wl-badge.none { color: #00FFAA !important; border-color: #00FFAA !important; background: rgba(0, 255, 170, 0.1); }
+
+/* 스코어보드 및 결과 카드 스타일 유지 */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
@@ -249,15 +251,11 @@ function setupRealtime() {
     sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
         const oldP = prevPlayersState[payload.new.name];
         const newP = payload.new;
-
-        // 방어막: 초기 로딩 중에는 prevPlayersState만 갱신하고 리턴
         if (isInitialLoad || !oldP) {
             prevPlayersState[newP.name] = { ...newP };
             loadData();
             return;
         }
-
-        // 판수 변화 감지
         if (oldP.wins !== newP.wins || oldP.losses !== newP.losses) {
             let autoEvent = null;
             const isWin = newP.wins > (oldP.wins || 0);
@@ -291,7 +289,6 @@ async function loadData() {
                     for(let i = recent.length - 1; i >= 0; i--) { if(recent[i] === lastRes) streak++; else break; }
                     streak = lastRes === 'win' ? streak : -streak;
                 }
-                // 초기 로딩 시 prevPlayersState가 없으면 채워넣음
                 if (!prevPlayersState[p.name]) prevPlayersState[p.name] = { ...p };
                 return { ...p, streak };
             });
@@ -330,15 +327,12 @@ async function start() {
     setupRealtime(); 
     setInterval(updateTimer, 1000); 
     sceneInterval = setInterval(nextScene, 10000); 
-    
-    // 10초 뒤 방어막 해제
     setTimeout(() => { isInitialLoad = false; console.log("실시간 컷씬 감시 시작!"); }, 10000);
 }
 start();
 </script>
 </body>
 </html>
-
 
 
 
