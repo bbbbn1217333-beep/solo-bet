@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>이라네 솔랭 내기 시트지 관리자용 (UI 복구 및 초기화 추가)</title>
+    <title>이라네 솔랭 내기 시트지 관리자용</title>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -117,7 +117,7 @@ let watchStartTime = null;
 
 async function initChampMap() {
     try {
-        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/14.3.1/data/ko_KR/champion.json`);
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
             champNameMap[c.id] = c.name;
@@ -137,11 +137,9 @@ function getChampIdByName(name) {
     return found || name; 
 }
 
-// [수정: 전적 초기화 로직 강화]
 function resetUIForNewGame() {
     if(!confirm("모든 전적을 0으로 초기화할까요? (반영 버튼을 눌러야 확정됩니다)")) return;
     
-    // 1. UI 초기화
     document.querySelectorAll('.member-card').forEach(card => {
         card.querySelector('.win-val').value = 0;
         card.querySelector('.lose-val').value = 0;
@@ -153,18 +151,12 @@ function resetUIForNewGame() {
         });
     });
 
-    // 2. 캐시 메모리 초기화 (applyToSupabase에서 비교할 기준값을 0으로 만듦)
+    // 즉시 캐시 데이터도 0으로 덮어씀 (매우 중요)
     cachedPlayers = cachedPlayers.map(p => ({
-        ...p, 
-        wins: 0, 
-        losses: 0, 
-        recent: Array(10).fill('ing'), 
-        champions: Array(10).fill('None'),
-        trigger_cutscene: false,
-        last_result: null
+        ...p, wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None')
     }));
-
-    window.isResetting = true; // 초기화 모드 플래그 활성화
+    
+    window.isResetMode = true; // 반영 버튼 클릭 시 강제 초기화 신호
 }
 
 async function toggleWatch() {
@@ -330,7 +322,7 @@ async function applyToSupabase() {
 
     const toUpdate = []; 
     const cards = document.querySelectorAll('.member-card');
-    const isReset = window.isResetting === true;
+    const isReset = window.isResetMode === true;
     
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
@@ -348,24 +340,30 @@ async function applyToSupabase() {
         const curW = Number(card.querySelector('.win-val').value);
         const curL = Number(card.querySelector('.lose-val').value);
         
-        // 초기화 중이면 컷신 트리거 방지, 평소엔 점수 상승 시 트리거
-        const hasNewWin = !isReset && dbP && curW > (dbP.wins || 0);
-        const hasNewLoss = !isReset && dbP && curL > (dbP.losses || 0);
+        // 초기화 모드일 때는 무조건 기존 점수를 0으로 간주하고 비교 로직 수행
+        const baseW = isReset ? 0 : (dbP?.wins || 0);
+        const baseL = isReset ? 0 : (dbP?.losses || 0);
 
         toUpdate.push({ 
             "id": cardUuid, "name": name, "team": card.dataset.team, 
             "wins": curW, "losses": curL, "recent": recent, "champions": champs, 
-            "trigger_cutscene": hasNewWin || hasNewLoss,
-            "last_result": hasNewWin ? 'win' : (hasNewLoss ? 'lose' : null)
+            "trigger_cutscene": (!isReset && (curW > baseW || curL > baseL)),
+            "last_result": curW > baseW ? 'win' : (curL > baseL ? 'lose' : null)
         });
     }
 
     try {
-        await sb.from('players').upsert(toUpdate);
-        if (isReset) window.isResetting = false; // 플래그 해제
+        // 서버에 0으로 초기화된 데이터를 강제로 덮어씀
+        const { error } = await sb.from('players').upsert(toUpdate);
+        if (error) throw error;
+        
+        window.isResetMode = false;
         alert('✅ 반영 완료!');
-        await loadData();
-    } catch (e) { console.error(e); } finally {
+        await loadData(); // 최신화된 서버 데이터 다시 가져오기
+    } catch (e) { 
+        console.error(e); 
+        alert('반영 실패: ' + e.message);
+    } finally {
         applyBtn.innerText = originalText;
         applyBtn.disabled = false;
     }
