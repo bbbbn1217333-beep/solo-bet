@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* 기존 스타일 그대로 유지 (지면 관계상 생략하지만 코드에는 포함됨) */
+/* 기존 스타일 유지 */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -49,13 +49,18 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
-@keyframes ingamePulse { 0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } 50% { box-shadow: 0 0 10px #00FFAA; border-color: #fff; } 100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } }
-.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.1); }
+
+/* 인게임 애니메이션 복구 */
+@keyframes ingamePulse { 0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } 50% { box-shadow: 0 0 12px #00FFAA; border-color: #fff; } 100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } }
+.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.2); }
+
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
-.wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; }
-.wl-badge.none { color: #2ecc71 !important; border-color: #2ecc71 !important; }
+.wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; font-size: 9px; }
+.wl-badge.none { color: #777 !important; border-color: #444 !important; }
+
+/* 스코어보드 및 결과 카드 스타일 생략 (기존과 동일) */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
@@ -114,7 +119,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; // 16.3.1은 존재하지 않으므로 15.3.1로 수정
+const LOL_VER = "16.3.1"; 
 
 let champMap = {}; 
 let champIdToKey = {};
@@ -124,8 +129,8 @@ let settings = {};
 let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
-let isInitialLoad = true; // 첫 로딩 방어막
-let cutsceneQueue = []; // 동시 결과 발생 시 대기열
+let isInitialLoad = true; 
+let cutsceneQueue = []; 
 
 const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아몬드':7, '마스터':8, '그랜드':9, '챌린저':10 };
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
@@ -162,14 +167,8 @@ const fixChamp = c => {
     if (champIdToKey[raw]) raw = champIdToKey[raw];
     const lowerRaw = raw.toLowerCase();
     if (lowerRaw === '크산테' || lowerRaw === 'ksante' || lowerRaw === "k'sante") return 'KSante';
-    const exceptions = {
-        '르블랑': 'Leblanc', 'leblanc': 'Leblanc',
-        '벨코즈': 'Velkoz', 'velkoz': 'Velkoz',
-        '렉사이': 'RekSai', 'reksai': 'RekSai',
-        '누누와 윌럼프': 'Nunu', '누누': 'Nunu'
-    };
+    const exceptions = { '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai', '누누와 윌럼프': 'Nunu', '누누': 'Nunu' };
     if (exceptions[raw]) return exceptions[raw];
-    if (exceptions[lowerRaw]) return exceptions[lowerRaw];
     if (champMap[raw]) return champMap[raw];
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
@@ -200,7 +199,6 @@ function renderMainScene(container, filterTeam) {
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
 }
 
-// 컷씬 실행기 (큐 처리 방식)
 function processCutsceneQueue() {
     if (cutsceneQueue.length > 0 && normalCycle) {
         const next = cutsceneQueue.shift();
@@ -243,7 +241,7 @@ async function runCutscene(player, isWin, kdaText, autoEvent) {
         sIdx = 0; 
         document.getElementById('scene-all').classList.add('active'); 
         sceneInterval = setInterval(nextScene, 10000); 
-        processCutsceneQueue(); // 대기 중인 다음 컷씬 실행
+        processCutsceneQueue(); 
     }, 8000);
 }
 
@@ -252,19 +250,17 @@ function setupRealtime() {
         const oldP = prevPlayersState[payload.new.name];
         const newP = payload.new;
 
-        // 1. 방어막: 초기 로딩 중이거나 이전 데이터가 없으면 무시
+        // 방어막: 초기 로딩 중에는 prevPlayersState만 갱신하고 리턴
         if (isInitialLoad || !oldP) {
             prevPlayersState[newP.name] = { ...newP };
             loadData();
             return;
         }
 
-        // 2. 판수 변화 감지 (실제 게임 결과가 나왔을 때만)
+        // 판수 변화 감지
         if (oldP.wins !== newP.wins || oldP.losses !== newP.losses) {
             let autoEvent = null;
             const isWin = newP.wins > (oldP.wins || 0);
-            
-            // 승급/강등 로직
             const oldMain = (oldP.tier || "").split(' ')[0], newMain = (newP.tier || "").split(' ')[0];
             const oldStep = parseInt((oldP.tier || "").replace(/[^0-9]/g, "")), newStep = parseInt((newP.tier || "").replace(/[^0-9]/g, ""));
             if (tierWeight[newMain] > tierWeight[oldMain]) autoEvent = 'promotion_major';
@@ -273,8 +269,6 @@ function setupRealtime() {
                 if (newStep < oldStep) autoEvent = 'promotion';
                 else if (newStep > oldStep) autoEvent = 'demotion';
             }
-
-            // 3. 컷씬 대기열에 추가
             cutsceneQueue.push({ player: newP, isWin, kdaText: newP.last_kda || "0/0/0", autoEvent });
             processCutsceneQueue();
         }
@@ -297,7 +291,7 @@ async function loadData() {
                     for(let i = recent.length - 1; i >= 0; i--) { if(recent[i] === lastRes) streak++; else break; }
                     streak = lastRes === 'win' ? streak : -streak;
                 }
-                // 처음 불러올 때만 상태 저장
+                // 초기 로딩 시 prevPlayersState가 없으면 채워넣음
                 if (!prevPlayersState[p.name]) prevPlayersState[p.name] = { ...p };
                 return { ...p, streak };
             });
@@ -337,7 +331,7 @@ async function start() {
     setInterval(updateTimer, 1000); 
     sceneInterval = setInterval(nextScene, 10000); 
     
-    // 페이지 로딩 후 10초 뒤에 방어막 해제 (실시간 게임만 컷씬 뜨게 함)
+    // 10초 뒤 방어막 해제
     setTimeout(() => { isInitialLoad = false; console.log("실시간 컷씬 감시 시작!"); }, 10000);
 }
 start();
