@@ -139,10 +139,11 @@ function getChampIdByName(name) {
     return found || name; 
 }
 
-// [핵심: UI 초기화 로직]
+// [핵심: UI 및 캐시 완전 초기화 로직]
 function resetUIForNewGame() {
     if(!confirm("모든 전적을 0으로 초기화할까요? (반영 버튼을 눌러야 확정됩니다)")) return;
     
+    // 1. UI 요소들 초기화
     document.querySelectorAll('.member-card').forEach(card => {
         card.querySelector('.win-val').value = 0;
         card.querySelector('.lose-val').value = 0;
@@ -153,8 +154,20 @@ function resetUIForNewGame() {
             item.querySelector('.champ-input').value = '';
         });
     });
-    // 캐시도 즉시 비워줌
-    cachedPlayers = cachedPlayers.map(p => ({...p, wins:0, losses:0, recent:[], champions:[]}));
+
+    // 2. 중요: 내부 캐시 데이터(cachedPlayers)도 즉시 초기화
+    // 이렇게 해야 applyToSupabase() 실행 시 이전 데이터와 비교하지 않고 0부터 다시 시작합니다.
+    cachedPlayers = cachedPlayers.map(p => ({
+        ...p, 
+        wins: 0, 
+        losses: 0, 
+        recent: Array(10).fill('ing'), 
+        champions: Array(10).fill('None'),
+        trigger_cutscene: false,
+        last_result: null
+    }));
+
+    alert("화면과 데이터가 초기화되었습니다. [송출 화면 반영] 버튼을 눌러 서버에 저장하세요.");
 }
 
 async function toggleWatch() {
