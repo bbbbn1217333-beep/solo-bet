@@ -49,20 +49,17 @@
         height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:14px; font-weight: 900; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; text-align: center; appearance: none; 
     }
     
-/* [수정] 티어별 색상 스타일 (관리자 패널용) */
-.tier-select { transition: all 0.3s ease; } /* 부드러운 전환 효과 */
-
-.tier-select[data-tier^="챌린저"] { color: #ff4e50 !important; border-color: #ff4e50 !important; box-shadow: 0 0 10px rgba(255,78,80,0.5) !important; }
-.tier-select[data-tier^="그랜드마스터"] { color: #ff7f7f !important; border-color: #ff7f7f !important; }
-.tier-select[data-tier^="마스터"] { color: #e3a3ff !important; border-color: #e3a3ff !important; }
-.tier-select[data-tier^="다이아몬드"] { color: #57bbff !important; border-color: #57bbff !important; }
-.tier-select[data-tier^="에메랄드"] { color: #2ecc71 !important; border-color: #2ecc71 !important; }
-.tier-select[data-tier^="플래티넘"] { color: #4ecdc4 !important; border-color: #4ecdc4 !important; }
-.tier-select[data-tier^="골드"] { color: #f1c40f !important; border-color: #f1c40f !important; }
-.tier-select[data-tier^="실버"] { color: #bdc3c7 !important; border-color: #bdc3c7 !important; }
-.tier-select[data-tier^="브론즈"] { color: #a67c52 !important; border-color: #a67c52 !important; }
-.tier-select[data-tier^="아이언"] { color: #7f8c8d !important; border-color: #7f8c8d !important; }
-.tier-select[data-tier="언랭크"] { color: #fff !important; border-color: var(--gold) !important; }
+    .tier-select[data-tier^="챌린저"] { color: #ff4e50 !important; border-color: #ff4e50 !important; box-shadow: 0 0 10px rgba(255,78,80,0.5) !important; }
+    .tier-select[data-tier^="그랜드마스터"] { color: #ff7f7f !important; border-color: #ff7f7f !important; }
+    .tier-select[data-tier^="마스터"] { color: #e3a3ff !important; border-color: #e3a3ff !important; }
+    .tier-select[data-tier^="다이아몬드"] { color: #57bbff !important; border-color: #57bbff !important; }
+    .tier-select[data-tier^="에메랄드"] { color: #2ecc71 !important; border-color: #2ecc71 !important; }
+    .tier-select[data-tier^="플래티넘"] { color: #4ecdc4 !important; border-color: #4ecdc4 !important; }
+    .tier-select[data-tier^="골드"] { color: #f1c40f !important; border-color: #f1c40f !important; }
+    .tier-select[data-tier^="실버"] { color: #bdc3c7 !important; border-color: #bdc3c7 !important; }
+    .tier-select[data-tier^="브론즈"] { color: #a67c52 !important; border-color: #a67c52 !important; }
+    .tier-select[data-tier^="아이언"] { color: #7f8c8d !important; border-color: #7f8c8d !important; }
+    .tier-select[data-tier="언랭크"] { color: #fff !important; border-color: var(--gold) !important; }
 
     .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
     .nick-riot { flex: 2 !important; min-width: 150px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
@@ -180,19 +177,16 @@ async function toggleWatch() {
 }
 
 async function syncWithRiot() { 
-    if (!watchStartTime) return; 
     try { 
-        // 1. 서버에 동기화 요청 (startTime 전달)
-        await fetch(`/api/sync?startTime=${watchStartTime}`); 
+        // 1. 서버에 동기화 요청 (감시 중이면 startTime 전달)
+        const syncUrl = watchStartTime ? `/api/sync?startTime=${watchStartTime}` : `/api/sync`;
+        await fetch(syncUrl); 
         
         // 2. DB에서 최신 데이터를 가져옴
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         
         cachedPlayers = pData || [];
         rebuild(cachedPlayers); 
-        
-        // 3. 방송 화면에 즉시 자동 반영
-        await applyToSupabase();
     } catch (e) { console.error("동기화 실패:", e); } 
 }
 
@@ -248,13 +242,12 @@ function createMemberCard(team, data = null) {
     const tSelect = card.querySelector('.tier-select');
     const lInput = card.querySelector('.lp-input');
     
-    // [수정] 티어 색상 자동 업데이트 함수 및 이벤트 연결
     const updateTierColor = () => {
         const selectedText = tSelect.options[tSelect.selectedIndex].text;
         tSelect.setAttribute('data-tier', selectedText);
     };
     tSelect.addEventListener('change', updateTierColor);
-    updateTierColor(); // 초기 실행
+    updateTierColor(); 
 
     [tCheck, lCheck].forEach(c => c.addEventListener('change', () => {
         const active = tCheck.checked || lCheck.checked;
@@ -295,10 +288,15 @@ async function loadData() {
 }
 
 async function applyToSupabase() {
-    // [수정] 송출 화면 반영 버튼 클릭 시 현재 감시 중이라면 즉시 티어 갱신 수행
-    if (watchStartTime) {
-        await syncWithRiot();
-    }
+    const applyBtn = document.querySelector('.btn-apply');
+    const originalText = applyBtn.innerText;
+    
+    // [수정] 반영 버튼 클릭 시 즉시 갱신 시작 알림
+    applyBtn.innerText = "⏳ 티어 갱신 중...";
+    applyBtn.disabled = true;
+
+    // 1. 라이엇 API 즉시 동기화 실행
+    await syncWithRiot();
 
     const toUpdate = []; 
     let cutsceneAssigned = false;
@@ -323,9 +321,17 @@ async function applyToSupabase() {
         const currentWins = Number(card.querySelector('.win-val').value);
         const currentLosses = Number(card.querySelector('.lose-val').value);
 
-        const tEng = card.querySelector('.tier-select').value;
-        const lpVal = card.querySelector('.lp-input').value.trim();
-        const finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
+        // [수정] 수동 수정 체크 여부에 따른 티어 결정 로직 강화
+        const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
+        let finalTierStr;
+        if (isManual) {
+            const tEng = card.querySelector('.tier-select').value;
+            const lpVal = card.querySelector('.lp-input').value.trim();
+            finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
+        } else {
+            // 자동 모드일 경우 방금 동기화된 DB의 최신 티어를 우선 사용
+            finalTierStr = existingPlayer ? existingPlayer.tier : (card.dataset.existingTier || "언랭크");
+        }
 
         let trigger = false, event = null, lpDiff = "", targetChamp = "None";
         const lastIdx = recent.findLastIndex(r => r === 'win' || r === 'lose');
@@ -338,7 +344,7 @@ async function applyToSupabase() {
                 trigger = true; cutsceneAssigned = true; targetChamp = champs[lastIdx];
                 if (existingPlayer) {
                     const oldLP = parseInt(existingPlayer.tier?.match(/(\d+)LP/)?.[1] || 0);
-                    const newLP = parseInt(lpVal || 0);
+                    const newLP = parseInt(finalTierStr.match(/(\d+)LP/)?.[1] || 0);
                     const diff = newLP - oldLP;
                     lpDiff = (diff >= 0) ? `+${diff}LP` : `${diff}LP`;
                     const oldRank = TIER_RANK[existingPlayer.tier?.split(' - ')[0]] ?? -1;
@@ -360,7 +366,7 @@ async function applyToSupabase() {
             "team": card.dataset.team,
             "riot_id": card.querySelector('.nick-riot').value.trim(),
             "tier": finalTierStr,
-            "manual_tier": card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked,
+            "manual_tier": isManual,
             "wins": currentWins,
             "losses": currentLosses,
             "recent": recent,
@@ -376,8 +382,17 @@ async function applyToSupabase() {
     try {
         await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
         if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
+        
+        // UI 갱신 (최신 티어가 화면에 반영되도록)
+        rebuild(toUpdate);
+        
         if (!autoSyncInterval) alert('✅ 반영되었습니다!');
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e); 
+    } finally {
+        applyBtn.innerText = originalText;
+        applyBtn.disabled = false;
+    }
 }
 
 async function start() { await initChampMap(); await loadData(); }
