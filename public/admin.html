@@ -206,17 +206,20 @@ async function loadData() {
 }
 
 async function applyToSupabase() {
-    const toInsert = []; // 신규 유저용
-    const toUpdate = []; // 기존 유저용
+    const toInsert = []; 
+    const toUpdate = []; 
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
     const teamCount = Number(document.getElementById('teamCount').value);
     
+    // [추가] 타이머 입력값 처리
+    const timerInput = document.getElementById('endDateTime').value;
+    let timerISO = timerInput ? new Date(timerInput).toISOString() : null;
+
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
         if (!name) continue;
 
-        // 1. ID 추출 및 엄격한 검증
         let cardUuid = card.dataset.uuid;
         if (cardUuid === "null" || cardUuid === "undefined" || !cardUuid) {
             cardUuid = null;
@@ -272,33 +275,37 @@ async function applyToSupabase() {
             "target_champion": targetChamp || "None"
         };
 
-        // 2. [핵심 분리] ID 유무에 따라 다른 리스트에 담기
         if (cardUuid) {
             playerData.id = cardUuid;
             toUpdate.push(playerData);
         } else {
-            // id 속성을 아예 생성조차 안 함
             toInsert.push(playerData);
         }
     }
 
     try {
-        // 1. 설정 저장
-        await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: teamCount });
+        // 1. 설정 저장 (timer_end_at 포함)
+        await sb.from('settings').upsert({ 
+            id: 1, 
+            red_team_name: document.getElementById('redNameInput').value, 
+            blue_team_name: document.getElementById('blueNameInput').value, 
+            member_count: teamCount,
+            timer_end_at: timerISO 
+        });
 
-        // 2. 신규 데이터는 INSERT (ID 자동생성 유도)
+        // 2. 신규 데이터 INSERT
         if (toInsert.length > 0) {
             const { error: iError } = await sb.from('players').insert(toInsert);
             if (iError) throw iError;
         }
 
-        // 3. 기존 데이터는 UPSERT (업데이트)
+        // 3. 기존 데이터 UPSERT
         if (toUpdate.length > 0) {
             const { error: uError } = await sb.from('players').upsert(toUpdate);
             if (uError) throw uError;
         }
 
-        alert('✅ 이번엔 진짜로 해결되었습니다!');
+        alert('✅ 데이터와 타이머가 성공적으로 반영되었습니다!');
         loadData();
     } catch (e) {
         console.error("에러 상세:", e);
