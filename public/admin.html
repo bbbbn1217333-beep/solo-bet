@@ -119,6 +119,18 @@ const TIER_RANK = { "챌린저":30, "그랜드마스터":29, "마스터":28, "�
 
 let cachedPlayers = [];
 let autoSyncInterval = null; 
+let champNameMap = {}; // 챔피언 영문->한글 맵핑
+
+// 챔피언 한글 데이터 로드
+async function initChampMap() {
+    try {
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/14.3.1/data/ko_KR/champion.json`);
+        const json = await res.json();
+        Object.values(json.data).forEach(c => {
+            champNameMap[c.id] = c.name; // 'Aatrox' -> '아트록스'
+        });
+    } catch (e) { console.error("챔피언 로드 실패:", e); }
+}
 
 async function toggleWatch() {
     const btn = document.getElementById('watchBtn');
@@ -150,7 +162,10 @@ function createMemberCard(team, data = null) {
     card.className = 'member-card'; card.dataset.team = team; card.dataset.uuid = data?.id || ""; 
     let historyHTML = '';
     for(let i=0; i<10; i++) {
-        const champ = (data?.champions?.[i] === 'None' || !data?.champions?.[i]) ? '' : data.champions[i];
+        let champ = (data?.champions?.[i] === 'None' || !data?.champions?.[i]) ? '' : data.champions[i];
+        // 챔피언 이름 한글 변환 적용
+        if (champ && champNameMap[champ]) champ = champNameMap[champ];
+        
         const res = data?.recent?.[i] || 'ing';
         const resText = res === 'win' ? '😁 승리' : (res === 'lose' ? '😡 패배' : '🕒 진행');
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champ}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
@@ -169,8 +184,8 @@ function createMemberCard(team, data = null) {
             <div class="input-group" style="flex:2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
             <div class="input-group" style="flex:1.8;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label><select class="tier-select" style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select></div>
             <div class="input-group" style="width:75px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label><input class="lp-input" placeholder="0" value="${curLP}" style="opacity:${data?.manual_tier ? '1' : '0.4'};"></div>
-            <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? ''}"></div>
-            <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? ''}"></div>
+            <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
+            <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? 0}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
     card.dataset.existingTier = data?.tier || "언랭크";
@@ -212,7 +227,6 @@ async function applyToSupabase() {
     const cards = document.querySelectorAll('.member-card');
     const teamCount = Number(document.getElementById('teamCount').value);
     
-    // [추가] 타이머 입력값 처리
     const timerInput = document.getElementById('endDateTime').value;
     let timerISO = timerInput ? new Date(timerInput).toISOString() : null;
 
@@ -231,7 +245,11 @@ async function applyToSupabase() {
         card.querySelectorAll('.history-item').forEach(item => {
             const btn = item.querySelector('.btn-toggle');
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
-            champs.push(item.querySelector('.champ-input').value.trim() || 'None');
+            
+            // 저장 시 한글 이름을 다시 영문 키값으로 변환하여 저장 (이미지 로드용)
+            let rawChamp = item.querySelector('.champ-input').value.trim() || 'None';
+            const engKey = Object.keys(champNameMap).find(key => champNameMap[key] === rawChamp);
+            champs.push(engKey || rawChamp);
         });
 
         const tEng = card.querySelector('.tier-select').value;
@@ -284,7 +302,6 @@ async function applyToSupabase() {
     }
 
     try {
-        // 1. 설정 저장 (timer_end_at 포함)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -293,13 +310,11 @@ async function applyToSupabase() {
             timer_end_at: timerISO 
         });
 
-        // 2. 신규 데이터 INSERT
         if (toInsert.length > 0) {
             const { error: iError } = await sb.from('players').insert(toInsert);
             if (iError) throw iError;
         }
 
-        // 3. 기존 데이터 UPSERT
         if (toUpdate.length > 0) {
             const { error: uError } = await sb.from('players').upsert(toUpdate);
             if (uError) throw uError;
@@ -312,11 +327,16 @@ async function applyToSupabase() {
         alert(`❌ 실패: ${e.message}`);
     }
 }
-loadData();
+
+// 초기 로드 시 챔피언 맵핑 먼저 실행
+async function start() {
+    await initChampMap();
+    await loadData();
+}
+start();
 </script>
 </body>
 </html>
-
 
 
 
