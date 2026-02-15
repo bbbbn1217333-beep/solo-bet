@@ -48,6 +48,20 @@
     .tier-select { 
         height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:14px; font-weight: 900; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; text-align: center; appearance: none; 
     }
+    
+    /* [수정] 티어별 색상 스타일 추가 */
+    .tier-select[data-tier^="챌린저"] { color: #ff4e50 !important; text-shadow: 0 0 10px rgba(255,78,80,0.5); }
+    .tier-select[data-tier^="그랜드마스터"] { color: #ff7f7f !important; }
+    .tier-select[data-tier^="마스터"] { color: #e3a3ff !important; }
+    .tier-select[data-tier^="다이아몬드"] { color: #57bbff !important; }
+    .tier-select[data-tier^="에메랄드"] { color: #2ecc71 !important; }
+    .tier-select[data-tier^="플래티넘"] { color: #4ecdc4 !important; }
+    .tier-select[data-tier^="골드"] { color: #f1c40f !important; }
+    .tier-select[data-tier^="실버"] { color: #bdc3c7 !important; }
+    .tier-select[data-tier^="브론즈"] { color: #a67c52 !important; }
+    .tier-select[data-tier^="아이언"] { color: #7f8c8d !important; }
+    .tier-select[data-tier="언랭크"] { color: #fff !important; }
+
     .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
     .nick-riot { flex: 2 !important; min-width: 150px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
     .red .nick-disp, .red .nick-riot { border-color: var(--red); }
@@ -142,7 +156,6 @@ async function toggleWatch() {
         btn.innerText = "▶️ 자동 감시 시작";
         watchStartTime = null;
     } else {
-        // [중요] 감시 시작 버튼을 누른 '정확한 시간'을 밀리초 단위로 기록
         watchStartTime = Date.now(); 
 
         const cards = document.querySelectorAll('.member-card');
@@ -157,13 +170,12 @@ async function toggleWatch() {
         });
         
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
-        // 즉시 첫 동기화 실행 시 watchStartTime을 함께 전달
-        syncWithRiot();
+        
+        // [수정] 감시 시작 즉시 티어 갱신 실행
+        await syncWithRiot();
         autoSyncInterval = setInterval(syncWithRiot, 45000); 
     }
 }
-
-// ... (위의 HTML/CSS 부분은 동일하므로 핵심 Script 부분의 필터링 로직만 보강하여 안내합니다)
 
 async function syncWithRiot() { 
     if (!watchStartTime) return; 
@@ -174,23 +186,13 @@ async function syncWithRiot() {
         // 2. DB에서 최신 데이터를 가져옴
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         
-        // [추가된 방어 로직] 버튼 누른 시간보다 이전에 업데이트된 전적은 화면에 반영하지 않음
-        const filteredData = pData.map(player => {
-            // 만약 서버에서 준 데이터가 버튼 누르기 전의 옛날 전적이라면?
-            // (이 부분은 서버 응답의 timestamp 필드와 비교하거나, 
-            // 프론트에서 관리하는 initialMatchCounts를 활용해 변화가 없을 시 무시하도록 처리)
-            return player;
-        });
-
-        cachedPlayers = filteredData;
-        rebuild(filteredData); 
+        cachedPlayers = pData || [];
+        rebuild(cachedPlayers); 
         
         // 3. 방송 화면에 즉시 자동 반영
         await applyToSupabase();
     } catch (e) { console.error("동기화 실패:", e); } 
 }
-
-// ... (나머지 부분은 동일)
 
 function updateTeamNames() {
     document.getElementById('redTitle').innerText = document.getElementById('redNameInput').value || '레드 팀';
@@ -244,6 +246,14 @@ function createMemberCard(team, data = null) {
     const tSelect = card.querySelector('.tier-select');
     const lInput = card.querySelector('.lp-input');
     
+    // [수정] 티어 색상 자동 업데이트 함수 및 이벤트 연결
+    const updateTierColor = () => {
+        const selectedText = tSelect.options[tSelect.selectedIndex].text;
+        tSelect.setAttribute('data-tier', selectedText);
+    };
+    tSelect.addEventListener('change', updateTierColor);
+    updateTierColor(); // 초기 실행
+
     [tCheck, lCheck].forEach(c => c.addEventListener('change', () => {
         const active = tCheck.checked || lCheck.checked;
         tSelect.disabled = !active; lInput.disabled = !active;
@@ -283,6 +293,11 @@ async function loadData() {
 }
 
 async function applyToSupabase() {
+    // [수정] 송출 화면 반영 버튼 클릭 시 현재 감시 중이라면 즉시 티어 갱신 수행
+    if (watchStartTime) {
+        await syncWithRiot();
+    }
+
     const toUpdate = []; 
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
