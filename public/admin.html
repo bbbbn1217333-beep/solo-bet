@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-    /* 기존 스타일과 동일 (중략 없이 유지) */
+    /* 기존 스타일 유지 */
     :root { 
         --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; 
         --emerald: #2ecc71; 
@@ -84,9 +84,9 @@
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
         </div>
         <div class="menu-desc">
-            <strong>💡 티어 갱신 팁</strong>
-            • <span class="neon-point">수정 체크박스:</span> "수정" 체크박스가 해제되어 있어야 라이엇 티어가 자동으로 갱신됩니다.<br>
-            • <span class="neon-point">언랭크 문제:</span> 롤 닉네임#태그가 정확한지 확인해 주세요.
+            <strong>💡 자동 감시 안내</strong>
+            • <span class="neon-point">시점 필터:</span> 버튼을 누른 이 시점 이후에 종료된 게임만 전적에 기록됩니다.<br>
+            • <span class="neon-point">티어 갱신:</span> 수동 수정 체크가 해제된 유저는 티어가 실시간 반영됩니다.
         </div>
     </div>
 
@@ -142,6 +142,9 @@ async function toggleWatch() {
         btn.innerText = "▶️ 자동 감시 시작";
         watchStartTime = null;
     } else {
+        // [중요] 감시 시작 버튼을 누른 '정확한 시간'을 밀리초 단위로 기록
+        watchStartTime = Date.now(); 
+
         const cards = document.querySelectorAll('.member-card');
         cards.forEach(card => {
             const uuid = card.dataset.uuid;
@@ -152,25 +155,26 @@ async function toggleWatch() {
                 };
             }
         });
-        watchStartTime = Date.now();
+        
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
+        // 즉시 첫 동기화 실행 시 watchStartTime을 함께 전달
         syncWithRiot();
         autoSyncInterval = setInterval(syncWithRiot, 45000); 
     }
 }
 
-// [핵심 수정] 티어 정보도 함께 동기화하도록 보강
 async function syncWithRiot() { 
+    if (!watchStartTime) return; 
     try { 
-        // 1. 서버에 동기화 요청
-        const res = await fetch(`/api/sync?startTime=${watchStartTime}`); 
+        // 1. 서버에 '이 시간 이후의 게임만 처리하라'고 startTime 전달
+        await fetch(`/api/sync?startTime=${watchStartTime}`); 
         
-        // 2. 최신 DB 데이터 다시 불러오기
+        // 2. 바뀐 데이터 화면으로 불러오기
         await loadData(); 
         
-        // 3. 불러온 데이터가 화면에 즉시 송출되도록 반영
+        // 3. 방송 화면에 즉시 자동 반영
         await applyToSupabase();
-    } catch (e) { console.error(e); } 
+    } catch (e) { console.error("동기화 실패:", e); } 
 }
 
 function updateTeamNames() {
@@ -201,7 +205,6 @@ function createMemberCard(team, data = null) {
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
     
-    // 티어 파싱 로직 강화
     let curTierEng = "UNRANKED", curLP = "";
     if (data?.tier && !data.tier.includes("언랭크")) {
         const tierPart = data.tier.split(' - ')[0];
@@ -221,7 +224,6 @@ function createMemberCard(team, data = null) {
         </div>
         <div class="history-editor">${historyHTML}</div>`;
     
-    // 체크박스 클릭 시 입력 활성화/비활성화 이벤트 추가
     const tCheck = card.querySelector('.tier-override');
     const lCheck = card.querySelector('.lp-override');
     const tSelect = card.querySelector('.tier-select');
