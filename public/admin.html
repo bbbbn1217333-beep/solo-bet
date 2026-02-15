@@ -214,22 +214,24 @@ function mergeRebuild(dbData) {
         card.querySelector('.win-val').value = wCount;
         card.querySelector('.lose-val').value = lCount;
 
-        // 2. 티어 및 LP 정보 UI 반영 (게임 중이 아니어도 데이터가 있다면 표시)
+        // 2. 티어 정보 갱신 (언랭크 방지 로직)
         const tCheck = card.querySelector('.tier-override');
         const lCheck = card.querySelector('.lp-override');
         
-        // 수동 수정 중이 아닐 때만 갱신
-        if (dbPlayer.tier && dbPlayer.tier !== "UNRANKED") {
+        // dbPlayer.tier에 값이 있고, "UNRANKED"가 아닐 때만 UI를 업데이트합니다.
+        // 만약 값이 "UNRANKED"거나 비어있다면 아예 UI를 건드리지 않음으로써 기존 값을 유지합니다.
+        if (dbPlayer.tier && dbPlayer.tier !== "UNRANKED" && dbPlayer.tier !== "") {
             const tierPart = dbPlayer.tier.split(' - ')[0];
             const curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart);
-            const curLP = dbPlayer.tier.match(/(\d+)LP/)?.[1];
+            const lpMatch = dbPlayer.tier.match(/(\d+)LP/);
+            const curLP = lpMatch ? lpMatch[1] : null;
 
             if (curTierEng && !tCheck.checked) {
                 const tSelect = card.querySelector('.tier-select');
                 tSelect.value = curTierEng;
                 tSelect.setAttribute('data-tier', TIER_MAP[curTierEng]);
             }
-            if (curLP !== undefined && !lCheck.checked) {
+            if (curLP !== null && !lCheck.checked) {
                 card.querySelector('.lp-input').value = curLP;
             }
         }
