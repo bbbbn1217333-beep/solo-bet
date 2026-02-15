@@ -49,18 +49,20 @@
         height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:14px; font-weight: 900; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; text-align: center; appearance: none; 
     }
     
-    /* [수정] 티어별 색상 스타일 추가 */
-    .tier-select[data-tier^="챌린저"] { color: #ff4e50 !important; text-shadow: 0 0 10px rgba(255,78,80,0.5); }
-    .tier-select[data-tier^="그랜드마스터"] { color: #ff7f7f !important; }
-    .tier-select[data-tier^="마스터"] { color: #e3a3ff !important; }
-    .tier-select[data-tier^="다이아몬드"] { color: #57bbff !important; }
-    .tier-select[data-tier^="에메랄드"] { color: #2ecc71 !important; }
-    .tier-select[data-tier^="플래티넘"] { color: #4ecdc4 !important; }
-    .tier-select[data-tier^="골드"] { color: #f1c40f !important; }
-    .tier-select[data-tier^="실버"] { color: #bdc3c7 !important; }
-    .tier-select[data-tier^="브론즈"] { color: #a67c52 !important; }
-    .tier-select[data-tier^="아이언"] { color: #7f8c8d !important; }
-    .tier-select[data-tier="언랭크"] { color: #fff !important; }
+/* [수정] 티어별 색상 스타일 (관리자 패널용) */
+.tier-select { transition: all 0.3s ease; } /* 부드러운 전환 효과 */
+
+.tier-select[data-tier^="챌린저"] { color: #ff4e50 !important; border-color: #ff4e50 !important; box-shadow: 0 0 10px rgba(255,78,80,0.5) !important; }
+.tier-select[data-tier^="그랜드마스터"] { color: #ff7f7f !important; border-color: #ff7f7f !important; }
+.tier-select[data-tier^="마스터"] { color: #e3a3ff !important; border-color: #e3a3ff !important; }
+.tier-select[data-tier^="다이아몬드"] { color: #57bbff !important; border-color: #57bbff !important; }
+.tier-select[data-tier^="에메랄드"] { color: #2ecc71 !important; border-color: #2ecc71 !important; }
+.tier-select[data-tier^="플래티넘"] { color: #4ecdc4 !important; border-color: #4ecdc4 !important; }
+.tier-select[data-tier^="골드"] { color: #f1c40f !important; border-color: #f1c40f !important; }
+.tier-select[data-tier^="실버"] { color: #bdc3c7 !important; border-color: #bdc3c7 !important; }
+.tier-select[data-tier^="브론즈"] { color: #a67c52 !important; border-color: #a67c52 !important; }
+.tier-select[data-tier^="아이언"] { color: #7f8c8d !important; border-color: #7f8c8d !important; }
+.tier-select[data-tier="언랭크"] { color: #fff !important; border-color: var(--gold) !important; }
 
     .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
     .nick-riot { flex: 2 !important; min-width: 150px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
