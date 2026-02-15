@@ -157,6 +157,8 @@ async function toggleWatch() {
     }
 }
 
+// ... (상단 변수 및 initChampMap, resetHistoryUI, toggleWatch 함수는 동일)
+
 async function syncWithRiot() { 
     try { 
         // 1. 현재 DB의 최신 상태를 먼저 가져와서 비교군 생성
@@ -180,11 +182,7 @@ async function syncWithRiot() {
                 const newLpMatch = newP.tier?.match(/(\d+)LP/);
                 const newLp = newLpMatch ? parseInt(newLpMatch[1]) : 0;
                 
-                // LP 차이 계산
                 let diff = newLp - oldLp;
-                
-                // [보정] 승급/강등 시 LP가 100을 넘거나 0 아래로 가서 계산이 튀는 경우 처리 (선택사항)
-                // 만약 diff가 너무 크거나 작으면(예: 80 이상) 보통 승급/강등 상황입니다.
                 let diffStr = diff >= 0 ? `+${diff}` : `${diff}`;
 
                 toUpdateDiff.push({
@@ -193,13 +191,13 @@ async function syncWithRiot() {
                 });
             });
 
-            // 3. 계산된 lp_diff만 빠르게 DB에 업데이트
+            // 3. 계산된 lp_diff만 빠르게 DB에 업데이트 (최적화 규칙 준수)
             if (toUpdateDiff.length > 0) {
                 await sb.from('players').upsert(toUpdateDiff);
             }
         }
 
-        // 4. 화면 UI 갱신 (이미 작성하신 mergeRebuild 호출)
+        // 4. UI 갱신
         mergeRebuild(pData || []); 
     } catch (e) { console.error("동기화 실패:", e); } 
 }
@@ -213,26 +211,25 @@ function mergeRebuild(dbData) {
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
 
-        // [핵심 수정] 수동 수정 체크박스가 꺼져있을 때만 DB 값으로 화면 갱신
-        const tierOverride = card.querySelector('.tier-override');
-        if (tierOverride && !tierOverride.checked) {
+        // [수정] 티어/LP 화면 동기화 로직
+        const tCheck = card.querySelector('.tier-override');
+        const lCheck = card.querySelector('.lp-override');
+        
+        // 수동 수정이 아닐 때만 DB 값으로 덮어쓰기
+        if (tCheck && !tCheck.checked && lCheck && !lCheck.checked) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
             
             if (dbPlayer.tier) {
-                // DB 예시: "다이아몬드 2 - 45LP" 또는 "언랭크"
                 const tierPart = dbPlayer.tier.split(' - ')[0]; 
                 const lpMatch = dbPlayer.tier.match(/(\d+)LP/);
                 const lpPart = lpMatch ? lpMatch[1] : "";
 
-                // 한글 티어명을 TIER_MAP의 영어 키값으로 역추적
                 const engTier = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart);
                 
                 if (engTier) {
-                    tSelect.value = engTier; // 셀렉트 박스 변경
-                    lInput.value = lpPart;   // LP 인풋창 변경
-                    
-                    // 색상 업데이트를 위해 속성 부여
+                    tSelect.value = engTier;
+                    lInput.value = lpPart;
                     tSelect.setAttribute('data-tier', TIER_MAP[engTier]);
                 } else if (dbPlayer.tier.includes("언랭크")) {
                     tSelect.value = "UNRANKED";
@@ -242,9 +239,43 @@ function mergeRebuild(dbData) {
             }
         }
 
-        // ... (이하 전적/승패 카운트 로직은 그대로 유지)
+        // [수정] 전적 및 챔피언 정보 동기화 로직
+        const items = card.querySelectorAll('.history-item');
+        let wCount = 0, lCount = 0;
+        
+        items.forEach((item, idx) => {
+            const btn = item.querySelector('.btn-toggle');
+            const champInp = item.querySelector('.champ-input');
+            const dbRes = dbPlayer.recent?.[idx];
+            const dbChamp = dbPlayer.champions?.[idx];
+
+            if (btn.classList.contains('ing')) {
+                if (dbRes === 'win') {
+                    btn.innerText = '😁 승리';
+                    btn.className = 'btn-toggle win';
+                } else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
+                    btn.innerText = '😡 패배';
+                    btn.className = 'btn-toggle lose';
+                } else if (['remake', 'remake_loss', 'remake_win'].includes(dbRes)) {
+                    btn.innerText = '🕒 진행';
+                    btn.className = 'btn-toggle ing';
+                    champInp.value = ''; 
+                }
+
+                if (!['remake', 'remake_loss', 'remake_win'].includes(dbRes) && dbChamp && dbChamp !== 'None') {
+                    champInp.value = idToNameMap[dbChamp] || dbChamp;
+                }
+            }
+
+            if (btn.innerText.includes('승리')) wCount++;
+            if (btn.innerText.includes('패배')) lCount++;
+        });
+
+        card.querySelector('.win-val').value = wCount;
+        card.querySelector('.lose-val').value = lCount;
     });
 }
+// ... (이하 createMemberCard, applyToSupabase 등 나머지 함수는 기존과 동일)
 
         const items = card.querySelectorAll('.history-item');
         let wCount = 0, lCount = 0;
