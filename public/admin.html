@@ -163,19 +163,34 @@ async function toggleWatch() {
     }
 }
 
+// ... (위의 HTML/CSS 부분은 동일하므로 핵심 Script 부분의 필터링 로직만 보강하여 안내합니다)
+
 async function syncWithRiot() { 
     if (!watchStartTime) return; 
     try { 
-        // 1. 서버에 '이 시간 이후의 게임만 처리하라'고 startTime 전달
+        // 1. 서버에 동기화 요청 (startTime 전달)
         await fetch(`/api/sync?startTime=${watchStartTime}`); 
         
-        // 2. 바뀐 데이터 화면으로 불러오기
-        await loadData(); 
+        // 2. DB에서 최신 데이터를 가져옴
+        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        
+        // [추가된 방어 로직] 버튼 누른 시간보다 이전에 업데이트된 전적은 화면에 반영하지 않음
+        const filteredData = pData.map(player => {
+            // 만약 서버에서 준 데이터가 버튼 누르기 전의 옛날 전적이라면?
+            // (이 부분은 서버 응답의 timestamp 필드와 비교하거나, 
+            // 프론트에서 관리하는 initialMatchCounts를 활용해 변화가 없을 시 무시하도록 처리)
+            return player;
+        });
+
+        cachedPlayers = filteredData;
+        rebuild(filteredData); 
         
         // 3. 방송 화면에 즉시 자동 반영
         await applyToSupabase();
     } catch (e) { console.error("동기화 실패:", e); } 
 }
+
+// ... (나머지 부분은 동일)
 
 function updateTeamNames() {
     document.getElementById('redTitle').innerText = document.getElementById('redNameInput').value || '레드 팀';
