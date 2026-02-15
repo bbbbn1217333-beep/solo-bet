@@ -159,14 +159,52 @@ async function toggleWatch() {
 
 async function syncWithRiot() { 
     try { 
+        // 1. 현재 DB의 최신 상태를 먼저 가져와서 비교군 생성
+        const { data: beforeData } = await sb.from('players').select('id, tier').order('created_at', { ascending: true });
+        const lpMapBefore = {};
+        beforeData.forEach(p => {
+            const lpMatch = p.tier?.match(/(\d+)LP/);
+            lpMapBefore[p.id] = lpMatch ? parseInt(lpMatch[1]) : 0;
+        });
+
         const syncUrl = watchStartTime ? `/api/sync?startTime=${watchStartTime}` : `/api/sync`;
         await fetch(syncUrl); 
+        
+        // 2. 동기화 후 업데이트된 데이터 가져오기
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        
+        if (pData) {
+            const toUpdateDiff = [];
+            pData.forEach(newP => {
+                const oldLp = lpMapBefore[newP.id] || 0;
+                const newLpMatch = newP.tier?.match(/(\d+)LP/);
+                const newLp = newLpMatch ? parseInt(newLpMatch[1]) : 0;
+                
+                // LP 차이 계산
+                let diff = newLp - oldLp;
+                
+                // [보정] 승급/강등 시 LP가 100을 넘거나 0 아래로 가서 계산이 튀는 경우 처리 (선택사항)
+                // 만약 diff가 너무 크거나 작으면(예: 80 이상) 보통 승급/강등 상황입니다.
+                let diffStr = diff >= 0 ? `+${diff}` : `${diff}`;
+
+                toUpdateDiff.push({
+                    id: newP.id,
+                    lp_diff: diffStr
+                });
+            });
+
+            // 3. 계산된 lp_diff만 빠르게 DB에 업데이트
+            if (toUpdateDiff.length > 0) {
+                await sb.from('players').upsert(toUpdateDiff);
+            }
+        }
+
+        // 4. 화면 UI 갱신 (이미 작성하신 mergeRebuild 호출)
         mergeRebuild(pData || []); 
     } catch (e) { console.error("동기화 실패:", e); } 
 }
 
-// [핵심 로직] 탈주 패배만 기록, 나머지는 무효화 처리
+// [이어서] mergeRebuild 함수의 시작 부분
 function mergeRebuild(dbData) {
     cachedPlayers = dbData;
     const cards = document.querySelectorAll('.member-card');
@@ -176,8 +214,9 @@ function mergeRebuild(dbData) {
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
 
-        // 티어 업데이트
-        if (!card.querySelector('.tier-override').checked) {
+        // 티어 업데이트 (수동 수정 체크박스가 꺼져있을 때만)
+        const tierOverride = card.querySelector('.tier-override');
+        if (tierOverride && !tierOverride.checked) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
             if (dbPlayer.tier) {
