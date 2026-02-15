@@ -50,7 +50,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
 
-/* 인게임 애니메이션 복구 */
+/* 인게임 애니메이션 */
 @keyframes ingamePulse { 0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } 50% { box-shadow: 0 0 12px #00FFAA; border-color: #fff; } 100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } }
 .champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.2); }
 
@@ -60,7 +60,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; font-size: 9px; }
 .wl-badge.none { color: #00FFAA !important; border-color: #00FFAA !important; background: rgba(0, 255, 170, 0.1); }
 
-/* 스코어보드 및 결과 카드 스타일 */
+/* 스코어보드 및 결과 카드 */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
@@ -135,7 +135,7 @@ let cutsceneQueue = [];
 const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아몬드':7, '마스터':8, '그랜드':9, '챌린저':10 };
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
 
-// [수정] 마스터 이상 I 표시 제거 로직 추가
+// [수정] 오직 ' I'만 타겟팅하여 제거 (LP 등 다른 정보 보존)
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked')) return { name: '언랭크', class: 'unranked' };
     const t = tierStr.toLowerCase();
@@ -153,9 +153,9 @@ function getTierInfo(tierStr) {
     
     if (cls !== 'unranked') {
         korName = tierStr.replace(new RegExp(cls, 'gi'), TIER_KOR_MAP[cls]);
-        // 마스터, 그랜드마스터, 챌린저일 경우 뒤의 ' I' 또는 ' 1' 제거
+        // 마스터 이상일 때 ' I'만 찾아서 삭제 (LP 등 뒤의 정보는 남김)
         if (cls === 'master' || cls === 'grandmaster' || cls === 'challenger') {
-            korName = korName.replace(/\s[iI]$|\s1$/g, "").trim();
+            korName = korName.replace(/ I(?= -| |$)/, "");
         }
     }
     return { name: korName, class: cls };
@@ -232,7 +232,6 @@ async function runCutscene(player, isWin, kdaText, autoEvent) {
     else if (autoEvent === 'demotion') statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
     
     const tierInfo = getTierInfo(player.tier);
-    const currentLPText = player.tier && player.tier.includes('LP') ? ` - ${player.tier.match(/(\d+)LP/)[1]}LP` : "";
     let lpDiff = player.lp_diff || (isWin ? "+0" : "-0");
     if (!lpDiff.startsWith('+') && !lpDiff.startsWith('-')) lpDiff = (isWin ? "+" : "-") + lpDiff;
     
@@ -240,8 +239,8 @@ async function runCutscene(player, isWin, kdaText, autoEvent) {
     document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
     const targetScene = isWin ? document.getElementById('scene-game-win') : document.getElementById('scene-game-lose');
     
-    // [수정] res-tier 에 color: #fff !important 명시적 추가로 글자색 흰색 고정
-    targetScene.innerHTML = `<div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}"><h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1><div class="res-nick"><span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${player.team==='red'?(settings.red_team_name||'RED'):(settings.blue_team_name||'BLUE')}</span><span>${player.name}</span><span style="font-size: 32px; font-weight: 900; margin-left:10px;"><span style="color:#ffd369;">😁 ${player.wins || 0}승</span> <span style="color:#ff6b6b;">😡 ${player.losses || 0}패</span></span><span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span></div><div class="res-tier-wrap"><div class="res-tier tier ${tierInfo.class}" style="color:#fff !important;"><span>${tierInfo.name}${currentLPText}</span><span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>${statusBadgeHTML}</div></div><div class="res-champ"><img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><div class="res-kda-box"><span class="kda-main">${kdaText}</span><span class="kda-calc">K/D/A : (${kdaVal})</span></div></div></div>`;
+    // [수정] 글자색 흰색 고정 및 티어 정보 출력
+    targetScene.innerHTML = `<div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}"><h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1><div class="res-nick"><span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${player.team==='red'?(settings.red_team_name||'RED'):(settings.blue_team_name||'BLUE')}</span><span>${player.name}</span><span style="font-size: 32px; font-weight: 900; margin-left:10px;"><span style="color:#ffd369;">😁 ${player.wins || 0}승</span> <span style="color:#ff6b6b;">😡 ${player.losses || 0}패</span></span><span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span></div><div class="res-tier-wrap"><div class="res-tier tier ${tierInfo.class}" style="color:#fff !important;"><span>${tierInfo.name}</span><span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>${statusBadgeHTML}</div></div><div class="res-champ"><img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><div class="res-kda-box"><span class="kda-main">${kdaText}</span><span class="kda-calc">K/D/A : (${kdaVal})</span></div></div></div>`;
     
     targetScene.classList.add('active');
     setTimeout(() => { 
