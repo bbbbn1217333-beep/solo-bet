@@ -168,27 +168,31 @@ const fixChamp = c => {
     
     let raw = c.toString().trim();
 
-    // 1. 숫자 ID(432 등) 처리
+    // 1. 숫자 ID 처리 (예: 432 -> Bard)
     if (champIdToKey[raw]) {
         raw = champIdToKey[raw];
     }
 
-    // 2. [가장 중요] 대소문자가 특이한 챔피언 "강제 고정"
-    // 아래 목록은 뒤의 로직(toLowerCase)을 타지 않고 즉시 반환됩니다.
-    const strictChamps = {
-        '크산테': 'KSante', "K'Sante": 'KSante', 'ksante': 'KSante', 'Ksante': 'KSante',
+    // 2. 대소문자 관계없이 '크산테' 관련 입력이면 무조건 'KSante' 반환
+    const lowerRaw = raw.toLowerCase();
+    if (lowerRaw === '크산테' || lowerRaw === 'ksante' || lowerRaw === "k'sante") {
+        return 'KSante';
+    }
+
+    // 3. 기타 예외 챔피언들
+    const exceptions = {
         '르블랑': 'Leblanc', 'leblanc': 'Leblanc',
         '벨코즈': 'Velkoz', 'velkoz': 'Velkoz',
         '렉사이': 'RekSai', 'reksai': 'RekSai',
-        '카직스': 'Khazix', '초가스': 'Chogath'
+        '누누와 윌럼프': 'Nunu', '누누': 'Nunu'
     };
+    if (exceptions[raw]) return exceptions[raw];
+    if (exceptions[lowerRaw]) return exceptions[lowerRaw];
 
-    if (strictChamps[raw]) return strictChamps[raw];
-
-    // 3. 한글 이름 -> 영문 변환
+    // 4. 한글 이름 매핑 확인
     if (champMap[raw]) return champMap[raw];
 
-    // 4. 일반적인 변환 (이 로직이 S를 소문자로 만들었으므로, 2번에서 미리 걸러내야 함)
+    // 5. 기본 변환 (첫글자 대문자, 나머지 소문자)
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 };
 
