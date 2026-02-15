@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* 기존 스타일 유지 */
+/* --- 스타일 유지 및 애니메이션 복구 --- */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -50,17 +50,21 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
 
-/* 인게임 애니메이션 복구 */
-@keyframes ingamePulse { 0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } 50% { box-shadow: 0 0 12px #00FFAA; border-color: #fff; } 100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } }
-.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.2); }
+/* 인게임 에메랄드 애니메이션 복구 */
+@keyframes ingamePulse { 
+  0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; transform: scale(1); } 
+  50% { box-shadow: 0 0 14px #00FFAA; border-color: #fff; transform: scale(1.05); } 
+  100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; transform: scale(1); } 
+}
+.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.2); z-index: 2; position: relative; }
 
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
-.wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; font-size: 9px; }
+.wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; font-size: 10px; text-shadow: 0 0 5px #00FFAA; }
 .wl-badge.none { color: #777 !important; border-color: #444 !important; }
 
-/* 스코어보드 및 결과 카드 스타일 생략 (기존과 동일) */
+/* 점수판 및 기타 스타일 생략 (기존 유지) */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
@@ -129,7 +133,7 @@ let settings = {};
 let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
-let isInitialLoad = true; 
+let isInitialLoad = true; // 방어막
 let cutsceneQueue = []; 
 
 const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아몬드':7, '마스터':8, '그랜드':9, '챌린저':10 };
@@ -189,6 +193,7 @@ function renderMainScene(container, filterTeam) {
                 const c = fixChamp(p.champions ? p.champions[i] : 'None');
                 const isResult = (r === 'win' || r === 'lose');
                 const isIngame = (r === 'ing' && c !== 'None');
+                // 진행중인 판 ⚡ 표시 복구
                 const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
                 const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
                 const imgClass = isIngame ? 'ingame' : '';
@@ -199,6 +204,65 @@ function renderMainScene(container, filterTeam) {
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
 }
 
+function setupRealtime() {
+    sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
+        const oldP = prevPlayersState[payload.new.name];
+        const newP = payload.new;
+
+        // 초기 로딩 중에는 데이터 동기화만 하고 컷씬 무시
+        if (isInitialLoad || !oldP) {
+            prevPlayersState[newP.name] = { ...newP };
+            loadData();
+            return;
+        }
+
+        // 실제 판수 변화 감지 (자동감시 시작 이후)
+        if (oldP.wins !== newP.wins || oldP.losses !== newP.losses) {
+            let autoEvent = null;
+            const isWin = newP.wins > (oldP.wins || 0);
+            const oldMain = (oldP.tier || "").split(' ')[0], newMain = (newP.tier || "").split(' ')[0];
+            const oldStep = parseInt((oldP.tier || "").replace(/[^0-9]/g, "")), newStep = parseInt((newP.tier || "").replace(/[^0-9]/g, ""));
+            
+            if (tierWeight[newMain] > tierWeight[oldMain]) autoEvent = 'promotion_major';
+            else if (tierWeight[newMain] < tierWeight[oldMain]) autoEvent = 'demotion';
+            else if (newMain === oldMain && !isNaN(oldStep) && !isNaN(newStep)) {
+                if (newStep < oldStep) autoEvent = 'promotion';
+                else if (newStep > oldStep) autoEvent = 'demotion';
+            }
+            cutsceneQueue.push({ player: newP, isWin, kdaText: newP.last_kda || "0/0/0", autoEvent });
+            processCutsceneQueue();
+        }
+        prevPlayersState[newP.name] = { ...newP };
+        loadData();
+    }).subscribe();
+}
+
+async function loadData() {
+    try {
+        const { data: sData } = await sb.from('settings').select('*');
+        if (sData && sData.length > 0) settings = sData[0];
+        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        if (pData) {
+            players = pData.map(p => {
+                let streak = 0;
+                const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
+                if (recent.length > 0) {
+                    const lastRes = recent[recent.length - 1];
+                    for(let i = recent.length - 1; i >= 0; i--) { if(recent[i] === lastRes) streak++; else break; }
+                    streak = lastRes === 'win' ? streak : -streak;
+                }
+                return { ...p, streak };
+            });
+            // 초기 로딩 시점에 상태 저장
+            if (isInitialLoad) {
+                players.forEach(p => { prevPlayersState[p.name] = { ...p }; });
+            }
+        }
+        renderAll();
+    } catch (e) { console.log(e); }
+}
+
+/* --- 나머지 함수들 (runCutscene, processCutsceneQueue, updateTimer 등) 기존 유지 --- */
 function processCutsceneQueue() {
     if (cutsceneQueue.length > 0 && normalCycle) {
         const next = cutsceneQueue.shift();
@@ -207,8 +271,7 @@ function processCutsceneQueue() {
 }
 
 async function runCutscene(player, isWin, kdaText, autoEvent) {
-    normalCycle = false;
-    clearInterval(sceneInterval);
+    normalCycle = false; clearInterval(sceneInterval);
     const [k, d, a] = kdaText.split('/').map(Number);
     const kdaVal = d === 0 ? "PERFECT" : ((k + a) / d).toFixed(2);
     let streakCount = 0;
@@ -236,68 +299,11 @@ async function runCutscene(player, isWin, kdaText, autoEvent) {
     
     targetScene.classList.add('active');
     setTimeout(() => { 
-        targetScene.classList.remove('active'); 
-        normalCycle = true; 
-        sIdx = 0; 
+        targetScene.classList.remove('active'); normalCycle = true; sIdx = 0; 
         document.getElementById('scene-all').classList.add('active'); 
         sceneInterval = setInterval(nextScene, 10000); 
         processCutsceneQueue(); 
     }, 8000);
-}
-
-function setupRealtime() {
-    sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
-        const oldP = prevPlayersState[payload.new.name];
-        const newP = payload.new;
-
-        // 방어막: 초기 로딩 중에는 prevPlayersState만 갱신하고 리턴
-        if (isInitialLoad || !oldP) {
-            prevPlayersState[newP.name] = { ...newP };
-            loadData();
-            return;
-        }
-
-        // 판수 변화 감지
-        if (oldP.wins !== newP.wins || oldP.losses !== newP.losses) {
-            let autoEvent = null;
-            const isWin = newP.wins > (oldP.wins || 0);
-            const oldMain = (oldP.tier || "").split(' ')[0], newMain = (newP.tier || "").split(' ')[0];
-            const oldStep = parseInt((oldP.tier || "").replace(/[^0-9]/g, "")), newStep = parseInt((newP.tier || "").replace(/[^0-9]/g, ""));
-            if (tierWeight[newMain] > tierWeight[oldMain]) autoEvent = 'promotion_major';
-            else if (tierWeight[newMain] < tierWeight[oldMain]) autoEvent = 'demotion';
-            else if (newMain === oldMain && !isNaN(oldStep) && !isNaN(newStep)) {
-                if (newStep < oldStep) autoEvent = 'promotion';
-                else if (newStep > oldStep) autoEvent = 'demotion';
-            }
-            cutsceneQueue.push({ player: newP, isWin, kdaText: newP.last_kda || "0/0/0", autoEvent });
-            processCutsceneQueue();
-        }
-        prevPlayersState[newP.name] = { ...newP };
-        loadData();
-    }).on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData).subscribe();
-}
-
-async function loadData() {
-    try {
-        const { data: sData } = await sb.from('settings').select('*');
-        if (sData && sData.length > 0) settings = sData[0];
-        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
-        if (pData) {
-            players = pData.map(p => {
-                let streak = 0;
-                const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
-                if (recent.length > 0) {
-                    const lastRes = recent[recent.length - 1];
-                    for(let i = recent.length - 1; i >= 0; i--) { if(recent[i] === lastRes) streak++; else break; }
-                    streak = lastRes === 'win' ? streak : -streak;
-                }
-                // 초기 로딩 시 prevPlayersState가 없으면 채워넣음
-                if (!prevPlayersState[p.name]) prevPlayersState[p.name] = { ...p };
-                return { ...p, streak };
-            });
-        }
-        renderAll();
-    } catch (e) { console.log(e); }
 }
 
 function updateTimer() {
@@ -305,9 +311,8 @@ function updateTimer() {
     if (!settings || !settings.timer_end_at) return;
     const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
     timerAreas.forEach(area => {
-        if (diff <= 0) {
-            area.innerHTML = `<span class="clock-shake">⏰</span> <span style="color:#ffd369;">솔랭 내기 종료!!!</span>`;
-        } else {
+        if (diff <= 0) area.innerHTML = `<span class="clock-shake">⏰</span> <span style="color:#ffd369;">솔랭 내기 종료!!!</span>`;
+        else {
             const h = String(Math.floor(diff/3600000)).padStart(2,'0'), m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0'), s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
             area.innerHTML = `⏰ <span>남은 시간 :</span> <span class="timer-nums">${h}:${m}:${s}</span>`;
         }
@@ -324,6 +329,7 @@ function renderScoreScene() {
 
 function renderAll() { renderMainScene(document.getElementById('scene-all'), null); renderMainScene(document.getElementById('scene-red'), 'red'); renderMainScene(document.getElementById('scene-blue'), 'blue'); renderScoreScene(); }
 function nextScene() { if(!normalCycle) return; const sc = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue'), document.getElementById('scene-score')]; sc.forEach(s=>s.classList.remove('active')); sIdx=(sIdx+1)%sc.length; sc[sIdx].classList.add('active'); updateTimer(); }
+
 async function start() { 
     await initChampMap(); 
     await loadData(); 
@@ -331,8 +337,16 @@ async function start() {
     setInterval(updateTimer, 1000); 
     sceneInterval = setInterval(nextScene, 10000); 
     
-    // 10초 뒤 방어막 해제
-    setTimeout(() => { isInitialLoad = false; console.log("실시간 컷씬 감시 시작!"); }, 10000);
+    // 자동감시 시작 시점 (10초 뒤)
+    setTimeout(async () => { 
+        // 시작 직전의 데이터를 한 번 더 긁어와서 prevPlayersState를 완전히 최신화 (과거 판 반영 방지)
+        const { data: latest } = await sb.from('players').select('*');
+        if (latest) {
+            latest.forEach(p => { prevPlayersState[p.name] = { ...p }; });
+        }
+        isInitialLoad = false; 
+        console.log("실시간 컷씬 감시 시작! (이후 판만 반영됨)"); 
+    }, 10000);
 }
 start();
 </script>
