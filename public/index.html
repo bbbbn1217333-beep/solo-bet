@@ -46,19 +46,22 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
 
-/* 하단 챔피언 히스토리 및 테두리 복구 */
+/* 하단 챔피언 히스토리 */
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
 
-/* [복구] 진행 중(ingame)일 때 에메랄드 테두리 효과 */
-.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #2ecc71 !important; filter: brightness(1.1); }
-@keyframes ingamePulse { 0% { box-shadow: 0 0 2px #2ecc71; } 50% { box-shadow: 0 0 10px #2ecc71; } 100% { box-shadow: 0 0 2px #2ecc71; } }
+/* 인게임 중일 때 초상화 애니메이션 */
+.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #2ecc71 !important; filter: brightness(1.2); }
+@keyframes ingamePulse { 0% { box-shadow: 0 0 2px #2ecc71; } 50% { box-shadow: 0 0 12px #2ecc71; } 100% { box-shadow: 0 0 2px #2ecc71; } }
 
+/* [수정] 배지 공통 스타일 및 '...' 상태 에메랄드 복구 */
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
-.wl-badge.ing { color: #2ecc71 !important; border-color: #2ecc71 !important; }
+
+/* 핵심: '...' 또는 '⚡' 일 때 테두리선 에메랄드색으로 표시 */
+.wl-badge.ing, .wl-badge.none { color: #2ecc71 !important; border: 1.5px solid #2ecc71 !important; box-shadow: 0 0 5px rgba(46, 204, 113, 0.4); }
 
 /* 스코어보드 스타일 */
 .score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
@@ -81,14 +84,13 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "14.3.1"; // 챔피언 이미지를 위한 안정적인 버전
+const LOL_VER = "16.3.1"; 
 
 let champMap = {}; 
 let champIdToKey = {};
 let players = [];
 let settings = {};
 let sIdx = 0;
-let normalCycle = true;
 
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.trim() === "" || tierStr.includes('언랭크') || tierStr.toLowerCase().includes('unranked')) {
@@ -127,11 +129,7 @@ async function initChampMap() {
 const fixChamp = c => {
     if(!c || c === 'None' || c === '' || c === 'undefined') return 'None';
     let raw = c.toString().trim();
-    
-    // 1. Key(숫자)인 경우 매핑
     if (champIdToKey[raw]) return champIdToKey[raw];
-    
-    // 2. 특수 예외 처리 (이미지 파일명 불일치 해결)
     const exceptions = { 
         '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai', 
         '누누와 윌럼프': 'Nunu', '미스 포츈': 'MissFortune', '미스포츈': 'MissFortune',
@@ -139,11 +137,7 @@ const fixChamp = c => {
         '코그모': 'KogMaw', '문도 박사': 'DrMundo', '자르반 4세': 'JarvanIV'
     };
     if (exceptions[raw]) return exceptions[raw];
-    
-    // 3. 한글 이름 매핑
     if (champMap[raw]) return champMap[raw];
-    
-    // 4. 영어 이름 처리 (공백 및 특수문자 제거 후 첫글자 대문자)
     let engName = raw.replace(/[^a-zA-Z]/g, '');
     return engName.charAt(0).toUpperCase() + engName.slice(1).toLowerCase();
 };
@@ -204,7 +198,6 @@ function renderAll() {
 }
 
 function nextScene() { 
-    if(!normalCycle) return; 
     const sc = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue')]; 
     sc.forEach(s=>s.classList.remove('active')); 
     sIdx=(sIdx+1)%sc.length; 
