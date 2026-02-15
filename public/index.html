@@ -35,18 +35,17 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
-/* 티어별 색상 - 가장 확실한 매칭 방식 */
-.tier.iron { color: #a19d94 !important; }
-.tier.bronze { color: #cd7f32 !important; }
-.tier.silver { color: #c0c0c0 !important; }
-.tier.gold { color: #ffd700 !important; }
-.tier.platinum { color: #4e99afe6 !important; }
-.tier.emerald { color: #2ecc71 !important; }
-.tier.diamond { color: #b9f2ff !important; }
-.tier.master { color: #9b59b6 !important; }
-.tier.grandmaster { color: #e74c3c !important; }
-.tier.challenger { color: #f1c40f !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6); }
-.tier.unranked { color: #aaa !important; }
+.tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;} 
+.tier.bronze{--t-clr:#cd7f32; color:var(--t-clr) !important;} 
+.tier.silver{--t-clr:#c0c0c0; color:var(--t-clr) !important;} 
+.tier.gold{--t-clr:#ffd700; color:var(--t-clr) !important;} 
+.tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr) !important;} 
+.tier.emerald{--t-clr:#2ecc71; color:var(--t-clr) !important;} 
+.tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr) !important;} 
+.tier.master{--t-clr:#9b59b6; color:var(--t-clr) !important;} 
+.tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr) !important;} 
+.tier.challenger{--t-clr:#f1c40f; color:var(--t-clr) !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);} 
+.tier.unranked{--t-clr:#aaa; color:var(--t-clr) !important;}
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
@@ -137,32 +136,26 @@ const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플�
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
 
 function getTierInfo(tierStr) {
-    if (!tierStr || tierStr.trim() === "" || tierStr.includes('언랭크') || tierStr.toLowerCase().includes('unranked')) {
-        return { name: '언랭크', class: 'unranked' };
-    }
-
+    if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked')) return { name: '언랭크', class: 'unranked' };
     const t = tierStr.toLowerCase();
-    let cls = 'unranked';
+    let cls = 'unranked', korName = tierStr;
+    if (t.includes('challenger')) cls = 'challenger';
+    else if (t.includes('grandmaster')) cls = 'grandmaster';
+    else if (t.includes('master')) cls = 'master';
+    else if (t.includes('diamond')) cls = 'diamond';
+    else if (t.includes('emerald')) cls = 'emerald';
+    else if (t.includes('platinum')) cls = 'platinum';
+    else if (t.includes('gold')) cls = 'gold';
+    else if (t.includes('silver')) cls = 'silver';
+    else if (t.includes('bronze')) cls = 'bronze';
+    else if (t.includes('iron')) cls = 'iron';
     
-    // 한글/영어 모두 대응하여 클래스 부여
-    if (t.includes('challenger') || t.includes('챌린저')) cls = 'challenger';
-    else if (t.includes('grandmaster') || t.includes('그랜드마스터')) cls = 'grandmaster';
-    else if (t.includes('master') || t.includes('마스터')) cls = 'master';
-    else if (t.includes('diamond') || t.includes('다이아몬드')) cls = 'diamond';
-    else if (t.includes('emerald') || t.includes('에메랄드')) cls = 'emerald';
-    else if (t.includes('platinum') || t.includes('플래티넘')) cls = 'platinum';
-    else if (t.includes('gold') || t.includes('골드')) cls = 'gold';
-    else if (t.includes('silver') || t.includes('실버')) cls = 'silver';
-    else if (t.includes('bronze') || t.includes('브론즈')) cls = 'bronze';
-    else if (t.includes('iron') || t.includes('아이언')) cls = 'iron';
-
-    // 화면에 표시될 이름 (챌린저 - 1456LP 형태 유지)
-    let korName = tierStr;
-    Object.keys(TIER_KOR_MAP).forEach(eng => {
-        if (t.includes(eng)) korName = korName.replace(new RegExp(eng, 'gi'), TIER_KOR_MAP[eng]);
-    });
-    korName = korName.replace(/ I(?= -| |$)/, "");
-
+    if (cls !== 'unranked') {
+        korName = tierStr.replace(new RegExp(cls, 'gi'), TIER_KOR_MAP[cls]);
+        if (cls === 'master' || cls === 'grandmaster' || cls === 'challenger') {
+            korName = korName.replace(/ I(?= -| |$)/, "");
+        }
+    }
     return { name: korName, class: cls };
 }
 
