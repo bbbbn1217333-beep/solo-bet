@@ -56,6 +56,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
     50% { box-shadow: 0 0 10px #00FFAA; border-color: #fff; }
     100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; }
 }
+/* 애니메이션 적용 대상 수정 */
 .champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.1); }
 
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
@@ -203,7 +204,6 @@ async function triggerCutscene(player, isWin, kdaText = "0/0/0", autoEvent = nul
     const tierInfo = getTierInfo(player.tier);
     const currentLPText = player.lp ? ` - ${player.lp}LP` : "";
     
-    // 점수 변동 반영 (lp_diff 값이 있으면 표시, 없으면 +0/-0 처리)
     let lpDiff = player.lp_diff || (isWin ? "+0" : "-0");
     if (!lpDiff.startsWith('+') && !lpDiff.startsWith('-')) lpDiff = (isWin ? "+" : "-") + lpDiff;
 
@@ -292,7 +292,7 @@ function renderMainScene(container, filterTeam) {
             ${(p.recent || Array(10).fill(null)).map((r,i)=>{
                 const c = fixChamp(p.champions ? p.champions[i] : 'None');
                 const isResult = (r === 'win' || r === 'lose');
-                const isIngame = (r === 'ing' && c !== 'None'); 
+                const isIngame = (r === 'ing'); // 챔피언 유무와 상관없이 'ing'면 인게임 상태로 간주
                 
                 const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
                 const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
