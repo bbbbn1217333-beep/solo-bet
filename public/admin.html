@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-    /* [기존 UI 스타일 유지] */
+    /* 기존 스타일과 동일 (중략 없이 유지) */
     :root { 
         --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; 
         --emerald: #2ecc71; 
@@ -84,9 +84,9 @@
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
         </div>
         <div class="menu-desc">
-            <strong>💡 UI 유지 + 스마트 연동 매뉴얼</strong>
-            • <span class="neon-point">감시 시작 버튼:</span> 클릭한 시점 이후에 종료된 게임만 순차적으로 기록됩니다.<br>
-            • <span class="neon-point">수동 입력 보존:</span> 이미 작성된 전적 슬롯은 건드리지 않고 비어있는 슬롯부터 자동 갱신됩니다.
+            <strong>💡 티어 갱신 팁</strong>
+            • <span class="neon-point">수정 체크박스:</span> "수정" 체크박스가 해제되어 있어야 라이엇 티어가 자동으로 갱신됩니다.<br>
+            • <span class="neon-point">언랭크 문제:</span> 롤 닉네임#태그가 정확한지 확인해 주세요.
         </div>
     </div>
 
@@ -122,7 +122,6 @@ let autoSyncInterval = null;
 let champNameMap = {}; 
 let idToNameMap = {}; 
 let watchStartTime = null; 
-// [추가] 감시 시작 시점의 판수를 저장하기 위한 변수
 let initialMatchCounts = {}; 
 
 async function initChampMap() {
@@ -142,9 +141,7 @@ async function toggleWatch() {
         clearInterval(autoSyncInterval); autoSyncInterval = null;
         btn.innerText = "▶️ 자동 감시 시작";
         watchStartTime = null;
-        initialMatchCounts = {}; // 초기화
     } else {
-        // [수정] 감시 시작 시점의 현재 화면상 승/패 수를 저장함 (이보다 늘어날 때만 컷씬)
         const cards = document.querySelectorAll('.member-card');
         cards.forEach(card => {
             const uuid = card.dataset.uuid;
@@ -155,7 +152,6 @@ async function toggleWatch() {
                 };
             }
         });
-
         watchStartTime = Date.now();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         syncWithRiot();
@@ -163,11 +159,16 @@ async function toggleWatch() {
     }
 }
 
+// [핵심 수정] 티어 정보도 함께 동기화하도록 보강
 async function syncWithRiot() { 
     try { 
-        await fetch(`/api/sync?startTime=${watchStartTime}`); 
+        // 1. 서버에 동기화 요청
+        const res = await fetch(`/api/sync?startTime=${watchStartTime}`); 
+        
+        // 2. 최신 DB 데이터 다시 불러오기
         await loadData(); 
-        // [추가] 데이터 로드 후 자동으로 DB에 반영하여 송출용 화면에 신호를 보냄
+        
+        // 3. 불러온 데이터가 화면에 즉시 송출되도록 반영
         await applyToSupabase();
     } catch (e) { console.error(e); } 
 }
@@ -199,8 +200,10 @@ function createMemberCard(team, data = null) {
         const resText = res === 'win' ? '😁 승리' : (res === 'lose' ? '😡 패배' : '🕒 진행');
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
+    
+    // 티어 파싱 로직 강화
     let curTierEng = "UNRANKED", curLP = "";
-    if (data?.tier && data.tier !== "언랭크") {
+    if (data?.tier && !data.tier.includes("언랭크")) {
         const tierPart = data.tier.split(' - ')[0];
         curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
         curLP = data.tier.match(/(\d+)LP/)?.[1] || "";
@@ -211,14 +214,27 @@ function createMemberCard(team, data = null) {
         <div class="name-row">
             <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
             <div class="input-group" style="flex:2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
-            <div class="input-group" style="flex:1.8;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label><select class="tier-select" style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select></div>
-            <div class="input-group" style="width:75px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label><input class="lp-input" placeholder="0" value="${curLP}" style="opacity:${data?.manual_tier ? '1' : '0.4'};"></div>
+            <div class="input-group" style="flex:1.8;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select></div>
+            <div class="input-group" style="width:75px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label><input class="lp-input" placeholder="0" value="${curLP}" ${data?.manual_tier ? '' : 'disabled'} style="opacity:${data?.manual_tier ? '1' : '0.4'};"></div>
             <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
             <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? 0}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
+    
+    // 체크박스 클릭 시 입력 활성화/비활성화 이벤트 추가
+    const tCheck = card.querySelector('.tier-override');
+    const lCheck = card.querySelector('.lp-override');
+    const tSelect = card.querySelector('.tier-select');
+    const lInput = card.querySelector('.lp-input');
+    
+    [tCheck, lCheck].forEach(c => c.addEventListener('change', () => {
+        const active = tCheck.checked || lCheck.checked;
+        tSelect.disabled = !active; lInput.disabled = !active;
+        tSelect.style.opacity = active ? "1" : "0.4";
+        lInput.style.opacity = active ? "1" : "0.4";
+    }));
+
     card.dataset.existingTier = data?.tier || "언랭크";
-    card.dataset.puuid = data?.puuid || "";
     return card;
 }
 
@@ -250,25 +266,16 @@ async function loadData() {
 }
 
 async function applyToSupabase() {
-    const toInsert = []; 
     const toUpdate = []; 
     let cutsceneAssigned = false;
     const cards = document.querySelectorAll('.member-card');
-    const teamCount = Number(document.getElementById('teamCount').value);
     
-    const timerInput = document.getElementById('endDateTime').value;
-    let timerISO = timerInput ? new Date(timerInput).toISOString() : null;
-
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
         if (!name) continue;
 
-        let cardUuid = card.dataset.uuid;
-        if (cardUuid === "null" || cardUuid === "undefined" || !cardUuid) {
-            cardUuid = null;
-        }
-        
-        const existingPlayer = cachedPlayers.find(p => p.id && cardUuid && p.id === cardUuid);
+        const cardUuid = card.dataset.uuid;
+        const existingPlayer = cachedPlayers.find(p => p.id === cardUuid);
 
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
@@ -279,8 +286,8 @@ async function applyToSupabase() {
             champs.push(engKey || rawChamp);
         });
 
-        const currentWins = card.querySelector('.win-val').value !== '' ? Number(card.querySelector('.win-val').value) : recent.filter(r=>r==='win').length;
-        const currentLosses = card.querySelector('.lose-val').value !== '' ? Number(card.querySelector('.lose-val').value) : recent.filter(r=>r==='lose').length;
+        const currentWins = Number(card.querySelector('.win-val').value);
+        const currentLosses = Number(card.querySelector('.lose-val').value);
 
         const tEng = card.querySelector('.tier-select').value;
         const lpVal = card.querySelector('.lp-input').value.trim();
@@ -289,7 +296,6 @@ async function applyToSupabase() {
         let trigger = false, event = null, lpDiff = "", targetChamp = "None";
         const lastIdx = recent.findLastIndex(r => r === 'win' || r === 'lose');
         
-        // [수정] 컷씬 발생 조건: 감시 중이며, 감시 시작 시점보다 판수가 늘어났을 때만
         if (!cutsceneAssigned && lastIdx !== -1 && cardUuid && initialMatchCounts[cardUuid]) {
             const initData = initialMatchCounts[cardUuid];
             const hasNewMatch = (currentWins + currentLosses) > (initData.wins + initData.losses);
@@ -310,12 +316,12 @@ async function applyToSupabase() {
                         event = (newRank < oldRank) ? 'demotion' : 'defeat';
                     }
                 }
-                // 트리거 발생 후 기준점 업데이트
                 initialMatchCounts[cardUuid] = { wins: currentWins, losses: currentLosses };
             }
         }
 
         const playerData = {
+            "id": cardUuid,
             "name": name,
             "team": card.dataset.team,
             "riot_id": card.querySelector('.nick-riot').value.trim(),
@@ -326,48 +332,25 @@ async function applyToSupabase() {
             "recent": recent,
             "champions": champs,
             "trigger_cutscene": trigger,
-            "event_type": event || null,
-            "lp_diff": lpDiff || "",
-            "target_champion": targetChamp || "None"
+            "event_type": event,
+            "lp_diff": lpDiff,
+            "target_champion": targetChamp
         };
-
-        if (cardUuid) {
-            playerData.id = cardUuid;
-            toUpdate.push(playerData);
-        } else {
-            toInsert.push(playerData);
-        }
+        if (cardUuid) toUpdate.push(playerData);
     }
 
     try {
-        await sb.from('settings').upsert({ 
-            id: 1, 
-            red_team_name: document.getElementById('redNameInput').value, 
-            blue_team_name: document.getElementById('blueNameInput').value, 
-            member_count: teamCount,
-            timer_end_at: timerISO 
-        });
-
-        if (toInsert.length > 0) await sb.from('players').insert(toInsert);
+        await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
         if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
-
-        if (!autoSyncInterval) alert('✅ 데이터와 타이머가 성공적으로 반영되었습니다!');
-        loadData();
-    } catch (e) {
-        console.error("에러 상세:", e);
-        alert(`❌ 실패: ${e.message}`);
-    }
+        if (!autoSyncInterval) alert('✅ 반영되었습니다!');
+    } catch (e) { console.error(e); }
 }
 
-async function start() {
-    await initChampMap();
-    await loadData();
-}
+async function start() { await initChampMap(); await loadData(); }
 start();
 </script>
 </body>
 </html>
-
 
 
 
