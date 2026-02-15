@@ -35,18 +35,18 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
-/* 티어별 색상 클래스 (한글 매칭용) */
-.tier.iron, .tier.아이언 { --t-clr:#a19d94; color:var(--t-clr) !important; } 
-.tier.bronze, .tier.브론즈 { --t-clr:#cd7f32; color:var(--t-clr) !important; } 
-.tier.silver, .tier.실버 { --t-clr:#c0c0c0; color:var(--t-clr) !important; } 
-.tier.gold, .tier.골드 { --t-clr:#ffd700; color:var(--t-clr) !important; } 
-.tier.platinum, .tier.플래티넘 { --t-clr:#4e99afe6; color:var(--t-clr) !important; } 
-.tier.emerald, .tier.에메랄드 { --t-clr:#2ecc71; color:var(--t-clr) !important; } 
-.tier.diamond, .tier.다이아몬드 { --t-clr:#b9f2ff; color:var(--t-clr) !important; } 
-.tier.master, .tier.마스터 { --t-clr:#9b59b6; color:var(--t-clr) !important; } 
-.tier.grandmaster, .tier.그랜드마스터 { --t-clr:#e74c3c; color:var(--t-clr) !important; } 
-.tier.challenger, .tier.챌린저 { --t-clr:#f1c40f; color:var(--t-clr) !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6); } 
-.tier.unranked, .tier.언랭크 { --t-clr:#aaa; color:var(--t-clr) !important; }
+/* 티어별 색상 - 가장 확실한 매칭 방식 */
+.tier[class*="아이언"], .iron { color: #a19d94 !important; --t-clr: #a19d94; }
+.tier[class*="브론즈"], .bronze { color: #cd7f32 !important; --t-clr: #cd7f32; }
+.tier[class*="실버"], .silver { color: #c0c0c0 !important; --t-clr: #c0c0c0; }
+.tier[class*="골드"], .gold { color: #ffd700 !important; --t-clr: #ffd700; }
+.tier[class*="플래티넘"], .platinum { color: #4e99af !important; --t-clr: #4e99af; }
+.tier[class*="에메랄드"], .emerald { color: #2ecc71 !important; --t-clr: #2ecc71; }
+.tier[class*="다이아몬드"], .diamond { color: #b9f2ff !important; --t-clr: #b9f2ff; }
+.tier[class*="마스터"], .master { color: #9b59b6 !important; --t-clr: #9b59b6; }
+.tier[class*="그랜드마스터"], .grandmaster { color: #e74c3c !important; --t-clr: #e74c3c; }
+.tier[class*="챌린저"], .challenger { color: #f1c40f !important; --t-clr: #f1c40f; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6); }
+.tier[class*="언랭크"], .unranked { color: #aaa !important; --t-clr: #aaa; }
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
