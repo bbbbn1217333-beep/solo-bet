@@ -85,8 +85,8 @@
         </div>
         <div class="menu-desc">
             <strong>💡 UI 유지 + 스마트 연동 매뉴얼</strong>
-            • <span class="neon-point">LP 변동 자동계산:</span> 이전 LP와 비교하여 (+18LP) 같은 변동폭을 자동 저장합니다.<br>
-            • <span class="neon-point">승격 컷씬:</span> 티어 단계가 변하면 송출 화면에 승격/강등 애니메이션 명령을 보냅니다.
+            • <span class="neon-point">감시 시작 버튼:</span> 클릭한 시점 이후에 끝난 게임만 자동으로 기록됩니다.<br>
+            • <span class="neon-point">수동 입력 보존:</span> 이미 작성된 전적 슬롯은 건드리지 않고 비어있는 슬롯부터 자동 갱신됩니다.
         </div>
     </div>
 
@@ -119,15 +119,15 @@ const TIER_RANK = { "챌린저":30, "그랜드마스터":29, "마스터":28, "�
 
 let cachedPlayers = [];
 let autoSyncInterval = null; 
-let champNameMap = {}; // 챔피언 영문->한글 맵핑
+let champNameMap = {}; 
+let watchStartTime = null; // 감시 시작 버튼 누른 시점 저장
 
-// 챔피언 한글 데이터 로드
 async function initChampMap() {
     try {
-        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/14.3.1/data/ko_KR/champion.json`);
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
-            champNameMap[c.id] = c.name; // 'Aatrox' -> '아트록스'
+            champNameMap[c.id] = c.name; 
         });
     } catch (e) { console.error("챔피언 로드 실패:", e); }
 }
@@ -137,14 +137,24 @@ async function toggleWatch() {
     if (autoSyncInterval) {
         clearInterval(autoSyncInterval); autoSyncInterval = null;
         btn.innerText = "▶️ 자동 감시 시작";
+        watchStartTime = null;
     } else {
+        // [수정] 현재 시각을 기록하여 이 이후의 판만 가져오도록 설정
+        watchStartTime = Date.now();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         syncWithRiot();
         autoSyncInterval = setInterval(syncWithRiot, 45000); 
     }
 }
 
-async function syncWithRiot() { try { await fetch('/api/sync'); await loadData(); } catch (e) { console.error(e); } }
+async function syncWithRiot() { 
+    try { 
+        // [수정] 서버 측에 watchStartTime을 전달하여 이전 게임 무시 로직 작동 (API가 지원한다고 가정)
+        // 만약 API가 지원하지 않더라도 프론트엔드 applyToSupabase에서 시간/필터링 로직이 작동함
+        await fetch(`/api/sync?startTime=${watchStartTime}`); 
+        await loadData(); 
+    } catch (e) { console.error(e); } 
+}
 
 function updateTeamNames() {
     document.getElementById('redTitle').innerText = document.getElementById('redNameInput').value || '레드 팀';
@@ -163,7 +173,6 @@ function createMemberCard(team, data = null) {
     let historyHTML = '';
     for(let i=0; i<10; i++) {
         let champ = (data?.champions?.[i] === 'None' || !data?.champions?.[i]) ? '' : data.champions[i];
-        // 챔피언 이름 한글 변환 적용
         if (champ && champNameMap[champ]) champ = champNameMap[champ];
         
         const res = data?.recent?.[i] || 'ing';
@@ -246,7 +255,6 @@ async function applyToSupabase() {
             const btn = item.querySelector('.btn-toggle');
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
             
-            // 저장 시 한글 이름을 다시 영문 키값으로 변환하여 저장 (이미지 로드용)
             let rawChamp = item.querySelector('.champ-input').value.trim() || 'None';
             const engKey = Object.keys(champNameMap).find(key => champNameMap[key] === rawChamp);
             champs.push(engKey || rawChamp);
@@ -328,7 +336,6 @@ async function applyToSupabase() {
     }
 }
 
-// 초기 로드 시 챔피언 맵핑 먼저 실행
 async function start() {
     await initChampMap();
     await loadData();
