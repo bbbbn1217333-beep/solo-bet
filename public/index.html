@@ -243,13 +243,28 @@ async function runCutscene(player, isWin, kdaText, autoEvent) {
 }
 function setupRealtime() {
     sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
-        const oldP = prevPlayersState[payload.new.name]; const newP = payload.new;
+        const oldP = prevPlayersState[payload.new.name];
+        const newP = payload.new;
+
+        // 컷신 트리거가 발동되었을 때
         if (!isInitialLoad && newP.trigger_cutscene === true) {
             const isWin = newP.event_type?.includes('victory') || newP.event_type?.includes('promotion') || (newP.wins > (oldP?.wins || 0));
-            cutsceneQueue.push({ player: newP, isWin: isWin, kdaText: newP.last_kda || "0/0/0", autoEvent: newP.event_type });
+            
+            // [중요] 관리자가 계산해서 넣은 lp_diff를 그대로 컷신에 넘겨줍니다.
+            // 만약 lp_diff가 없으면 기본값 +0/-0 처리
+            const finalLpDiff = newP.lp_diff || (isWin ? "+0" : "-0");
+
+            cutsceneQueue.push({ 
+                player: { ...newP, lp_diff: finalLpDiff }, // 새 데이터에 lp_diff를 확실히 포함
+                isWin: isWin, 
+                kdaText: newP.last_kda || "0/0/0", 
+                autoEvent: newP.event_type 
+            });
             processCutsceneQueue();
         }
-        prevPlayersState[newP.name] = { ...newP }; loadData();
+        
+        prevPlayersState[newP.name] = { ...newP }; 
+        loadData();
     }).on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData).subscribe();
 }
 async function loadData() {
