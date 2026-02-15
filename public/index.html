@@ -137,32 +137,35 @@ const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플�
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
 
 function getTierInfo(tierStr) {
-    if (!tierStr) return { name: '언랭크', class: 'unranked' };
-    
-    const t = tierStr.toLowerCase().replace(/\s/g, ''); // 공백 제거 후 소문자화
+    if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked')) {
+        return { name: '언랭크', class: 'unranked' };
+    }
+
+    const t = tierStr.toLowerCase();
     let cls = 'unranked';
+    
+    // 1. 클래스 판정 (CSS 적용용)
+    if (t.includes('challenger')) cls = 'challenger';
+    else if (t.includes('grandmaster')) cls = 'grandmaster';
+    else if (t.includes('master')) cls = 'master';
+    else if (t.includes('diamond')) cls = 'diamond';
+    else if (t.includes('emerald')) cls = 'emerald';
+    else if (t.includes('platinum')) cls = 'platinum';
+    else if (t.includes('gold')) cls = 'gold';
+    else if (t.includes('silver')) cls = 'silver';
+    else if (t.includes('bronze')) cls = 'bronze';
+    else if (t.includes('iron')) cls = 'iron';
+
+    // 2. 이름 변환 (LP 보존)
     let korName = tierStr;
-
-    // 티어 판정 로직
-    if (t.includes('challenger') || t.includes('챌린저')) cls = 'challenger';
-    else if (t.includes('grandmaster') || t.includes('그랜드마스터')) cls = 'grandmaster';
-    else if (t.includes('master') || t.includes('마스터')) cls = 'master';
-    else if (t.includes('diamond') || t.includes('다이아몬드')) cls = 'diamond';
-    else if (t.includes('emerald') || t.includes('에메랄드')) cls = 'emerald';
-    else if (t.includes('platinum') || t.includes('플래티넘')) cls = 'platinum';
-    else if (t.includes('gold') || t.includes('골드')) cls = 'gold';
-    else if (t.includes('silver') || t.includes('실버')) cls = 'silver';
-    else if (t.includes('bronze') || t.includes('브론즈')) cls = 'bronze';
-    else if (t.includes('iron') || t.includes('아이언')) cls = 'iron';
-
-    // 한글 이름 변환 (필요시)
     if (cls !== 'unranked') {
-        const baseName = TIER_KOR_MAP[cls] || '언랭크';
-        // 숫자(I, II, III, IV)는 유지하고 영문만 한글로 교체
-        korName = tierStr.replace(/Challenger|Grandmaster|Master|Diamond|Emerald|Platinum|Gold|Silver|Bronze|Iron/i, baseName);
-        // 마스터 이상은 단계 삭제
+        // 영문 티어명을 한글로 교체 (예: Challenger -> 챌린저)
+        const engNameRegex = new RegExp(cls, 'gi');
+        korName = korName.replace(engNameRegex, TIER_KOR_MAP[cls]);
+        
+        // 마스터 이상에서 ' I' (1단계 표시)가 붙어있다면 제거 (LP는 유지)
         if (['master', 'grandmaster', 'challenger'].includes(cls)) {
-            korName = baseName;
+            korName = korName.replace(/ I(?= -| |$)/, "");
         }
     }
 
