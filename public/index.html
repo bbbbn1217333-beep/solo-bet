@@ -50,27 +50,27 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .history{display:flex; justify-content:center; gap:8px;}
 .champ{position:relative; width:28px; height:28px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
-
-/* 인게임 중일 때 초상화 애니메이션 */
 .champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #2ecc71 !important; filter: brightness(1.2); }
 @keyframes ingamePulse { 0% { box-shadow: 0 0 2px #2ecc71; } 50% { box-shadow: 0 0 12px #2ecc71; } 100% { box-shadow: 0 0 2px #2ecc71; } }
 
-/* [수정] 배지 공통 스타일 및 '...' 상태 에메랄드 복구 */
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
+/* ... 일 때 에메랄드 테두리 복구 */
+.wl-badge.ing, .wl-badge.none { color: #2ecc71 !important; border: 1.5px solid #2ecc71 !important; }
 
-/* 핵심: '...' 또는 '⚡' 일 때 테두리선 에메랄드색으로 표시 */
-.wl-badge.ing, .wl-badge.none { color: #2ecc71 !important; border: 1.5px solid #2ecc71 !important; box-shadow: 0 0 5px rgba(46, 204, 113, 0.4); }
-
-/* 스코어보드 스타일 */
-.score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
+/* 스코어보드 컷씬 스타일 복구 */
+.score-board{margin-top:100px; text-align:center; font-family:'Orbitron',sans-serif;}
 .timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #2ecc71; border-radius:8px; display:inline-block;}
 .timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
 .vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
 .score-wrap{display:flex; justify-content:center; gap:140px;}
 .score-num{font-size:150px; font-weight:900; line-height:1; color:#fff;}
 .score-box.winner .score-num { color: #ffd369; text-shadow: 0 0 45px #ffd369; }
+
+/* 이벤트 컷씬용 (단순 배경 예시, 필요시 확장) */
+#scene-game-win { background: rgba(46, 204, 113, 0.2); }
+#scene-game-lose { background: rgba(231, 76, 60, 0.2); }
 </style>
 </head>
 <body>
@@ -79,6 +79,8 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 <div class="scene" id="scene-red"></div>
 <div class="scene" id="scene-blue"></div>
 <div class="scene" id="scene-score"></div>
+<div class="scene" id="scene-game-win"></div>
+<div class="scene" id="scene-game-lose"></div>
 
 <script>
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
@@ -91,7 +93,9 @@ let champIdToKey = {};
 let players = [];
 let settings = {};
 let sIdx = 0;
+let normalCycle = true;
 
+// 티어 정보 처리
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.trim() === "" || tierStr.includes('언랭크') || tierStr.toLowerCase().includes('unranked')) {
         return { name: '언랭크', class: 'unranked' };
@@ -142,6 +146,7 @@ const fixChamp = c => {
     return engName.charAt(0).toUpperCase() + engName.slice(1).toLowerCase();
 };
 
+// 메인 팀 리스트 렌더링
 function renderMainScene(container, filterTeam) {
     const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
     container.innerHTML = `<div class="container">${teams.map(t => {
@@ -170,6 +175,39 @@ function renderMainScene(container, filterTeam) {
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
 }
 
+// 스코어보드 렌더링 복구
+function renderScoreScene() {
+    const redScore = players.filter(p => p.team === 'red').reduce((a, b) => a + (b.wins || 0), 0);
+    const blueScore = players.filter(p => p.team === 'blue').reduce((a, b) => a + (b.wins || 0), 0);
+    const redClass = redScore > blueScore ? 'winner' : '';
+    const blueClass = blueScore > redScore ? 'winner' : '';
+    
+    document.getElementById('scene-score').innerHTML = `
+        <div class="score-board">
+            <div class="timer-label">TOTAL SCORE</div>
+            <div class="vs">
+                <div class="score-box ${redClass}"><div class="score-num">${redScore}</div></div>
+                <div style="font-size:60px; color:#555;">VS</div>
+                <div class="score-box ${blueClass}"><div class="score-num">${blueScore}</div></div>
+            </div>
+            <div class="timer" id="global-timer">00:00:00</div>
+        </div>`;
+}
+
+function updateTimer() {
+    if(!settings.timer_end_at) return;
+    const now = new Date();
+    const end = new Date(settings.timer_end_at);
+    const diff = end - now;
+    const timerEl = document.getElementById('global-timer');
+    if(!timerEl) return;
+    if(diff <= 0) { timerEl.innerText = "TIME OVER"; return; }
+    const h = String(Math.floor(diff/3600000)).padStart(2,'0');
+    const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+    const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+    timerEl.innerText = `${h}:${m}:${s}`;
+}
+
 async function loadData() {
     try {
         const { data: sData } = await sb.from('settings').select('*');
@@ -186,19 +224,52 @@ async function loadData() {
                 }
                 return { ...p, streak };
             });
+            
+            // 이벤트 컷씬 체크 로직 (트리거 발생 시)
+            const triggerPlayer = players.find(p => p.trigger_cutscene);
+            if(triggerPlayer) {
+                handleTrigger(triggerPlayer);
+            }
         }
         renderAll();
     } catch (e) { console.log(e); }
+}
+
+// 이벤트 컷씬 처리
+async function handleTrigger(player) {
+    normalCycle = false;
+    const winScene = document.getElementById('scene-game-win');
+    const loseScene = document.getElementById('scene-game-lose');
+    
+    // 모든 씬 끄기
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    
+    // 이벤트 타입에 따른 씬 활성화 (간단 구현 예시)
+    if(player.event_type === 'victory' || player.event_type === 'promotion') {
+        winScene.innerHTML = `<h1 style="font-size:100px; text-align:center; margin-top:200px;">${player.name} VICTORY!</h1>`;
+        winScene.classList.add('active');
+    } else {
+        loseScene.innerHTML = `<h1 style="font-size:100px; text-align:center; margin-top:200px;">${player.name} DEFEAT...</h1>`;
+        loseScene.classList.add('active');
+    }
+
+    // 트리거 초기화 (DB)
+    setTimeout(async () => {
+        await sb.from('players').update({ trigger_cutscene: false, event_type: null }).eq('id', player.id);
+        normalCycle = true;
+    }, 10000);
 }
 
 function renderAll() { 
     renderMainScene(document.getElementById('scene-all'), null); 
     renderMainScene(document.getElementById('scene-red'), 'red'); 
     renderMainScene(document.getElementById('scene-blue'), 'blue'); 
+    renderScoreScene();
 }
 
 function nextScene() { 
-    const sc = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue')]; 
+    if(!normalCycle) return; 
+    const sc = [document.getElementById('scene-all'), document.getElementById('redTitle') ? null : document.getElementById('scene-red'), document.getElementById('scene-blue'), document.getElementById('scene-score')].filter(Boolean); 
     sc.forEach(s=>s.classList.remove('active')); 
     sIdx=(sIdx+1)%sc.length; 
     sc[sIdx].classList.add('active'); 
@@ -209,12 +280,12 @@ async function start() {
     await loadData(); 
     sb.channel('db_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData).subscribe();
     setInterval(nextScene, 8000); 
+    setInterval(updateTimer, 1000);
 }
 start();
 </script>
 </body>
 </html>
-
 
 
 
