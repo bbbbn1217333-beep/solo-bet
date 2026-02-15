@@ -40,24 +40,12 @@
         .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; white-space: nowrap; }
         .nick-disp, .nick-riot, .lp-input, .score-input { height: 44px !important; box-sizing: border-box !important; }
         .tier-select { height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:14px; font-weight: 900; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; text-align: center; appearance: none; }
-        .tier-select[data-tier^="챌린저"] { color: #ff4e50 !important; border-color: #ff4e50 !important; box-shadow: 0 0 10px rgba(255,78,80,0.5) !important; }
-        .tier-select[data-tier^="그랜드마스터"] { color: #ff7f7f !important; border-color: #ff7f7f !important; }
-        .tier-select[data-tier^="마스터"] { color: #e3a3ff !important; border-color: #e3a3ff !important; }
-        .tier-select[data-tier^="다이아몬드"] { color: #57bbff !important; border-color: #57bbff !important; }
-        .tier-select[data-tier^="에메랄드"] { color: #2ecc71 !important; border-color: #2ecc71 !important; }
-        .tier-select[data-tier^="플래티넘"] { color: #4ecdc4 !important; border-color: #4ecdc4 !important; }
-        .tier-select[data-tier^="골드"] { color: #f1c40f !important; border-color: #f1c40f !important; }
-        .tier-select[data-tier^="실버"] { color: #bdc3c7 !important; border-color: #bdc3c7 !important; }
-        .tier-select[data-tier^="브론즈"] { color: #a67c52 !important; border-color: #a67c52 !important; }
-        .tier-select[data-tier^="아이언"] { color: #7f8c8d !important; border-color: #7f8c8d !important; }
-        .tier-select[data-tier="언랭크"] { color: #fff !important; border-color: var(--gold) !important; }
         .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
         .nick-riot { flex: 2 !important; min-width: 150px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
         .red .nick-disp, .red .nick-riot { border-color: var(--red); }
         .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
         .lp-input { width: 65px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; box-shadow: var(--neon-gold); outline:none; }
         .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; flex: none !important; margin-left: 2px !important; }
-        .score-input-wrap label { font-size: 11px; font-weight: 900; margin-bottom: 6px; }
         .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; }
         .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
         .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
@@ -88,9 +76,9 @@
             <button class="btn-load-data btn-reset-all" onclick="resetUIForNewGame()">⚠️ 전적 초기화</button>
         </div>
         <div class="menu-desc">
-            <strong>💡 로직 업데이트 (v1.3)</strong>
-            • <span class="neon-point">전적 초기화:</span> 새로운 내기 시작 시 버튼을 누르고 <b>[송출 화면 반영]</b>을 누르면 모든 데이터가 비워집니다.<br>
-            • <span class="neon-point">자동 감시:</span> 감시 버튼을 누른 <b>이후</b> 종료된 게임만 컷신이 뜹니다.
+            <strong>💡 로직 업데이트 (v1.5)</strong>
+            • <span class="neon-point">롤 닉네임 복구:</span> 사라졌던 롤 닉네임(#태그) 입력칸을 복구했습니다.<br>
+            • <span class="neon-point">전적 초기화:</span> 초기화 후 반영 시 DB의 모든 데이터가 완벽하게 리셋됩니다.
         </div>
     </div>
 
@@ -114,6 +102,7 @@ let autoSyncInterval = null;
 let champNameMap = {}; 
 let idToNameMap = {}; 
 let watchStartTime = null; 
+window.isResetMode = false;
 
 async function initChampMap() {
     try {
@@ -139,7 +128,7 @@ function getChampIdByName(name) {
 
 function resetUIForNewGame() {
     if(!confirm("모든 전적을 0으로 초기화할까요? (반영 버튼을 눌러야 확정됩니다)")) return;
-    
+    window.isResetMode = true;
     document.querySelectorAll('.member-card').forEach(card => {
         card.querySelector('.win-val').value = 0;
         card.querySelector('.lose-val').value = 0;
@@ -150,13 +139,9 @@ function resetUIForNewGame() {
             item.querySelector('.champ-input').value = '';
         });
     });
-
-    // 즉시 캐시 데이터도 0으로 덮어씀 (매우 중요)
     cachedPlayers = cachedPlayers.map(p => ({
         ...p, wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None')
     }));
-    
-    window.isResetMode = true; // 반영 버튼 클릭 시 강제 초기화 신호
 }
 
 async function toggleWatch() {
@@ -259,6 +244,7 @@ function createMemberCard(team, data = null) {
     }
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
+    // **핵심: 롤 닉네임 필드 복구**
     card.innerHTML = `
         <div class="name-row">
             <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
@@ -322,11 +308,12 @@ async function applyToSupabase() {
 
     const toUpdate = []; 
     const cards = document.querySelectorAll('.member-card');
-    const isReset = window.isResetMode === true;
-    
+    const isReset = window.isResetMode;
+
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
         if (!name) continue;
+        const riot_id = card.querySelector('.nick-riot').value.trim(); // 닉네임 가져오기
         const cardUuid = card.dataset.uuid;
         const dbP = cachedPlayers.find(p => p.id === cardUuid);
         
@@ -339,13 +326,11 @@ async function applyToSupabase() {
 
         const curW = Number(card.querySelector('.win-val').value);
         const curL = Number(card.querySelector('.lose-val').value);
-        
-        // 초기화 모드일 때는 무조건 기존 점수를 0으로 간주하고 비교 로직 수행
         const baseW = isReset ? 0 : (dbP?.wins || 0);
         const baseL = isReset ? 0 : (dbP?.losses || 0);
 
         toUpdate.push({ 
-            "id": cardUuid, "name": name, "team": card.dataset.team, 
+            "id": cardUuid, "name": name, "riot_id": riot_id, "team": card.dataset.team, 
             "wins": curW, "losses": curL, "recent": recent, "champions": champs, 
             "trigger_cutscene": (!isReset && (curW > baseW || curL > baseL)),
             "last_result": curW > baseW ? 'win' : (curL > baseL ? 'lose' : null)
@@ -353,15 +338,12 @@ async function applyToSupabase() {
     }
 
     try {
-        // 서버에 0으로 초기화된 데이터를 강제로 덮어씀
         const { error } = await sb.from('players').upsert(toUpdate);
         if (error) throw error;
-        
         window.isResetMode = false;
         alert('✅ 반영 완료!');
-        await loadData(); // 최신화된 서버 데이터 다시 가져오기
+        await loadData();
     } catch (e) { 
-        console.error(e); 
         alert('반영 실패: ' + e.message);
     } finally {
         applyBtn.innerText = originalText;
