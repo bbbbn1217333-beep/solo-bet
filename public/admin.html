@@ -195,7 +195,7 @@ function mergeRebuild(dbData) {
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
 
-        // 1. 전적 및 챔피언 데이터 자동 갱신
+        // 1. 전적/챔피언 갱신
         const items = card.querySelectorAll('.history-item');
         let wCount = 0, lCount = 0;
         items.forEach((item, idx) => {
@@ -214,28 +214,34 @@ function mergeRebuild(dbData) {
         card.querySelector('.win-val').value = wCount;
         card.querySelector('.lose-val').value = lCount;
 
-        // 2. 관리자용 패널 티어/LP 동기화 (송출 화면과 동일 로직)
+        // 2. 티어/LP 동기화 (송출화면과 동일 데이터 파싱)
         const tCheck = card.querySelector('.tier-override');
         const lCheck = card.querySelector('.lp-override');
         
-        // dbPlayer.tier가 있고, "UNRANKED"가 아닐 때만 갱신 (송출화면과 동일한 데이터 소스 사용)
-        if (dbPlayer.tier && !dbPlayer.tier.includes("UNRANKED")) {
-            // "골드 1 - 50LP" 형태에서 티어 이름과 LP 숫자 추출
-            const parts = dbPlayer.tier.split(' - ');
-            const tierKor = parts[0]; // "골드 1"
-            const lpPart = parts[1] ? parts[1].replace('LP', '') : ""; // "50"
+        // manual_tier가 true면 자동 갱신을 건너뜁니다 (수정 중인 값 보호)
+        if (dbPlayer.manual_tier) {
+            tCheck.checked = true;
+            lCheck.checked = true;
+            card.querySelector('.tier-select').disabled = false;
+            card.querySelector('.lp-input').disabled = false;
+            card.querySelector('.tier-select').style.opacity = "1";
+            card.querySelector('.lp-input').style.opacity = "1";
+            return; 
+        }
 
-            // 한글 티어명을 영문 TIER_MAP 키로 변환
+        if (dbPlayer.tier && !dbPlayer.tier.includes("UNRANKED")) {
+            const parts = dbPlayer.tier.split(' - ');
+            const tierKor = parts[0].trim(); 
+            const lpPart = parts[1] ? parts[1].replace('LP', '').trim() : "";
+
             const curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierKor);
 
-            if (curTierEng && !tCheck.checked) {
+            if (curTierEng) {
                 const tSelect = card.querySelector('.tier-select');
                 tSelect.value = curTierEng;
-                // 티어 색상 반영을 위해 데이터 속성 업데이트
                 tSelect.setAttribute('data-tier', TIER_MAP[curTierEng]);
             }
-            
-            if (lpPart !== "" && !lCheck.checked) {
+            if (lpPart !== "") {
                 card.querySelector('.lp-input').value = lpPart;
             }
         }
@@ -341,10 +347,14 @@ async function applyToSupabase() {
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
         if (!name) continue;
-        const riot_id = card.querySelector('.nick-riot').value.trim(); // 닉네임 가져오기
+        const riot_id = card.querySelector('.nick-riot').value.trim();
         const cardUuid = card.dataset.uuid;
         const dbP = cachedPlayers.find(p => p.id === cardUuid);
         
+        const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
+        const selectedTierKor = TIER_MAP[card.querySelector('.tier-select').value];
+        const inputLP = card.querySelector('.lp-input').value;
+
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
             const btn = item.querySelector('.btn-toggle');
@@ -361,7 +371,9 @@ async function applyToSupabase() {
             "id": cardUuid, "name": name, "riot_id": riot_id, "team": card.dataset.team, 
             "wins": curW, "losses": curL, "recent": recent, "champions": champs, 
             "trigger_cutscene": (!isReset && (curW > baseW || curL > baseL)),
-            "last_result": curW > baseW ? 'win' : (curL > baseL ? 'lose' : null)
+            "last_result": curW > baseW ? 'win' : (curL > baseL ? 'lose' : null),
+            "manual_tier": isManual, // 이 값을 저장해야 체크박스가 유지됩니다
+            "tier": isManual ? `${selectedTierKor} - ${inputLP}LP` : (dbP?.tier || "UNRANKED")
         });
     }
 
