@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* --- 스타일 유지 및 애니메이션 복구 --- */
+/* --- 기본 스타일 유지 --- */
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 40px;}
 .scene.active{opacity:1; z-index:1; display:block;}
@@ -20,43 +20,19 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .summary .lose{color:#ff6b6b; text-shadow:0 0 12px #ff6b6b;}
 .members{display:flex; flex-direction:column; gap:2px;}
 .member-card{position:relative; width:330px; padding:12px 10px 8px; background:rgba(255,255,255,.06); border-radius:8px; border:2px solid rgba(120,120,120,.35); text-align:center; overflow:visible; margin-top: 10px;}
-.status-icon { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 26px; z-index: 10; }
-.crown-glow { animation: floatCrown 2s infinite ease-in-out, glowGoldIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ffd369); }
-.skull-shake { animation: shakeSkull 0.5s infinite linear, glowRedIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ff4d4d); }
-@keyframes floatCrown { 0%, 100% { top: -22px; } 50% { top: -28px; } }
-@keyframes glowGoldIcon { 0% { filter: drop-shadow(0 0 5px #ffd369); } 100% { filter: drop-shadow(0 0 15px #ffd369) brightness(1.2); } }
-@keyframes shakeSkull { 0% { transform: translateX(-50%) rotate(0deg); } 25% { transform: translateX(-52%) rotate(-5deg); } 75% { transform: translateX(-48%) rotate(5deg); } 100% { transform: translateX(-50%) rotate(0deg); } }
-@keyframes glowRedIcon { 0% { filter: drop-shadow(0 0 5px #ff4d4d); } 100% { filter: drop-shadow(0 0 15px #ff4d4d) brightness(1.2); } }
-.info-line{display:flex; justify-content:center; align-items:baseline; gap:6px; margin-bottom:8px; white-space:nowrap;}
-.name{font-family:'Orbitron',sans-serif; font-size:15px; font-weight:800; flex-shrink: 0;}
-.tier{font-size:13px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}
-.record{font-size:14px; font-weight:800; flex-shrink: 0; display:flex; gap:4px;}
-.record .win{color:#ffd369;} .record .lose{color:#ff6b6b;}
-.streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}
-.streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
-.streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
-.tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;} 
-.tier.bronze{--t-clr:#cd7f32; color:var(--t-clr) !important;} 
-.tier.silver{--t-clr:#c0c0c0; color:var(--t-clr) !important;} 
-.tier.gold{--t-clr:#ffd700; color:var(--t-clr) !important;} 
-.tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr) !important;} 
-.tier.emerald{--t-clr:#2ecc71; color:var(--t-clr) !important;} 
-.tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr) !important;} 
-.tier.master{--t-clr:#9b59b6; color:var(--t-clr) !important;} 
-.tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr) !important;} 
-.tier.challenger{--t-clr:#f1c40f; color:var(--t-clr) !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);} 
-.tier.unranked{--t-clr:#aaa; color:var(--t-clr) !important;}
-.history{display:flex; justify-content:center; gap:8px;}
-.champ{position:relative; width:28px; height:28px;}
-.champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
 
-/* 인게임 에메랄드 애니메이션 복구 */
+/* --- 애니메이션 및 테두리 설정 --- */
 @keyframes ingamePulse { 
-  0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; transform: scale(1); } 
-  50% { box-shadow: 0 0 14px #00FFAA; border-color: #fff; transform: scale(1.05); } 
-  100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; transform: scale(1); } 
+    0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; transform: scale(1); } 
+    50% { box-shadow: 0 0 14px #00FFAA; border-color: #fff; transform: scale(1.05); } 
+    100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; transform: scale(1); } 
 }
-.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.2); z-index: 2; position: relative; }
+
+.champ{position:relative; width:28px; height:28px;}
+/* 기본 대기중 (...) 테두리: 정적 에메랄드 */
+.champ img { width:100%; height:100%; border-radius:4px; border: 1.5px solid #00FFAA; background: #222; box-sizing: border-box; }
+/* 진행중 (⚡) 테두리: 애니메이션 에메랄드 */
+.champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #fff !important; z-index: 2; position: relative; }
 
 .wl-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
@@ -64,50 +40,12 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; font-size: 10px; text-shadow: 0 0 5px #00FFAA; }
 .wl-badge.none { color: #777 !important; border-color: #444 !important; }
 
-/* 점수판 및 기타 스타일 생략 (기존 유지) */
-.score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}
-.timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
-.timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}
-.timer-nums { font-variant-numeric: tabular-nums; min-width: 160px; text-align: left; }
-.clock-shake { display: inline-block; animation: shakeClock 0.5s infinite linear; }
-@keyframes shakeClock { 0% { transform: rotate(0deg); } 25% { transform: rotate(-15deg); } 50% { transform: rotate(0deg); } 75% { transform: rotate(15deg); } 100% { transform: rotate(0deg); } }
-.vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}
-.vs .vs-text { font-weight:900; color:#fff; text-shadow:0 0 10px #fff; animation:vsGlow 1.2s infinite alternate;}
-@keyframes vsGlow { 0% { transform:scale(0.9); } 100% { transform:scale(1.1); text-shadow:0 0 30px #ffea00; } }
-.team-name-score { font-family: 'Orbitron', sans-serif; font-weight: 900; }
-.score-wrap{display:flex; justify-content:center; gap:140px;}
-.score-box{display:flex; flex-direction:column; align-items:center;}
-.score-num{font-size:150px; font-weight:900; line-height:1; color:#fff; font-variant-numeric: tabular-nums;}
-@keyframes glowGold { 0% { text-shadow: 0 0 15px #ffd369; } 100% { text-shadow: 0 0 45px #ffd369, 0 0 65px #ffd369; } }
-@keyframes glowWhite { 0% { text-shadow: 0 0 15px #ffffff; } 100% { text-shadow: 0 0 45px #ffffff, 0 0 65px #ffffff; } }
-.score-box.winner .score-num { color: #ffd369; animation: glowGold 1.2s infinite alternate; }
-.score-box.draw .score-num { color: #ffffff; animation: glowWhite 1.2s infinite alternate; }
-.score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }
-.sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
-.game-result-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; box-sizing: border-box; padding: 40px; border-radius: 30px; text-align: center; background: rgba(0, 0, 0, 0.95); border: 5px solid #fff; z-index: 9999; }
-.res-win { border-color: #ffd369; box-shadow: 0 0 50px rgba(255, 211, 105, 0.5); }
-.res-lose { border-color: #ff5c5c; box-shadow: 0 0 50px rgba(255, 92, 92, 0.5); }
-.res-title { font-size: 70px; margin: 0; line-height: 1.2; font-weight: 900; font-family:'Pretendard'; }
-.res-win .res-title { color: #fff; text-shadow: 0 0 25px #ffd369, 0 0 45px #ffd369; }
-.res-lose .res-title { color: #fff; text-shadow: 0 0 25px #ff5c5c, 0 0 45px #ff5c5c; }
-.res-nick { font-size: 38px; font-weight: 800; margin: 25px 0 10px; display: flex; align-items: center; justify-content: center; gap: 12px; }
-.res-team { padding: 4px 12px; border-radius: 6px; font-size: 20px; vertical-align: middle; color: #fff; text-transform: uppercase; }
-.res-tier-wrap { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px; margin-bottom: 20px; }
-.res-tier { font-size: 28px; font-weight: 800; color: #fff; padding: 10px 25px; border-radius: 8px; border: 2px solid var(--t-clr); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 10px var(--t-clr), 0 0 15px var(--t-clr); display: flex; align-items: center; gap: 15px; }
-.status-badge { font-size: 32px; font-weight: 900; text-shadow: 2px 2px 4px #000; font-family:'Pretendard'; white-space: nowrap; }
-.badge-pro-super { color: #FFD700 !important; }
-.badge-pro { color: #FFFACD !important; }
-.badge-dem { color: #FF4D4D !important; }
-.res-point { font-weight: 900; font-family: 'Orbitron'; font-size: 32px; margin-left: 5px; }
-.res-point.win { color: #ffd369; text-shadow: 0 0 10px #ffd369; }
-.res-point.lose { color: #ff6b6b; text-shadow: 0 0 10px #ff6b6b; }
-.res-champ img { width: 140px; height: 140px; border-radius: 50%; border: 4px solid #fff; margin-bottom: 15px; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
-.res-kda-box { font-family: 'Orbitron'; margin-top: 10px; }
-.kda-main { font-size: 42px; font-weight: 900; display: block; letter-spacing: 2px; }
-.kda-calc { font-size: 24px; font-weight: 800; color: #ffd369; margin-top: 5px; display: block; }
-.res-streak { font-size: 22px; font-weight: 900; padding: 4px 12px; border-radius: 6px; vertical-align: middle; }
-.res-streak.win { color:#ffd369; border: 2px solid #ffd369; background: rgba(255,211,105,0.1); }
-.res-streak.lose { color:#ff6b6b; border: 2px solid #ff6b6b; background: rgba(255,107,107,0.1); }
+/* 티어 및 기타 UI 생략 (기본 유지됨) */
+.tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;} .tier.bronze{--t-clr:#cd7f32; color:var(--t-clr) !important;} .tier.silver{--t-clr:#c0c0c0; color:var(--t-clr) !important;} .tier.gold{--t-clr:#ffd700; color:var(--t-clr) !important;} .tier.platinum{--t-clr:#4e99afe6; color:var(--t-clr) !important;} .tier.emerald{--t-clr:#2ecc71; color:var(--t-clr) !important;} .tier.diamond{--t-clr:#b9f2ff; color:var(--t-clr) !important;} .tier.master{--t-clr:#9b59b6; color:var(--t-clr) !important;} .tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr) !important;} .tier.challenger{--t-clr:#f1c40f; color:var(--t-clr) !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);} .tier.unranked{--t-clr:#aaa; color:var(--t-clr) !important;}
+.info-line{display:flex; justify-content:center; align-items:baseline; gap:6px; margin-bottom:8px; white-space:nowrap;}.name{font-family:'Orbitron',sans-serif; font-size:15px; font-weight:800; flex-shrink: 0;}.tier{font-size:13px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}.record{font-size:14px; font-weight:800; flex-shrink: 0; display:flex; gap:4px;}.record .win{color:#ffd369;} .record .lose{color:#ff6b6b;}.streak{font-size:12px; font-weight:900; padding:1px 5px; border-radius:4px; margin-left:1px; flex-shrink: 0;}.streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}.streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}.history{display:flex; justify-content:center; gap:8px;}
+/* 결과 카드 및 스코어보드 스타일 (생략 - 기존 완벽한 코드 유지) */
+.score-board{margin-top:180px; text-align:center; font-family:'Orbitron',sans-serif;}.timer-label{font-size:36px; font-weight:900; color:#fff; margin-bottom:12px; padding:8px 16px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}.timer{ font-size:32px; font-weight:800; margin-bottom:20px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 12px; height: 60px;}.timer-nums { font-variant-numeric: tabular-nums; min-width: 160px; text-align: left; }.clock-shake { display: inline-block; animation: shakeClock 0.5s infinite linear; }@keyframes shakeClock { 0% { transform: rotate(0deg); } 25% { transform: rotate(-15deg); } 50% { transform: rotate(0deg); } 75% { transform: rotate(15deg); } 100% { transform: rotate(0deg); } }.vs {font-size:38px;margin-bottom:30px; display:flex; justify-content:center; align-items:center; gap:20px;}.vs .vs-text { font-weight:900; color:#fff; text-shadow:0 0 10px #fff; animation:vsGlow 1.2s infinite alternate;}@keyframes vsGlow { 0% { transform:scale(0.9); } 100% { transform:scale(1.1); text-shadow:0 0 30px #ffea00; } }.team-name-score { font-family: 'Orbitron', sans-serif; font-weight: 900; }.score-wrap{display:flex; justify-content:center; gap:140px;}.score-box{display:flex; flex-direction:column; align-items:center;}.score-num{font-size:150px; font-weight:900; line-height:1; color:#fff; font-variant-numeric: tabular-nums;}.score-box.winner .score-num { color: #ffd369; animation: glowGold 1.2s infinite alternate; }.score-box.draw .score-num { color: #ffffff; animation: glowWhite 1.2s infinite alternate; }.score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }.sub-info{font-size:22px; font-weight:800; color:#ff6b6b; margin-top:10px;}
+.game-result-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; box-sizing: border-box; padding: 40px; border-radius: 30px; text-align: center; background: rgba(0, 0, 0, 0.95); border: 5px solid #fff; z-index: 9999; }.res-win { border-color: #ffd369; box-shadow: 0 0 50px rgba(255, 211, 105, 0.5); }.res-lose { border-color: #ff5c5c; box-shadow: 0 0 50px rgba(255, 92, 92, 0.5); }.res-title { font-size: 70px; margin: 0; line-height: 1.2; font-weight: 900; font-family:'Pretendard'; }.res-win .res-title { color: #fff; text-shadow: 0 0 25px #ffd369, 0 0 45px #ffd369; }.res-lose .res-title { color: #fff; text-shadow: 0 0 25px #ff5c5c, 0 0 45px #ff5c5c; }.res-nick { font-size: 38px; font-weight: 800; margin: 25px 0 10px; display: flex; align-items: center; justify-content: center; gap: 12px; }.res-team { padding: 4px 12px; border-radius: 6px; font-size: 20px; vertical-align: middle; color: #fff; text-transform: uppercase; }.res-tier-wrap { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px; margin-bottom: 20px; }.res-tier { font-size: 28px; font-weight: 800; color: #fff; padding: 10px 25px; border-radius: 8px; border: 2px solid var(--t-clr); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 10px var(--t-clr), 0 0 15px var(--t-clr); display: flex; align-items: center; gap: 15px; }.status-badge { font-size: 32px; font-weight: 900; text-shadow: 2px 2px 4px #000; font-family:'Pretendard'; white-space: nowrap; }.badge-pro-super { color: #FFD700 !important; }.badge-pro { color: #FFFACD !important; }.badge-dem { color: #FF4D4D !important; }.res-point { font-weight: 900; font-family: 'Orbitron'; font-size: 32px; margin-left: 5px; }.res-point.win { color: #ffd369; text-shadow: 0 0 10px #ffd369; }.res-point.lose { color: #ff6b6b; text-shadow: 0 0 10px #ff6b6b; }.res-champ img { width: 140px; height: 140px; border-radius: 50%; border: 4px solid #fff; margin-bottom: 15px; box-shadow: 0 0 20px rgba(255,255,255,0.3); }.res-kda-box { font-family: 'Orbitron'; margin-top: 10px; }.kda-main { font-size: 42px; font-weight: 900; display: block; letter-spacing: 2px; }.kda-calc { font-size: 24px; font-weight: 800; color: #ffd369; margin-top: 5px; display: block; }.res-streak { font-size: 22px; font-weight: 900; padding: 4px 12px; border-radius: 6px; vertical-align: middle; }.res-streak.win { color:#ffd369; border: 2px solid #ffd369; background: rgba(255,211,105,0.1); }.res-streak.lose { color:#ff6b6b; border: 2px solid #ff6b6b; background: rgba(255,107,107,0.1); }
 </style>
 </head>
 <body>
@@ -129,11 +67,12 @@ let champMap = {};
 let champIdToKey = {};
 let players = [];
 let prevPlayersState = {}; 
+let initialSnapshot = {}; // 자동감시 시작 시점의 스냅샷
 let settings = {};
 let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
-let isInitialLoad = true; // 방어막
+let isInitialLoad = true; 
 let cutsceneQueue = []; 
 
 const tierWeight = { '아이언':1, '브론즈':2, '실버':3, '골드':4, '플래티넘':5, '에메랄드':6, '다이아몬드':7, '마스터':8, '그랜드':9, '챌린저':10 };
@@ -186,19 +125,24 @@ function renderMainScene(container, filterTeam) {
         ${teamPlayers.map(p => {
             const level = Math.min(Math.abs(p.streak), 5), streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
             const tInfo = getTierInfo(p.tier);
-            let icon = p.streak>=3?'<span class="status-icon crown-glow">👑</span>':(p.streak<=-3?'<span class="status-icon skull-shake">💀</span>':'');
-            let sText = p.streak > 0 ? (p.streak === 1 ? '1승중' : p.streak + '연승') : (p.streak < 0 ? (p.streak === -1 ? '1패중' : Math.abs(p.streak) + '연패') : '');
-            return `<div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">${icon}<div class="info-line"><span class="name">${p.name}</span><span class="tier ${tInfo.class}">${tInfo.name}</span><div class="record"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div>${sText?`<span class="streak ${p.streak>0?'win':'lose'}">${sText}</span>`:''}</div><div class="history">
+            return `<div class="member-card" style="border-color:${streakCol};"><div class="info-line"><span class="name">${p.name}</span><span class="tier ${tInfo.class}">${tInfo.name}</span><div class="record"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div></div><div class="history">
             ${(p.recent || Array(10).fill(null)).map((r,i)=>{
                 const c = fixChamp(p.champions ? p.champions[i] : 'None');
                 const isResult = (r === 'win' || r === 'lose');
                 const isIngame = (r === 'ing' && c !== 'None');
-                // 진행중인 판 ⚡ 표시 복구
+                
+                // 자동감시 시작 전 데이터는 이미지를 보여주지 않음 (W/L만 표시하거나 ... 표시)
+                let displayImg = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                if (!isInitialLoad && c !== 'None') {
+                    displayImg = `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${c}.png`;
+                }
+
                 const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
                 const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
                 const imgClass = isIngame ? 'ingame' : '';
+                
                 return `<div class="champ">
-                    <img src="${c==='None'?'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7':`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${c}.png`}" class="${imgClass}">
+                    <img src="${displayImg}" class="${imgClass}">
                     <span class="wl-badge ${badgeClass}">${badgeText}</span>
                 </div>`
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
@@ -209,14 +153,13 @@ function setupRealtime() {
         const oldP = prevPlayersState[payload.new.name];
         const newP = payload.new;
 
-        // 초기 로딩 중에는 데이터 동기화만 하고 컷씬 무시
         if (isInitialLoad || !oldP) {
             prevPlayersState[newP.name] = { ...newP };
             loadData();
             return;
         }
 
-        // 실제 판수 변화 감지 (자동감시 시작 이후)
+        // 판수 변화 감지 (자동감시 시작 이후 실제 변화만)
         if (oldP.wins !== newP.wins || oldP.losses !== newP.losses) {
             let autoEvent = null;
             const isWin = newP.wins > (oldP.wins || 0);
@@ -262,14 +205,8 @@ async function loadData() {
     } catch (e) { console.log(e); }
 }
 
-/* --- 나머지 함수들 (runCutscene, processCutsceneQueue, updateTimer 등) 기존 유지 --- */
-function processCutsceneQueue() {
-    if (cutsceneQueue.length > 0 && normalCycle) {
-        const next = cutsceneQueue.shift();
-        runCutscene(next.player, next.isWin, next.kdaText, next.autoEvent);
-    }
-}
-
+/* --- 타이머/스코어보드/컷씬 로직 유지 --- */
+function processCutsceneQueue() { if (cutsceneQueue.length > 0 && normalCycle) { const next = cutsceneQueue.shift(); runCutscene(next.player, next.isWin, next.kdaText, next.autoEvent); } }
 async function runCutscene(player, isWin, kdaText, autoEvent) {
     normalCycle = false; clearInterval(sceneInterval);
     const [k, d, a] = kdaText.split('/').map(Number);
@@ -337,15 +274,19 @@ async function start() {
     setInterval(updateTimer, 1000); 
     sceneInterval = setInterval(nextScene, 10000); 
     
-    // 자동감시 시작 시점 (10초 뒤)
+    // 자동감시 시작 시점 (10초 뒤 - 관리자 패널 버튼과 동기화)
     setTimeout(async () => { 
-        // 시작 직전의 데이터를 한 번 더 긁어와서 prevPlayersState를 완전히 최신화 (과거 판 반영 방지)
+        // 1. 현재 시점의 DB 데이터를 한 번 더 가져와 기준점(스냅샷) 생성
         const { data: latest } = await sb.from('players').select('*');
         if (latest) {
-            latest.forEach(p => { prevPlayersState[p.name] = { ...p }; });
+            latest.forEach(p => { 
+                prevPlayersState[p.name] = { ...p }; 
+            });
         }
+        // 2. 초기 로드 종료 선언 (이제부터 들어오는 변화만 컷씬 및 이미지 반영)
         isInitialLoad = false; 
-        console.log("실시간 컷씬 감시 시작! (이후 판만 반영됨)"); 
+        console.log("실시간 감시 시작! 과거 데이터 차단됨."); 
+        renderAll(); // 이미지 가림막 해제를 위해 재렌더링
     }, 10000);
 }
 start();
