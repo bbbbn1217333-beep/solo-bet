@@ -1,6 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const TIER_KR = {
@@ -18,7 +17,6 @@ module.exports = async (req, res) => {
   const supabase = createClient(url, key);
 
   try {
-    // 1. 모든 플레이어 데이터를 한 번에 가져옴 (최적화)
     const { data: players, error: dbError } = await supabase.from('players').select('*');
     if (dbError) throw dbError;
 
@@ -29,7 +27,6 @@ module.exports = async (req, res) => {
         if (!player.riot_id?.includes('#')) continue;
         const [name, tag] = player.riot_id.split('#');
 
-        // PUUID가 없으면 Riot 계정 API 호출
         let puuid = player.puuid; 
         if (!puuid) {
           const accRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name.trim())}/${encodeURIComponent(tag.trim())}?api_key=${riotKey}`);
@@ -37,52 +34,56 @@ module.exports = async (req, res) => {
             const account = await accRes.json();
             puuid = account.puuid;
           } else { continue; }
-          await delay(100);
+          await delay(50);
         }
 
-        // 인게임 여부 확인
-        const specRes = await fetch(`https://kr.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}?api_key=${riotKey}`);
-        let isNowIngame = specRes.ok;
-
-        // 최신 티어/LP 정보 가져오기 (매치 변경 상관없이 무조건 갱신하도록 수정)
+        // 1. 티어 및 승/패 정보 가져오기 (가장 중요)
         const leagueRes = await fetch(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${riotKey}`);
         const leagues = await leagueRes.json();
         const solo = Array.isArray(leagues) ? leagues.find(l => l.queueType === 'RANKED_SOLO_5x5') : null;
 
         let currentTier = player.tier;
+        let currentWins = player.wins || 0;
+        let currentLosses = player.losses || 0;
+
         if (solo) {
           const krTier = TIER_KR[solo.tier] || solo.tier;
           const hasRank = !['CHALLENGER', 'GRANDMASTER', 'MASTER'].includes(solo.tier);
           currentTier = player.manual_tier ? player.tier : `${krTier}${hasRank ? ' ' + solo.rank : ''} - ${solo.leaguePoints}LP`;
-        } else if (!player.manual_tier) {
-          currentTier = "언랭크";
+          
+          // 실시간 스코어 갱신을 위해 API에서 준 승/패 값을 저장
+          currentWins = solo.wins;
+          currentLosses = solo.losses;
         }
 
-        // 매치 ID 확인 (전적 갱신용)
+        // 2. 인게임 상태 확인
+        const specRes = await fetch(`https://kr.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}?api_key=${riotKey}`);
+        let isNowIngame = specRes.ok;
+
+        // 3. 최근 매치 ID 확인
         const matchIdRes = await fetch(`https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=1&api_key=${riotKey}`);
         const matchIds = await matchIdRes.json();
         const latestMatchId = (matchIds && matchIds.length > 0) ? matchIds[0] : player.last_match_id;
 
-        // 업데이트할 데이터 구성
         updateData.push({
           id: player.id,
           puuid: puuid,
           tier: currentTier,
+          wins: currentWins,   // 추가됨
+          losses: currentLosses, // 추가됨
           is_ingame: isNowIngame,
-          last_match_id: latestMatchId,
-          // 컷씬 트리거는 여기서 직접 건드리지 않고 값이 변할 때 송출 패널이 감지하게 둠
+          last_match_id: latestMatchId
         });
 
-        await delay(200); // 속도 제한 방지
+        await delay(150); 
       } catch (e) {
-        console.error(`${player.name} 처리 중 에러:`, e);
+        console.error(`${player.name} 에러:`, e);
       }
     }
 
-    // 2. 수집된 데이터를 단 한 번의 API 호출로 업데이트 (getValues/setValues 최적화 방식 적용)
+    // 일괄 업데이트 (minimizing API calls)
     if (updateData.length > 0) {
-      const { error: upsertError } = await supabase.from('players').upsert(updateData);
-      if (upsertError) throw upsertError;
+      await supabase.from('players').upsert(updateData);
     }
 
     return res.status(200).json({ success: true, count: updateData.length });
