@@ -172,6 +172,12 @@ async function initChampMap() {
 const fixChamp = c => {
     if(!c || c === 'None' || c === '' || c === 'undefined') return 'None';
     let raw = c.toString().trim();
+    
+    // 크산테 예외 처리 (파일명이 KSante여야 함)
+    if (raw === '크산테' || raw.toLowerCase() === "k'sante" || raw.toLowerCase() === "ksante") {
+        return 'KSante';
+    }
+
     if (champIdToKey[raw]) return champIdToKey[raw];
     if (champMap[raw]) return champMap[raw];
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
