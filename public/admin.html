@@ -24,8 +24,8 @@
         #redNameInput, #blueNameInput { width: 140px !important; }
         .top-controls input, .timer-input-wrap, .btn-load-data, .btn-reset-all { height: 50px !important; box-sizing: border-box; }
         .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:900; outline:none; border: 2px solid var(--gold); color: #fff; box-shadow: var(--neon-gold); }
-        .timer-input-wrap { display: flex; align-items: center; background: #000; padding: 0 15px; border-radius: 8px; border: 2px solid var(--gold); box-shadow: none !important; }
-        #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; box-shadow: none !important; }
+        .timer-input-wrap { display: flex; align-items: center; background: #000; padding: 0 15px; border-radius: 8px; border: 2px solid var(--gold); }
+        #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; }
         #teamCount { width:60px; text-align: center; }
         .btn-load-data { flex: 1.5; padding:0 20px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); font-size: 15px; display: flex; align-items: center; justify-content: center; }
         #watchBtn { flex: 2; transition: all 0.3s; }
@@ -38,26 +38,24 @@
         .member-card { background:#151515; border-radius:12px; padding:20px; border: 2px solid; margin-bottom: 5px; position: relative; }
         .red .member-card { border-color: var(--red); box-shadow: var(--neon-red); }
         .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
-        .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; position: relative; }
-        .input-group { display: flex; flex-direction: column; align-items: center; position: relative; }
-        .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; white-space: nowrap; }
-        .nick-disp { width: 95px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; outline:none; text-align: center; border: 2px solid; }
-        .nick-riot { width: 220px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; outline:none; text-align: center; border: 2px solid; }
-        .red .nick-disp, .red .nick-riot { color: #ffffff !important; border-color: var(--red) !important; font-weight: 900; }
-        .blue .nick-disp, .blue .nick-riot { color: #ffffff !important; border-color: var(--blue) !important; font-weight: 900; }
-        .btn-reset-member { position: absolute; top: -5px; right: 350px; height: 20px; width: 30px; background: #222; border: 1px solid #444; color: #777; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; z-index: 10; }
-        .tier-select { height: 44px !important; width: 100%; padding: 0 10px; background:#000; border: 2px solid var(--tier-color, var(--gold)) !important; border-radius:6px; font-size:16px; font-weight: 900; color: var(--tier-color, var(--gold)) !important; box-shadow: 0 0 15px var(--tier-shadow, rgba(255,211,105,0.4)); outline:none; text-align: center; appearance: none; cursor: pointer; }
-        .lp-input { width: 70px !important; height: 44px !important; background:#000; border: 2px solid var(--tier-color, var(--gold)) !important; border-radius:6px; color: var(--tier-color, var(--gold)) !important; text-align: center; font-weight: 900; font-size:16px; outline:none; }
-        .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; }
-        .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; height: 35px; }
-        .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
-        .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
+        .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; }
+        .input-group { display: flex; flex-direction: column; align-items: center; }
+        .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; }
+        .nick-disp, .nick-riot { padding:10px; background:#000; border-radius:6px; font-size:14px; outline:none; text-align: center; border: 2px solid; color:#fff; font-weight:900; }
+        .nick-disp { width: 95px !important; }
+        .nick-riot { width: 220px !important; }
+        .red .nick-disp, .red .nick-riot { border-color: var(--red); }
+        .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
+        .tier-select { height: 44px; width: 100%; padding: 0 10px; background:#000; border: 2px solid var(--tier-color, var(--gold)) !important; border-radius:6px; font-size:16px; font-weight: 900; color: var(--tier-color, var(--gold)) !important; text-align: center; appearance: none; cursor: pointer; }
+        .lp-input { width: 85px; height: 44px; background:#000; border: 2px solid var(--tier-color, var(--gold)) !important; border-radius:6px; color: var(--tier-color, var(--gold)) !important; text-align: center; font-weight: 900; font-size:16px; outline:none; }
+        .score-input { width: 45px; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; height: 35px; }
+        .win-val { border: 2px solid var(--gold) !important; color: var(--gold); }
+        .lose-val { border: 2px solid var(--red) !important; color: var(--red); }
         .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:15px; border-radius:10px; }
         .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding: 10px 5px; border-radius: 8px; border: 2px solid; }
         .red .history-item { border-color: var(--red); }
         .blue .history-item { border-color: var(--blue); }
-        .history-item span { color: var(--gold); font-weight: 900; font-size: 12px; }
-        .champ-input { width:92%; background:#000; border: 2px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:12px; font-weight: 800; outline: none; }
+        .champ-input { width:92%; background:#000; border: 2px solid var(--gold); color:#fff; text-align:center; padding:8px 0; border-radius:5px; font-size:12px; font-weight: 800; }
         .btn-toggle { width:100%; padding:8px 0; font-size:11px; font-weight:900; border:none; border-radius:4px; cursor:pointer; }
         .btn-toggle.win { background: var(--gold); color: #000; }
         .btn-toggle.lose { background: var(--red); color: #fff; }
@@ -73,8 +71,8 @@
             <div class="header-group"><label class="label-red">🚩 레드 팀 명칭</label><input id="redNameInput" type="text" oninput="updateTeamNames()" placeholder="레드 팀"></div>
             <div class="header-group"><label class="label-blue">🚩 블루 팀 명칭</label><input id="blueNameInput" type="text" oninput="updateTeamNames()" placeholder="블루 팀"></div>
             <div class="header-group"><label class="label-gold">⏰ 목표 종료 시간</label><div class="timer-input-wrap"><input id="endDateTime" type="datetime-local"></div></div>
-            <div class="header-group"><label class="label-gold">👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuildWithCache()"></div>
-            <button id="watchBtn" class="btn-load-data" onclick="toggleWatch()" style="color:var(--gold); border-color:var(--gold); box-shadow: var(--neon-gold);">▶️ 자동 감시 시작</button>
+            <div class="header-group"><label class="label-gold">👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="10" value="5" onchange="rebuildWithCache()"></div>
+            <button id="watchBtn" class="btn-load-data" onclick="toggleWatch()" style="color:var(--gold); border-color:var(--gold);">▶️ 자동 감시 시작</button>
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
             <button class="btn-reset-all" onclick="resetAllRecords()">🧹 전체 초기화</button>
         </div>
@@ -99,40 +97,11 @@ let cachedPlayers = [];
 let idToKorMap = {};
 let korToIdMap = {};
 let isWatching = false;
-let watchInterval = null;
-
-function findEngTierKey(tierStr) {
-    if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
-    let cleanTier = tierStr.replace(/\d+LP/gi, '').trim();
-    const cleanInput = cleanTier.toUpperCase().replace(/[\s\(\)\-]/g, '');
-    if (cleanInput.includes("CHALLENGER") || cleanInput.includes("챌린저")) return "CHALLENGER";
-    if (cleanInput.includes("GRANDMASTER") || cleanInput.includes("그랜드마스터")) return "GRANDMASTER";
-    if (cleanInput.includes("MASTER") || cleanInput.includes("마스터")) return "MASTER";
-    const tierList = [
-        { eng: "DIAMOND", keys: ["다이아", "DIAMOND"] },
-        { eng: "EMERALD", keys: ["에메랄드", "EMERALD"] },
-        { eng: "PLATINUM", keys: ["플래", "플레", "PLATINUM"] },
-        { eng: "GOLD", keys: ["골드", "GOLD"] },
-        { eng: "SILVER", keys: ["실버", "SILVER"] },
-        { eng: "BRONZE", keys: ["브론즈", "BRONZE"] },
-        { eng: "IRON", keys: ["아이언", "IRON"] }
-    ];
-    let foundEng = "";
-    for (const t of tierList) { if (t.keys.some(k => cleanInput.includes(k))) { foundEng = t.eng; break; } }
-    if (!foundEng) return "UNRANKED";
-    let step = "4"; 
-    if (cleanInput.includes("IV") || cleanInput.endsWith("4")) step = "4";
-    else if (cleanInput.includes("III") || cleanInput.endsWith("3")) step = "3";
-    else if (cleanInput.includes("II") || cleanInput.endsWith("2")) step = "2";
-    else if (cleanInput.includes("I") || cleanInput.endsWith("1")) step = "1";
-    return `${foundEng} ${step}`;
-}
 
 async function initChampMap() {
     try {
-        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/14.24.1/data/ko_KR/champion.json`);
         const json = await res.json();
-        idToKorMap = {}; korToIdMap = {};
         Object.values(json.data).forEach(c => {
             idToKorMap[c.key] = c.name;
             idToKorMap[c.id] = c.name;
@@ -141,56 +110,13 @@ async function initChampMap() {
     } catch (e) { console.error("챔피언 로드 실패", e); }
 }
 
-async function syncWithRiot() {
-    try {
-        const syncUrl = `/api/sync?t=${Date.now()}`;
-        await fetch(syncUrl); 
-        // 서버 동기화 후 DB 반영 대기 시간 추가
-        await new Promise(r => setTimeout(r, 800));
-        const { data: pData, error } = await sb.from('players').select('*').order('id', { ascending: true });
-        if (pData) mergeData(pData);
-    } catch (e) { console.error("동기화 실패", e); }
-}
-
-function mergeData(dbData) {
-    cachedPlayers = dbData;
-    document.querySelectorAll('.member-card').forEach(card => {
-        const uuid = card.dataset.uuid;
-        const p = dbData.find(d => String(d.id) === String(uuid));
-        if (!p) return;
-
-        const tOverride = card.querySelector('.tier-override').checked;
-        const lOverride = card.querySelector('.lp-override').checked;
-        
-        card.querySelector('.win-val').value = p.wins ?? 0;
-        card.querySelector('.lose-val').value = p.losses ?? 0;
-
-        const tSelect = card.querySelector('.tier-select');
-        const lInput = card.querySelector('.lp-input');
-        const engKey = findEngTierKey(p.tier);
-
-        // 수정 체크박스 조건 논리 분리 (실시간 갱신 핵심)
-        if (!tOverride) { tSelect.value = engKey; updateTierUI(tSelect); }
-        if (!lOverride) {
-            const lpMatch = p.tier?.match(/(\d+)LP/);
-            lInput.value = lpMatch ? lpMatch[1] : "";
-        }
-
-        card.querySelectorAll('.history-item').forEach((item, idx) => {
-            const btn = item.querySelector('.btn-toggle');
-            const champInput = item.querySelector('.champ-input');
-            const res = p.recent?.[idx];
-            const champId = p.champions?.[idx];
-            
-            if (champId && champId !== 'None') {
-                champInput.value = idToKorMap[champId] || champId;
-            }
-            if (btn.classList.contains('ing') && res !== 'ing') {
-                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
-                else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
-            }
-        });
-    });
+function findEngTierKey(tierStr) {
+    if (!tierStr || tierStr.includes("언랭크")) return "UNRANKED";
+    let cleanTier = tierStr.split('-')[0].trim();
+    for (const [eng, kor] of Object.entries(TIER_MAP)) {
+        if (kor === cleanTier) return eng;
+    }
+    return "UNRANKED";
 }
 
 function updateTierUI(selectElement) {
@@ -199,78 +125,6 @@ function updateTierUI(selectElement) {
     const color = TIER_COLORS[key] || "#ffffff";
     const card = selectElement.closest('.member-card');
     card.style.setProperty('--tier-color', color);
-    card.style.setProperty('--tier-shadow', color + '66');
-}
-
-async function toggleWatch(isAuto = false) {
-    if (!isAuto) {
-        isWatching = !isWatching;
-        await sb.from('settings').update({ is_watching: isWatching }).eq('id', 1);
-    }
-    const btn = document.getElementById('watchBtn');
-    if(isWatching) {
-        btn.innerText = "⏹️ 감시 중 (45초 주기)";
-        btn.style.borderColor = "var(--red)"; btn.style.color = "var(--red)";
-        syncWithRiot();
-        if (watchInterval) clearInterval(watchInterval);
-        watchInterval = setInterval(syncWithRiot, 45000);
-    } else {
-        btn.innerText = "▶️ 자동 감시 시작";
-        btn.style.borderColor = "var(--gold)"; btn.style.color = "var(--gold)";
-        clearInterval(watchInterval);
-    }
-}
-
-function createMemberCard(team, data = null) {
-    const card = document.createElement('div');
-    card.className = `member-card ${team}`;
-    card.dataset.team = team; card.dataset.uuid = data?.id || ""; 
-    let historyHTML = '';
-    for(let i=0; i<10; i++) {
-        const res = data?.recent?.[i] || 'ing';
-        const resText = res === 'win' ? '😁 승리' : (res === 'lose' ? '😡 패배' : '🕒 진행');
-        let champDisp = idToKorMap[data?.champions?.[i]] || "";
-        historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
-    }
-    const curTierEng = findEngTierKey(data?.tier);
-    const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
-    
-    card.innerHTML = `<button class="btn-reset-member" onclick="resetMemberRecord(this)" title="플레이어 정보 초기화">🧹</button>
-    <div class="name-row">
-        <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-        <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
-        <div class="input-group" style="flex:2.5;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.tier-select')"> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} onchange="updateTierUI(this)" style="opacity: ${data?.manual_tier ? '1' : '0.4'}">${tierOptions}</select></div>
-        <div class="input-group" style="width:70px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.lp-input')"> 수정</label><input class="lp-input" placeholder="0" value="${data?.tier?.match(/(\d+)LP/)?.[1] || ''}" ${data?.manual_tier ? '' : 'disabled'} style="opacity: ${data?.manual_tier ? '1' : '0.4'}"></div>
-        <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
-        <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? 0}"></div>
-    </div><div class="history-editor">${historyHTML}</div>`;
-    
-    setTimeout(() => updateTierUI(card.querySelector('.tier-select')), 0);
-    return card;
-}
-
-function resetMemberRecord(btn) {
-    if(!confirm("이 플레이어 정보를 초기화할까요?")) return;
-    const card = btn.closest('.member-card');
-    card.querySelector('.nick-disp').value = ""; card.querySelector('.nick-riot').value = "";
-    const ts = card.querySelector('.tier-select'); ts.value = "UNRANKED"; updateTierUI(ts);
-    card.querySelector('.lp-input').value = ""; card.querySelector('.win-val').value = 0; card.querySelector('.lose-val').value = 0;
-    card.querySelectorAll('.btn-toggle').forEach(b => { b.innerText = '🕒 진행'; b.className = 'btn-toggle ing'; });
-    card.querySelectorAll('.champ-input').forEach(i => i.value = "");
-}
-
-async function resetAllRecords() {
-    if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까?")) return;
-    let resetData = cachedPlayers.map(p => ({
-        id: p.id, name: "", riot_id: "", tier: "언랭크", wins: 0, losses: 0,
-        recent: Array(10).fill('ing'), champions: Array(10).fill('None'),
-        manual_tier: false, team: p.team, trigger_cutscene: false
-    }));
-    try {
-        await sb.from('players').upsert(resetData);
-        await sb.from('settings').upsert({ id: 1, red_team_name: "레드 팀", blue_team_name: "블루 팀", member_count: 5, is_watching: false });
-        alert("✅ 초기화 완료!"); location.reload(); 
-    } catch (e) { alert("오류 발생!"); }
 }
 
 function toggleManual(chk, targetSel) {
@@ -278,22 +132,117 @@ function toggleManual(chk, targetSel) {
     target.disabled = !chk.checked; target.style.opacity = chk.checked ? "1" : "0.4";
 }
 
-function toggleResult(btn) {
-    if (btn.innerText.includes('승리')) { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
-    else if (btn.innerText.includes('패배')) { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
-    else { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+// 요청하신 확실한 초기화 로직 적용
+async function resetAllRecords() {
+    if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까?")) return;
+    
+    const resetData = cachedPlayers.map(p => ({
+        id: p.id, 
+        name: "",
+        riot_id: "",
+        tier: "언랭크",
+        wins: 0,
+        losses: 0,
+        recent: Array(10).fill('ing'),
+        champions: Array(10).fill('None'),
+        manual_tier: false,
+        team: p.team,
+        trigger_cutscene: false
+    }));
+
+    try {
+        if (resetData.length > 0) {
+            const { error } = await sb.from('players').upsert(resetData);
+            if (error) throw error;
+        } else {
+            const newData = [];
+            for(let i=1; i<=10; i++) {
+                newData.push({ name: "", team: i <= 5 ? 'red' : 'blue', tier: "언랭크", wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None') });
+            }
+            await sb.from('players').insert(newData);
+        }
+        
+        await sb.from('settings').upsert({ id: 1, red_team_name: "레드 팀", blue_team_name: "블루 팀", member_count: 5 });
+        alert("✅ 초기화 완료!");
+        location.reload(); 
+    } catch (e) {
+        console.error("상세 오류:", e);
+        alert("초기화 실패!");
+    }
 }
 
-function rebuildWithCache() { rebuild(cachedPlayers); }
-function rebuild(dataList = []) {
-    const redWrap = document.getElementById('redPlayers'); const blueWrap = document.getElementById('bluePlayers'); const count = Number(document.getElementById('teamCount').value);
-    redWrap.innerHTML = ''; blueWrap.innerHTML = '';
-    const reds = dataList.filter(p => p.team === 'red').sort((a,b) => a.id - b.id);
-    const blues = dataList.filter(p => p.team === 'blue').sort((a,b) => a.id - b.id);
-    for(let i=0; i<count; i++) { 
-        redWrap.appendChild(createMemberCard('red', reds[i] || {id: i+1, team:'red'})); 
-        blueWrap.appendChild(createMemberCard('blue', blues[i] || {id: i+21, team:'blue'})); 
+function createMemberCard(team, data = null) {
+    const card = document.createElement('div');
+    card.className = `member-card ${team}`;
+    card.dataset.uuid = data?.id || "";
+    card.dataset.team = team;
+
+    let historyHTML = '';
+    for(let i=0; i<10; i++) {
+        const res = data?.recent?.[i] || 'ing';
+        const resText = res === 'win' ? '😁 승리' : (res === 'lose' ? '😡 패배' : '🕒 진행');
+        const champDisp = idToKorMap[data?.champions?.[i]] || "";
+        historyHTML += `
+            <div class="history-item">
+                <span>${i+1}판</span>
+                <input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}">
+                <button class="btn-toggle ${res}" onclick="toggleResult(this)">${resText}</button>
+            </div>`;
     }
+
+    const curTierEng = findEngTierKey(data?.tier);
+    const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => 
+        `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
+
+    card.innerHTML = `
+        <div class="name-row">
+            <div class="input-group"><label>스트리머</label><input class="nick-disp" value="${data?.name || ''}"></div>
+            <div class="input-group"><label>롤 닉네임</label><input class="nick-riot" value="${data?.riot_id || ''}"></div>
+            <div class="input-group" style="flex:2.5;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.tier-select')"> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} onchange="updateTierUI(this)" style="opacity: ${data?.manual_tier ? '1' : '0.4'}">${tierOptions}</select></div>
+            <div class="input-group" style="width:85px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.lp-input')"> 수정</label><input class="lp-input" placeholder="0" value="${data?.tier?.match(/(\d+)LP/)?.[1] || ''}" ${data?.manual_tier ? '' : 'disabled'} style="opacity: ${data?.manual_tier ? '1' : '0.4'}"></div>
+            <div class="input-group"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
+            <div class="input-group"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? 0}"></div>
+        </div>
+        <div class="history-editor">${historyHTML}</div>`;
+    
+    setTimeout(() => updateTierUI(card.querySelector('.tier-select')), 0);
+    return card;
+}
+
+function toggleResult(btn) {
+    if (btn.classList.contains('ing')) { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+    else if (btn.classList.contains('win')) { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+    else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
+}
+
+async function applyToSupabase() {
+    const toUpdate = [];
+    document.querySelectorAll('.member-card').forEach(card => {
+        const id = card.dataset.uuid;
+        if(!id) return;
+        const recent = [], champions = [];
+        card.querySelectorAll('.history-item').forEach(item => {
+            const btn = item.querySelector('.btn-toggle');
+            recent.push(btn.classList.contains('win') ? 'win' : (btn.classList.contains('lose') ? 'lose' : 'ing'));
+            champions.push(korToIdMap[item.querySelector('.champ-input').value] || 'None');
+        });
+        const isManual = card.querySelector('.tier-override').checked;
+        const tSelect = card.querySelector('.tier-select');
+        const lpVal = card.querySelector('.lp-input').value;
+        toUpdate.push({
+            id: Number(id),
+            name: card.querySelector('.nick-disp').value,
+            riot_id: card.querySelector('.nick-riot').value,
+            tier: isManual ? (lpVal ? `${TIER_MAP[tSelect.value]} - ${lpVal}LP` : TIER_MAP[tSelect.value]) : "언랭크",
+            manual_tier: isManual,
+            wins: Number(card.querySelector('.win-val').value),
+            losses: Number(card.querySelector('.lose-val').value),
+            recent, champions, team: card.dataset.team
+        });
+    });
+    const { error } = await sb.from('players').upsert(toUpdate);
+    await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value) });
+    if(!error) alert("✅ 반영 완료!");
 }
 
 function updateTeamNames() {
@@ -302,60 +251,30 @@ function updateTeamNames() {
 }
 
 async function loadData() {
-    try {
-        const { data: sData } = await sb.from('settings').select('*').eq('id', 1).maybeSingle();
-        if (sData) {
-            document.getElementById('redNameInput').value = sData.red_team_name || "";
-            document.getElementById('blueNameInput').value = sData.blue_team_name || "";
-            document.getElementById('teamCount').value = sData.member_count || 5;
-            isWatching = sData.is_watching || false;
-            updateTeamNames(); if (isWatching) toggleWatch(true);
-        }
-        const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
-        cachedPlayers = pData || []; rebuild(pData);
-    } catch (e) { console.error(e); }
+    const { data: sData } = await sb.from('settings').select('*').eq('id', 1).maybeSingle();
+    if(sData) {
+        document.getElementById('redNameInput').value = sData.red_team_name || "";
+        document.getElementById('blueNameInput').value = sData.blue_team_name || "";
+        document.getElementById('teamCount').value = sData.member_count || 5;
+        updateTeamNames();
+    }
+    const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
+    cachedPlayers = pData || [];
+    rebuild(cachedPlayers);
 }
 
-async function applyToSupabase() {
-    const applyBtn = document.querySelector('.btn-apply');
-    applyBtn.innerText = "⏳ 반영 중..."; applyBtn.disabled = true;
-    const toUpdate = [];
-    document.querySelectorAll('.member-card').forEach((card) => {
-        const id = card.dataset.uuid;
-        let recent = [], champs = [];
-        card.querySelectorAll('.history-item').forEach(item => {
-            const btn = item.querySelector('.btn-toggle');
-            recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
-            const champName = item.querySelector('.champ-input').value.trim();
-            champs.push(korToIdMap[champName] || 'None');
-        });
-        const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
-        const tSelect = card.querySelector('.tier-select');
-        const lInput = card.querySelector('.lp-input');
-        
-        toUpdate.push({
-            id: Number(id), 
-            name: card.querySelector('.nick-disp').value.trim(), 
-            team: card.dataset.team,
-            riot_id: card.querySelector('.nick-riot').value.trim(),
-            tier: isManual ? (lInput.value && tSelect.value !== "UNRANKED" ? `${TIER_MAP[tSelect.value]} - ${lInput.value}LP` : TIER_MAP[tSelect.value]) : "언랭크",
-            manual_tier: isManual, 
-            wins: Number(card.querySelector('.win-val').value),
-            losses: Number(card.querySelector('.lose-val').value), 
-            recent, champions: champs, trigger_cutscene: false
-        });
-    });
-    try {
-        await sb.from('settings').upsert({ 
-            id: 1, 
-            red_team_name: document.getElementById('redNameInput').value, 
-            blue_team_name: document.getElementById('blueNameInput').value, 
-            member_count: Number(document.getElementById('teamCount').value), 
-            is_watching: isWatching 
-        });
-        if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
-        alert('✅ 반영 완료!'); await loadData();
-    } catch (e) { alert("반영 오류!"); } finally { applyBtn.innerText = "송출 화면 반영"; applyBtn.disabled = false; }
+function rebuildWithCache() { rebuild(cachedPlayers); }
+function rebuild(dataList) {
+    const redWrap = document.getElementById('redPlayers');
+    const blueWrap = document.getElementById('bluePlayers');
+    const count = Number(document.getElementById('teamCount').value);
+    redWrap.innerHTML = ''; blueWrap.innerHTML = '';
+    const reds = dataList.filter(p => p.team === 'red');
+    const blues = dataList.filter(p => p.team === 'blue');
+    for(let i=0; i<count; i++) {
+        redWrap.appendChild(createMemberCard('red', reds[i]));
+        blueWrap.appendChild(createMemberCard('blue', blues[i]));
+    }
 }
 
 async function start() { await initChampMap(); await loadData(); }
