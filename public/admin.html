@@ -191,32 +191,39 @@ async function syncWithRiot() {
     } catch (e) { console.error("동기화 실패:", e); } 
 }
 
-// 티어 매칭을 위한 헬퍼 함수 (유연한 비교 보강)
+// 티어 매칭을 위한 헬퍼 함수 (숫자 단계 우선 매칭)
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr === "언랭크") return "UNRANKED";
     
-    // 1. 입력을 대문자로 바꾸고 모든 공백 제거 (예: "Platinum 1" -> "PLATINUM1")
+    // 1. 입력을 대문자로 바꾸고 공백 제거
     const cleanInput = tierStr.toUpperCase().replace(/\s+/g, '');
     
-    // 2. TIER_MAP을 돌며 매칭 확인
+    // 2. 숫자(단계) 추출 (예: "플래티넘 1" -> "1")
+    const stepMatch = tierStr.match(/[1-4]/);
+    const step = stepMatch ? stepMatch[0] : null;
+
+    // 3. TIER_MAP을 돌며 매칭 (단계가 있는 경우 단계까지 일치하는지 우선 확인)
     for (const [eng, kor] of Object.entries(TIER_MAP)) {
-        const cleanEng = eng.replace(/\s+/g, ''); // "PLATINUM 1" -> "PLATINUM1"
-        const cleanKor = kor.replace(/\s+/g, ''); // "플래티넘 1" -> "플래티넘1"
+        const cleanEng = eng.replace(/\s+/g, '');
+        const cleanKor = kor.replace(/\s+/g, '');
         
-        // 영문 키나 한글 명칭이 입력값에 포함되어 있는지 확인
-        if (cleanInput.includes(cleanEng) || 
-            cleanInput.includes(cleanKor) || 
-            cleanEng.includes(cleanInput) || 
-            cleanKor.includes(cleanInput)) {
-            return eng;
+        // 이름이 포함되어 있고, 만약 숫자가 있다면 숫자까지 일치해야 함
+        const nameMatch = cleanInput.includes(cleanEng) || cleanInput.includes(cleanKor) || cleanEng.includes(cleanInput) || cleanKor.includes(cleanInput);
+        
+        if (nameMatch) {
+            // 숫자가 있는 티어(플래티넘, 다이아 등)라면 숫자까지 맞는지 확인
+            if (step) {
+                if (eng.includes(step)) return eng;
+            } else {
+                // 숫자가 없는 티어(챌린저 등)는 바로 반환
+                return eng;
+            }
         }
     }
 
-    // 3. 예외 케이스: "플레"라고 입력될 경우를 대비한 플래티넘 전용 보정
+    // 4. 예외 케이스: "플레" 등 오타 대응
     if (cleanInput.includes("플래") || cleanInput.includes("플레") || cleanInput.includes("PLAT")) {
-        // 단계를 찾음 (1, 2, 3, 4)
-        const level = tierStr.match(/[1-4]/);
-        return level ? `PLATINUM ${level[0]}` : "PLATINUM 4";
+        return step ? `PLATINUM ${step}` : "PLATINUM 4";
     }
 
     return "UNRANKED";
