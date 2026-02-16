@@ -245,6 +245,7 @@ function createMemberCard(team, data = null) {
 function resetMemberRecord(btn) {
     if(!confirm("이 플레이어 정보를 초기화할까요?")) return;
     const card = btn.closest('.member-card');
+    card.querySelector('.nick-disp').value = ""; card.querySelector('.nick-riot').value = "";
     const ts = card.querySelector('.tier-select'); ts.value = "UNRANKED"; updateTierUI(ts);
     card.querySelector('.lp-input').value = "";
     card.querySelector('.win-val').value = 0; card.querySelector('.lose-val').value = 0;
