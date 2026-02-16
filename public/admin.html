@@ -175,13 +175,21 @@ function mergeData(dbData) {
             const champ = p.champions?.[idx];
 
             if (btn.classList.contains('ing')) {
-                if (firstWatchSync) return; 
-
+                // [수정 부분] 챔피언 정보가 있으면 첫 동기화(firstWatchSync)라도 입력창에 기록합니다.
                 if (champ && champ !== 'None') {
                     item.querySelector('.champ-input').value = idToKorMap[champ] || champ;
                 }
-                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
-                else if (res === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+
+                // 승/패 결과 처리는 기존처럼 첫 동기화 이후부터만 작동 (과거 기록 오입력 방지)
+                if (firstWatchSync) return; 
+
+                if (res === 'win') { 
+                    btn.innerText = '😁 승리'; 
+                    btn.className = 'btn-toggle win'; 
+                } else if (res === 'lose') { 
+                    btn.innerText = '😡 패배'; 
+                    btn.className = 'btn-toggle lose'; 
+                }
             }
         });
     });
