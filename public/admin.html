@@ -42,14 +42,15 @@
         .input-group { display: flex; flex-direction: column; align-items: center; position: relative; }
         .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; white-space: nowrap; }
 
-        /* 스트리머명, 롤 닉네임 입력창 팀 컬러 테두리 + 흰색 글자 반영 */
+        /* 스트리머명, 롤 닉네임 입력창 테두리 유지 / 글자 및 상단 문구는 흰색 */
         .red .nick-disp, .red .nick-riot { color: #ffffff !important; border-color: var(--red) !important; font-weight: 900; }
-        .red .input-group label:not([style*="gold"]) { color: var(--red); }
         .red .nick-disp:focus, .red .nick-riot:focus { box-shadow: var(--neon-red); outline: none; }
 
         .blue .nick-disp, .blue .nick-riot { color: #ffffff !important; border-color: var(--blue) !important; font-weight: 900; }
-        .blue .input-group label:not([style*="gold"]) { color: var(--blue); }
         .blue .nick-disp:focus, .blue .nick-riot:focus { box-shadow: var(--neon-blue); outline: none; }
+
+        /* 라벨 문구(스트리머, 롤 닉네임) 흰색 고정 */
+        .member-card .input-group label:not([style*="gold"]):not([style*="red"]) { color: #ffffff !important; }
 
         .btn-reset-member { position: absolute; top: -5px; right: 350px; height: 20px; width: 30px; background: #222; border: 1px solid #444; color: #777; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; padding: 0; z-index: 10; }
         .btn-reset-member:hover { border-color: var(--red); color: var(--red); background: #000; box-shadow: var(--neon-red); }
