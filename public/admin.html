@@ -104,6 +104,14 @@ let isWatching = false;
 let watchInterval = null;
 let firstWatchSync = true;
 
+// UUID 생성을 위한 보조 함수
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
     let cleanTier = tierStr.replace(/\d+LP/gi, '').trim();
@@ -265,17 +273,18 @@ function resetMemberRecord(btn) {
     card.querySelectorAll('.champ-input').forEach(i => i.value = "");
 }
 
-// [수정] 전체 초기화 시 고정 ID를 가진 빈 데이터를 생성하여 연결 고리를 만듦
 async function resetAllRecords() {
-    if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까? (DB 구조가 재생성됩니다)")) return;
+    if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까? (새로운 고유 ID가 생성됩니다)")) return;
     const count = Number(document.getElementById('teamCount').value);
     const updates = [];
     for(let i=0; i<count; i++) {
-        updates.push({ id: 100 + i, team: 'red', name: "", riot_id: "", tier: "언랭크", wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None'), manual_tier: false });
-        updates.push({ id: 200 + i, team: 'blue', name: "", riot_id: "", tier: "언랭크", wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None'), manual_tier: false });
+        updates.push({ id: generateUUID(), team: 'red', name: "", riot_id: "", tier: "언랭크", wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None'), manual_tier: false });
+        updates.push({ id: generateUUID(), team: 'blue', name: "", riot_id: "", tier: "언랭크", wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None'), manual_tier: false });
     }
     try {
-        const { error } = await sb.from('players').upsert(updates);
+        // 기존 데이터를 다 지우고 새로 생성 (UUID 방식 대응)
+        await sb.from('players').delete().neq('team', 'none'); 
+        const { error } = await sb.from('players').insert(updates);
         if(error) throw error;
         alert("🧹 초기화 완료!");
         await loadData();
@@ -320,53 +329,49 @@ async function loadData() {
             document.getElementById('teamCount').value = sData.member_count || 5;
             updateTeamNames();
         }
-        const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
+        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         cachedPlayers = pData || []; rebuild(pData);
     } catch (e) { console.error(e); }
 }
 
-// [수정] ID가 없는 경우를 대비하여 현재 순서를 기반으로 ID를 강제 할당함
 async function applyToSupabase() {
     const applyBtn = document.querySelector('.btn-apply');
     applyBtn.innerText = "⏳ 반영 중..."; applyBtn.disabled = true;
     const toUpdate = [];
     
-    const teams = ['red', 'blue'];
-    teams.forEach(t => {
-        const cards = document.querySelectorAll(`.team-box.${t} .member-card`);
-        cards.forEach((card, idx) => {
-            // ID가 없으면 팀 고유 번호(100번대, 200번대)를 강제 부여
-            let id = card.dataset.uuid;
-            if(!id) id = (t === 'red' ? 100 : 200) + idx;
+    const cards = document.querySelectorAll(`.member-card`);
+    cards.forEach((card, idx) => {
+        let id = card.dataset.uuid;
+        // ID가 없으면 새로 생성 (하지만 웬만하면 loadData에서 가져오게 됨)
+        if(!id) id = generateUUID();
 
-            let recent = [], champs = [];
-            card.querySelectorAll('.history-item').forEach(item => {
-                const btn = item.querySelector('.btn-toggle');
-                recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
-                champs.push(korToIdMap[item.querySelector('.champ-input').value.trim()] || 'None');
-            });
+        let recent = [], champs = [];
+        card.querySelectorAll('.history-item').forEach(item => {
+            const btn = item.querySelector('.btn-toggle');
+            recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
+            champs.push(korToIdMap[item.querySelector('.champ-input').value.trim()] || 'None');
+        });
 
-            const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
-            const tSelect = card.querySelector('.tier-select');
-            const lInput = card.querySelector('.lp-input');
-            
-            let finalTierStr = isManual 
-                ? (lInput.value && tSelect.value !== "UNRANKED" ? `${TIER_MAP[tSelect.value]} - ${lInput.value}LP` : TIER_MAP[tSelect.value]) 
-                : (TIER_MAP[tSelect.value] || "언랭크");
+        const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
+        const tSelect = card.querySelector('.tier-select');
+        const lInput = card.querySelector('.lp-input');
+        
+        let finalTierStr = isManual 
+            ? (lInput.value && tSelect.value !== "UNRANKED" ? `${TIER_MAP[tSelect.value]} - ${lInput.value}LP` : TIER_MAP[tSelect.value]) 
+            : (TIER_MAP[tSelect.value] || "언랭크");
 
-            toUpdate.push({
-                id, 
-                name: card.querySelector('.nick-disp').value.trim(), 
-                team: t, 
-                riot_id: card.querySelector('.nick-riot').value.trim(),
-                tier: finalTierStr, 
-                manual_tier: isManual, 
-                wins: Number(card.querySelector('.win-val').value), 
-                losses: Number(card.querySelector('.lose-val').value),
-                recent, 
-                champions: champs, 
-                trigger_cutscene: false
-            });
+        toUpdate.push({
+            id, 
+            name: card.querySelector('.nick-disp').value.trim(), 
+            team: card.dataset.team, 
+            riot_id: card.querySelector('.nick-riot').value.trim(),
+            tier: finalTierStr, 
+            manual_tier: isManual, 
+            wins: Number(card.querySelector('.win-val').value), 
+            losses: Number(card.querySelector('.lose-val').value),
+            recent, 
+            champions: champs, 
+            trigger_cutscene: false
         });
     });
 
@@ -377,7 +382,13 @@ async function applyToSupabase() {
             if(error) throw error;
         }
         alert('✅ 반영 완료!'); await loadData();
-    } catch (e) { console.error(e); alert("반영 중 오류 발생"); } finally { applyBtn.innerText = "송출 화면 반영"; applyBtn.disabled = false; }
+    } catch (e) { 
+        console.error(e); 
+        alert("반영 중 오류 발생: " + (e.message || "DB 설정을 확인하세요")); 
+    } finally { 
+        applyBtn.innerText = "송출 화면 반영"; 
+        applyBtn.disabled = false; 
+    }
 }
 
 async function start() { await initChampMap(); await loadData(); }
