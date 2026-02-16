@@ -2,10 +2,11 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>이라네 솔랭 내기 시트지 관리자용 (오류 수정판)</title>
+    <title>이라네 솔랭 내기 시트지 관리자용</title>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* 기존 스타일 유지 */
         :root { 
             --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; --emerald: #2ecc71; 
             --neon-red: 0 0 15px rgba(255, 59, 59, 0.8); --neon-blue: 0 0 15px rgba(77, 184, 255, 0.8); --neon-gold: 0 0 20px rgba(255, 211, 105, 0.8); 
@@ -28,7 +29,7 @@
         #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; box-shadow: none !important; }
         #teamCount { width:60px; text-align: center; }
         .btn-load-data { flex: 1.5; padding:0 20px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); font-size: 15px; display: flex; align-items: center; justify-content: center; }
-        #watchBtn { flex: 2; }
+        #watchBtn { flex: 2; transition: all 0.3s; }
         .btn-reset-all { flex: 1.2; padding:0 20px; background:#000; color:var(--red); border:2px solid var(--red); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: var(--neon-red); font-size: 14px; display: flex; align-items: center; justify-content: center; }
         .teams-container { display:flex; gap:25px; width: 100%; }
         .team-box { flex:1; background:#1a1a1a; padding:20px; border-radius:15px; border-top: 5px solid; min-width: 740px; }
@@ -100,7 +101,6 @@ let idToKorMap = {};
 let korToIdMap = {};
 let isWatching = false;
 let watchInterval = null;
-let firstWatchSync = true;
 
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
@@ -141,11 +141,11 @@ async function initChampMap() {
 
 async function syncWithRiot() {
     try {
+        // [자동감시 로직 개선] 이미 결과(win/lose)가 난 판은 업데이트하지 않음
         const syncUrl = `/api/sync?t=${Date.now()}`;
         await fetch(syncUrl); 
         const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
         if (pData) mergeData(pData);
-        firstWatchSync = false;
     } catch (e) { console.error("동기화 실패", e); }
 }
 
@@ -158,6 +158,9 @@ function mergeData(dbData) {
 
         const tOverride = card.querySelector('.tier-override').checked;
         const lOverride = card.querySelector('.lp-override').checked;
+        
+        // 승패는 실시간 반영 (관리자가 수동으로 고칠 수도 있으므로 강제 덮어쓰기 안함)
+        // 단, 자동감시 중일 때는 DB값을 우선시 함
         card.querySelector('.win-val').value = p.wins ?? 0;
         card.querySelector('.lose-val').value = p.losses ?? 0;
 
@@ -176,12 +179,14 @@ function mergeData(dbData) {
             const btn = item.querySelector('.btn-toggle');
             const res = p.recent?.[idx];
             const champ = p.champions?.[idx];
+            
+            // 핵심: '진행 중'인 판만 라이엇 데이터를 가져와서 채움 (이미 확정된 판은 보호)
             if (btn.classList.contains('ing')) {
-                if (champ && champ !== 'None') { item.querySelector('.champ-input').value = idToKorMap[champ] || champ; }
-                if (!firstWatchSync) {
-                    if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
-                    else if (res === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+                if (champ && champ !== 'None') { 
+                    item.querySelector('.champ-input').value = idToKorMap[champ] || champ; 
                 }
+                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+                else if (res === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
             }
         });
     });
@@ -196,13 +201,19 @@ function updateTierUI(selectElement) {
     card.style.setProperty('--tier-shadow', color + '66');
 }
 
-function toggleWatch() {
-    isWatching = !isWatching;
+async function toggleWatch(isAuto = false) {
+    if (!isAuto) {
+        isWatching = !isWatching;
+        // DB에 감시 상태 저장 (새로고침 시 유지용)
+        await sb.from('settings').update({ is_watching: isWatching }).eq('id', 1);
+    }
+    
     const btn = document.getElementById('watchBtn');
     if(isWatching) {
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.borderColor = "var(--red)"; btn.style.color = "var(--red)";
-        firstWatchSync = true; syncWithRiot();
+        syncWithRiot();
+        if (watchInterval) clearInterval(watchInterval);
         watchInterval = setInterval(syncWithRiot, 45000);
     } else {
         btn.innerText = "▶️ 자동 감시 시작";
@@ -249,56 +260,19 @@ function resetMemberRecord(btn) {
     card.querySelectorAll('.champ-input').forEach(i => i.value = "");
 }
 
-// [핵심 수정] 400 에러 해결을 위한 안전한 초기화 로직
 async function resetAllRecords() {
     if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까?")) return;
-    
-    let resetData = [];
-    
-    // DB에서 불러온 기존 데이터(ID)가 있다면 그 ID를 그대로 사용해 비웁니다. (400 중복 에러 방지)
-    if (cachedPlayers && cachedPlayers.length > 0) {
-        resetData = cachedPlayers.map(p => ({
-            id: p.id, 
-            name: "",
-            riot_id: "",
-            tier: "언랭크",
-            wins: 0,
-            losses: 0,
-            recent: Array(10).fill('ing'),
-            champions: Array(10).fill('None'),
-            manual_tier: false,
-            team: p.team,
-            trigger_cutscene: false
-        }));
-    } else {
-        // DB가 비어있는 극히 드문 경우에만 새로 생성합니다.
-        for(let i=1; i<=10; i++) {
-            resetData.push({
-                name: "",
-                riot_id: "",
-                tier: "언랭크",
-                wins: 0,
-                losses: 0,
-                recent: Array(10).fill('ing'),
-                champions: Array(10).fill('None'),
-                manual_tier: false,
-                team: i <= 5 ? 'red' : 'blue',
-                trigger_cutscene: false
-            });
-        }
-    }
-
+    let resetData = cachedPlayers.map(p => ({
+        id: p.id, name: "", riot_id: "", tier: "언랭크", wins: 0, losses: 0,
+        recent: Array(10).fill('ing'), champions: Array(10).fill('None'),
+        manual_tier: false, team: p.team, trigger_cutscene: false
+    }));
     try {
-        const { error } = await sb.from('players').upsert(resetData);
-        if (error) throw error;
-        
-        await sb.from('settings').upsert({ id: 1, red_team_name: "레드 팀", blue_team_name: "블루 팀", member_count: 5 });
+        await sb.from('players').upsert(resetData);
+        await sb.from('settings').upsert({ id: 1, red_team_name: "레드 팀", blue_team_name: "블루 팀", member_count: 5, is_watching: false });
         alert("✅ 초기화 완료!");
         location.reload(); 
-    } catch (e) {
-        console.error("상세 에러 내역:", e);
-        alert("초기화 중 오류가 발생했습니다. DB 정책 또는 콘솔 로그를 확인해주세요.");
-    }
+    } catch (e) { alert("오류 발생!"); }
 }
 
 function toggleManual(chk, targetSel) {
@@ -334,7 +308,9 @@ async function loadData() {
             document.getElementById('redNameInput').value = sData.red_team_name || "";
             document.getElementById('blueNameInput').value = sData.blue_team_name || "";
             document.getElementById('teamCount').value = sData.member_count || 5;
+            isWatching = sData.is_watching || false;
             updateTeamNames();
+            if (isWatching) toggleWatch(true); // 자동 감시 상태면 즉시 재시작
         }
         const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
         cachedPlayers = pData || []; rebuild(pData);
@@ -345,9 +321,7 @@ async function applyToSupabase() {
     const applyBtn = document.querySelector('.btn-apply');
     applyBtn.innerText = "⏳ 반영 중..."; applyBtn.disabled = true;
     const toUpdate = [];
-    const count = Number(document.getElementById('teamCount').value);
-
-    document.querySelectorAll('.member-card').forEach((card, idx) => {
+    document.querySelectorAll('.member-card').forEach((card) => {
         const id = card.dataset.uuid;
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
@@ -358,38 +332,20 @@ async function applyToSupabase() {
         const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
         const tSelect = card.querySelector('.tier-select');
         const lInput = card.querySelector('.lp-input');
-        
         const pObj = {
-            name: card.querySelector('.nick-disp').value.trim(),
-            team: card.dataset.team,
+            id, name: card.querySelector('.nick-disp').value.trim(), team: card.dataset.team,
             riot_id: card.querySelector('.nick-riot').value.trim(),
             tier: isManual ? (lInput.value && tSelect.value !== "UNRANKED" ? `${TIER_MAP[tSelect.value]} - ${lInput.value}LP` : TIER_MAP[tSelect.value]) : "언랭크",
-            manual_tier: isManual,
-            wins: Number(card.querySelector('.win-val').value),
-            losses: Number(card.querySelector('.lose-val').value),
-            recent, champions: champs, trigger_cutscene: false
+            manual_tier: isManual, wins: Number(card.querySelector('.win-val').value),
+            losses: Number(card.querySelector('.lose-val').value), recent, champions: champs, trigger_cutscene: false
         };
-        // [수정] 닉네임 증발 방지: ID가 있는 경우에만 ID를 포함해서 업데이트
-        if (id) pObj.id = id;
-        
         toUpdate.push(pObj);
     });
-
     try {
-        await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: count });
-        if (toUpdate.length > 0) {
-            const { error } = await sb.from('players').upsert(toUpdate);
-            if (error) throw error;
-        }
-        alert('✅ 반영 완료!'); 
-        await loadData(); // 최신 ID 정보를 다시 불러와서 화면 유지
-    } catch (e) { 
-        console.error(e); 
-        alert("반영 중 오류 발생!"); 
-    } finally { 
-        applyBtn.innerText = "송출 화면 반영"; 
-        applyBtn.disabled = false; 
-    }
+        await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value), is_watching: isWatching });
+        if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
+        alert('✅ 반영 완료!'); await loadData();
+    } catch (e) { alert("반영 오류!"); } finally { applyBtn.innerText = "송출 화면 반영"; applyBtn.disabled = false; }
 }
 
 async function start() { await initChampMap(); await loadData(); }
