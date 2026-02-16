@@ -187,6 +187,8 @@ function renderMainScene(container, filterTeam) {
         const teamPlayers = players.filter(p => p.team === t);
         const tW = teamPlayers.reduce((a,b)=>a+(b.wins||0),0), tL = teamPlayers.reduce((a,b)=>a+(b.losses||0),0);
         return `<div class="team ${t}"><div class="team-header"><h1>${(t==='red'?settings.red_team_name:settings.blue_team_name)||t.toUpperCase()}</h1><div class="summary"><span class="win">😁${tW}승</span> / <span class="lose">😡${tL}패</span></div></div><div class="members">
+
+
         ${teamPlayers.map(p => {
             const level = Math.min(Math.abs(p.streak), 5), streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
             const tInfo = getTierInfo(p.tier);
@@ -196,7 +198,10 @@ function renderMainScene(container, filterTeam) {
             ${(p.recent || Array(10).fill(null)).map((r,i)=>{
                 const c = fixChamp(p.champions ? p.champions[i] : 'None');
                 const isResult = (r === 'win' || r === 'lose');
-                const isIngame = (r === 'ing' && c !== 'None');
+                
+                // [수정된 판정 로직] 결과가 win/lose가 아닌데 챔피언이 잡혀있으면 '진행 중'으로 간주
+                const isIngame = (!isResult && c !== 'None'); 
+                
                 const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
                 const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
                 return `<div class="champ">
@@ -205,6 +210,7 @@ function renderMainScene(container, filterTeam) {
                 </div>`
             }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
 }
+
 
 function processCutsceneQueue() { if (cutsceneQueue.length > 0 && normalCycle) { const next = cutsceneQueue.shift(); runCutscene(next.player, next.isWin, next.kdaText, next.autoEvent); } }
 
