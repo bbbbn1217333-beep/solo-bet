@@ -193,16 +193,20 @@ async function syncWithRiot() {
 
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
-    
-    // 1. 표준화 (공백 제거, 대문자)
-    const cleanInput = tierStr.toUpperCase().replace(/[\s\(\)\-]/g, '');
 
-    // 2. 최상위 티어 우선 처리
+    // 1. LP 정보를 먼저 완전히 제거 (예: "에메랄드 I - 4LP" -> "에메랄드 I")
+    // 숫자 뒤에 LP가 붙은 패턴을 지웁니다.
+    let cleanTier = tierStr.replace(/\d+LP/gi, '').trim();
+    
+    // 2. 표준화 (공백 제거, 대문자)
+    const cleanInput = cleanTier.toUpperCase().replace(/[\s\(\)\-]/g, '');
+
+    // 3. 최상위 티어 우선 처리
     if (cleanInput.includes("CHALLENGER") || cleanInput.includes("챌린저")) return "CHALLENGER";
     if (cleanInput.includes("GRANDMASTER") || cleanInput.includes("그랜드마스터")) return "GRANDMASTER";
     if (cleanInput.includes("MASTER") || cleanInput.includes("마스터")) return "MASTER";
 
-    // 3. 티어 이름 먼저 확정
+    // 4. 티어 이름 확정
     const tierList = [
         { eng: "DIAMOND", keys: ["다이아", "DIAMOND"] },
         { eng: "EMERALD", keys: ["에메랄드", "EMERALD"] },
@@ -222,21 +226,18 @@ function findEngTierKey(tierStr) {
     }
     if (!foundEng) return "UNRANKED";
 
-    // 4. 단계(Rank) 판별 - [핵심] 로마자 판별 시 "IRON"의 "I"와 겹치지 않게 '이름'을 먼저 제거 후 검사
-    const rankPart = cleanInput.replace(foundEng, "").replace("에메랄드", "").replace("다이아", "").replace("플래", "").replace("플레", "").replace("골드", "").replace("실버", "").replace("브론즈", "").replace("아이언", "");
+    // 5. 단계(Rank) 판별 - LP가 제거된 상태에서 로마자/숫자 확인
+    // 긴 로마자(IV, III)부터 체크해야 꼬이지 않습니다.
+    let step = "4"; 
+    if (cleanInput.includes("IV") || cleanInput.endsWith("4")) step = "4";
+    else if (cleanInput.includes("III") || cleanInput.endsWith("3")) step = "3";
+    else if (cleanInput.includes("II") || cleanInput.endsWith("2")) step = "2";
+    else if (cleanInput.includes("I") || cleanInput.endsWith("1")) step = "1";
 
-    let step = "4"; // 기본값
-    if (rankPart.includes("IV") || rankPart.includes("4")) step = "4";
-    else if (rankPart.includes("III") || rankPart.includes("3")) step = "3";
-    else if (rankPart.includes("II") || rankPart.includes("2")) step = "2";
-    else if (rankPart.includes("I") || rankPart.includes("1")) step = "1";
-    // 숫자가 아예 안 적혀 있는 경우(예: 그냥 "에메랄드")를 위해 한번 더 체크
-    else if (tierStr.includes("1")) step = "1";
-
-    console.log("입력된 티어:", tierStr, " -> 변환된 키:", `${foundEng} ${step}`);
-    return `${foundEng} ${step}`;
+    const resultKey = `${foundEng} ${step}`;
+    return resultKey;
 }
-
+    
 function mergeRebuild(dbData) {
     cachedPlayers = dbData;
     const cards = document.querySelectorAll('.member-card');
