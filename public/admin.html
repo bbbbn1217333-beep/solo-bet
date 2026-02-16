@@ -25,8 +25,10 @@
         .top-controls input, .timer-input-wrap, .btn-load-data, .btn-reset-all { height: 50px !important; box-sizing: border-box; }
         .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:900; outline:none; border: 2px solid var(--gold); color: #fff; box-shadow: var(--neon-gold); }
         
-        .timer-input-wrap { display: flex; align-items: center; background: #000; padding: 0 15px; border-radius: 8px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); }
-        #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; }
+        /* 목표 종료 시간 입력칸 - 그림자 제거 */
+        .timer-input-wrap { display: flex; align-items: center; background: #000; padding: 0 15px; border-radius: 8px; border: 2px solid var(--gold); box-shadow: none !important; }
+        #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; box-shadow: none !important; }
+        
         #teamCount { width:70px; text-align: center; }
         
         .btn-load-data { flex: 1; padding:0 30px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); font-size: 15px; display: flex; align-items: center; justify-content: center; }
@@ -45,17 +47,16 @@
         .red .member-card { border-color: var(--red); box-shadow: var(--neon-red); }
         .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
         
-        .name-row { display:flex; gap:10px; margin-bottom:15px; align-items: flex-end; position: relative; }
+        .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; position: relative; }
         .input-group { display: flex; flex-direction: column; align-items: center; position: relative; }
         .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; white-space: nowrap; }
         
-        /* 개별 초기화 버튼 - 위로 살짝 띄운 형태 */
         .btn-reset-member { 
-            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-            background: #222; border: 1px solid #555; color: #888; border-radius: 4px; 
-            cursor: pointer; font-size: 10px; font-weight: 900; padding: 2px 6px; transition: 0.2s; white-space: nowrap; z-index: 5;
+            height: 44px; width: 32px; background: #222; border: 1px solid #444; color: #777; border-radius: 6px; 
+            cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: 0.2s;
+            margin: 0 -2px; padding: 0;
         }
-        .btn-reset-member:hover { border-color: var(--red); color: var(--red); background: #000; }
+        .btn-reset-member:hover { border-color: var(--red); color: var(--red); background: #000; box-shadow: var(--neon-red); }
 
         .tier-select { 
             height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; 
@@ -65,8 +66,6 @@
             box-shadow: 0 0 15px var(--tier-shadow, rgba(255,211,105,0.4)); 
             outline:none; text-align: center; appearance: none; font-family: 'Pretendard', sans-serif; cursor: pointer; 
         }
-        .tier-select option { background: #1a1a1a; color: #fff; }
-        
         .lp-input { 
             width: 70px !important; height: 44px !important; background:#000; 
             border: 2px solid var(--tier-color, var(--gold)) !important; 
@@ -77,15 +76,16 @@
         }
         
         .nick-disp { width: 90px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
-        .nick-riot { flex: 1.2 !important; min-width: 110px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
+        .nick-riot { flex: 1.2 !important; min-width: 100px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
         
         .red .nick-disp, .red .nick-riot { border-color: var(--red); }
         .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
-        .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; flex: none !important; margin-left: 2px !important; }
+        .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; flex: none !important; }
         .score-input-wrap label { font-size: 11px; font-weight: 900; margin-bottom: 6px; }
         .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; height: 35px; }
         .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
         .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
+        
         .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:15px; border-radius:10px; }
         .history-item { display:flex; flex-direction:column; gap:6px; align-items:center; padding: 10px 5px; border-radius: 8px; border: 2px solid; }
         .red .history-item { border-color: var(--red); box-shadow: var(--neon-red); }
@@ -141,10 +141,8 @@ const TIER_COLORS = {
 };
 
 let cachedPlayers = [];
-let autoSyncInterval = null; 
 let idToKorMap = {}; 
 let korToIdMap = {}; 
-let watchStartTime = null;
 
 async function initChampMap() {
     try {
@@ -173,12 +171,9 @@ function resetMemberRecord(btn) {
     const tSelect = card.querySelector('.tier-select');
     tSelect.value = "UNRANKED";
     updateTierUI(tSelect);
-    tSelect.disabled = true;
-    tSelect.style.opacity = "0.4";
+    tSelect.disabled = true; tSelect.style.opacity = "0.4";
     const lInput = card.querySelector('.lp-input');
-    lInput.value = "";
-    lInput.disabled = true;
-    lInput.style.opacity = "0.4";
+    lInput.value = ""; lInput.disabled = true; lInput.style.opacity = "0.4";
     card.querySelector('.tier-override').checked = false;
     card.querySelector('.lp-override').checked = false;
     card.querySelector('.win-val').value = 0;
@@ -186,31 +181,7 @@ function resetMemberRecord(btn) {
     card.querySelectorAll('.history-item').forEach(item => {
         item.querySelector('.champ-input').value = "";
         const tBtn = item.querySelector('.btn-toggle');
-        tBtn.innerText = '🕒 진행';
-        tBtn.className = 'btn-toggle ing';
-    });
-}
-
-function resetAllRecords() {
-    if(!confirm("모든 데이터를 전체 초기화하시겠습니까?")) return;
-    document.querySelectorAll('.member-card').forEach(card => {
-        card.querySelector('.nick-disp').value = "";
-        card.querySelector('.nick-riot').value = "";
-        const tSelect = card.querySelector('.tier-select');
-        tSelect.value = "UNRANKED";
-        updateTierUI(tSelect);
-        tSelect.disabled = true; tSelect.style.opacity = "0.4";
-        const lInput = card.querySelector('.lp-input');
-        lInput.value = ""; lInput.disabled = true; lInput.style.opacity = "0.4";
-        card.querySelector('.tier-override').checked = false;
-        card.querySelector('.lp-override').checked = false;
-        card.querySelector('.win-val').value = 0;
-        card.querySelector('.lose-val').value = 0;
-        card.querySelectorAll('.history-item').forEach(item => {
-            item.querySelector('.champ-input').value = "";
-            const tBtn = item.querySelector('.btn-toggle');
-            tBtn.innerText = '🕒 진행'; tBtn.className = 'btn-toggle ing';
-        });
+        tBtn.innerText = '🕒 진행'; tBtn.className = 'btn-toggle ing';
     });
 }
 
@@ -233,15 +204,12 @@ function createMemberCard(team, data = null) {
             curTierEng = step ? `${t} ${step}` : t; break; 
         } }
     }
-    
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
     card.innerHTML = `<div class="name-row">
         <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-        <div class="input-group" style="flex:1.2; position:relative;">
-            <label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}">
-            <button class="btn-reset-member" onclick="resetMemberRecord(this)" style="right: -45px;">🧹 초기화</button>
-        </div>
+        <div class="input-group" style="flex:1.2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
+        <button class="btn-reset-member" onclick="resetMemberRecord(this)" title="플레이어 정보 초기화">🧹</button>
         <div class="input-group" style="flex:2.5;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.tier-select')"> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} onchange="updateTierUI(this)">${tierOptions}</select></div>
         <div class="input-group" style="width:70px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.lp-input')"> 수정</label><input class="lp-input" placeholder="0" value="${data?.tier?.match(/(\d+)LP/)?.[1] || ''}" ${data?.manual_tier ? '' : 'disabled'}></div>
         <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
