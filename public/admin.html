@@ -9,7 +9,8 @@
         :root { 
             --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; --emerald: #2ecc71; 
             --neon-red: 0 0 15px rgba(255, 59, 59, 0.8); --neon-blue: 0 0 15px rgba(77, 184, 255, 0.8); --neon-gold: 0 0 20px rgba(255, 211, 105, 0.8); 
-            --color-challenger: #f4c8ff; --color-grandmaster: #ff4e50; --color-master: #df73ff;
+            /* 챌린저 색상 보정: 연보라+샴페인 골드 느낌 */
+            --color-challenger: #f1e6ff; --color-grandmaster: #ff4e50; --color-master: #df73ff;
             --color-diamond: #57d8ff; --color-emerald: #2ecc71; --color-platinum: #4fffc0;
             --color-gold: #ffd369; --color-silver: #c0c0c0; --color-bronze: #cd7f32; --color-iron: #a19d94; --color-unranked: #ffffff;
         }
@@ -25,19 +26,13 @@
         .top-controls input, .timer-input-wrap, .btn-load-data, .btn-reset-all { height: 50px !important; box-sizing: border-box; }
         .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:900; outline:none; border: 2px solid var(--gold); color: #fff; box-shadow: var(--neon-gold); }
         
-        /* 목표 종료 시간 입력칸 - 그림자 제거 */
         .timer-input-wrap { display: flex; align-items: center; background: #000; padding: 0 15px; border-radius: 8px; border: 2px solid var(--gold); box-shadow: none !important; }
         #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; box-shadow: none !important; }
-        
         #teamCount { width:70px; text-align: center; }
         
         .btn-load-data { flex: 1; padding:0 30px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); font-size: 15px; display: flex; align-items: center; justify-content: center; }
-        #watchBtn { flex: 1.2; }
         .btn-reset-all { flex: 1; padding:0 30px; background:#000; color:var(--red); border:2px solid var(--red); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: var(--neon-red); font-size: 14px; display: flex; align-items: center; justify-content: center; }
         
-        .menu-desc { font-size:14px; color:#ccc; line-height:1.8; background:#111; padding:22px; border-radius:10px; border: 2px solid var(--gold); box-shadow: inset 0 0 15px rgba(255,211,105,0.1), var(--neon-gold); margin-top: 10px; font-weight: 800; }
-        .menu-desc strong { color: var(--gold); font-size: 18px; text-shadow: 0 0 10px var(--gold); display: block; margin-bottom: 8px; font-weight: 900; }
-        .neon-point { color: var(--gold); text-shadow: 0 0 10px var(--gold); font-weight: 900; }
         .teams-container { display:flex; gap:25px; width: 100%; }
         .team-box { flex:1; background:#1a1a1a; padding:20px; border-radius:15px; border-top: 5px solid; min-width: 740px; }
         .team-box.red { border-color: var(--red); box-shadow: 0 -5px 15px rgba(255, 59, 59, 0.3); }
@@ -51,10 +46,12 @@
         .input-group { display: flex; flex-direction: column; align-items: center; position: relative; }
         .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; white-space: nowrap; }
         
+        /* [위치 수정] 초기화 버튼을 다시 위로 띄움 */
         .btn-reset-member { 
-            height: 44px; width: 32px; background: #222; border: 1px solid #444; color: #777; border-radius: 6px; 
-            cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: 0.2s;
-            margin: 0 -2px; padding: 0;
+            position: absolute; top: -5px; right: 350px; /* 수정 체크박스 왼쪽 상단쯤으로 배치 */
+            height: 20px; width: 30px; background: #222; border: 1px solid #444; color: #777; border-radius: 4px; 
+            cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; transition: 0.2s;
+            padding: 0; z-index: 10;
         }
         .btn-reset-member:hover { border-color: var(--red); color: var(--red); background: #000; box-shadow: var(--neon-red); }
 
@@ -112,11 +109,6 @@
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
             <button class="btn-reset-all" onclick="resetAllRecords()">🧹 전체 초기화</button>
         </div>
-        <div class="menu-desc">
-            <strong>💡 전적 초기화 안내</strong>
-            • <span class="neon-point">전체 초기화:</span> 모든 플레이어의 닉네임, 티어, 승/패 기록을 전부 비웁니다.<br>
-            • <span class="neon-point">개별 초기화(🧹):</span> 플레이어의 닉네임은 유지하며, <span style="color:var(--red);">티어 정보</span>와 승/패 기록을 비웁니다.
-        </div>
     </div>
 
     <div class="teams-container">
@@ -135,7 +127,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TIER_MAP = { "CHALLENGER": "챌린저", "GRANDMASTER": "그랜드마스터", "MASTER": "마스터", "DIAMOND 1": "다이아몬드 1", "DIAMOND 2": "다이아몬드 2", "DIAMOND 3": "다이아몬드 3", "DIAMOND 4": "다이아몬드 4", "EMERALD 1": "에메랄드 1", "EMERALD 2": "에메랄드 2", "EMERALD 3": "에메랄드 3", "EMERALD 4": "에메랄드 4", "PLATINUM 1": "플래티넘 1", "PLATINUM 2": "플래티넘 2", "PLATINUM 3": "플래티넘 3", "PLATINUM 4": "플래티넘 4", "GOLD 1": "골드 1", "GOLD 2": "골드 2", "GOLD 3": "골드 3", "GOLD 4": "골드 4", "SILVER 1": "실버 1", "SILVER 2": "실버 2", "SILVER 3": "실버 3", "SILVER 4": "실버 4", "BRONZE 1": "브론즈 1", "BRONZE 2": "브론즈 2", "BRONZE 3": "브론즈 3", "BRONZE 4": "브론즈 4", "IRON 1": "아이언 1", "IRON 2": "아이언 2", "IRON 3": "아이언 3", "IRON 4": "아이언 4", "UNRANKED": "언랭크" };
 
 const TIER_COLORS = {
-    "CHALLENGER": "#f4c8ff", "GRANDMASTER": "#ff4e50", "MASTER": "#df73ff",
+    "CHALLENGER": "#f1e6ff", "GRANDMASTER": "#ff4e50", "MASTER": "#df73ff",
     "DIAMOND": "#57d8ff", "EMERALD": "#2ecc71", "PLATINUM": "#4fffc0",
     "GOLD": "#ffd369", "SILVER": "#c0c0c0", "BRONZE": "#cd7f32", "IRON": "#a19d94", "UNRANKED": "#ffffff"
 };
@@ -146,7 +138,7 @@ let korToIdMap = {};
 
 async function initChampMap() {
     try {
-        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/13.24.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
             idToKorMap[c.id] = c.name;   
@@ -206,10 +198,10 @@ function createMemberCard(team, data = null) {
     }
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
-    card.innerHTML = `<div class="name-row">
+    card.innerHTML = `<button class="btn-reset-member" onclick="resetMemberRecord(this)" title="플레이어 정보 초기화">🧹</button>
+    <div class="name-row">
         <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
         <div class="input-group" style="flex:1.2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
-        <button class="btn-reset-member" onclick="resetMemberRecord(this)" title="플레이어 정보 초기화">🧹</button>
         <div class="input-group" style="flex:2.5;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.tier-select')"> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} onchange="updateTierUI(this)">${tierOptions}</select></div>
         <div class="input-group" style="width:70px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.lp-input')"> 수정</label><input class="lp-input" placeholder="0" value="${data?.tier?.match(/(\d+)LP/)?.[1] || ''}" ${data?.manual_tier ? '' : 'disabled'}></div>
         <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
