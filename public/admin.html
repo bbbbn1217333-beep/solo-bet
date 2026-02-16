@@ -6,7 +6,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* UI 스타일 유지 */
+        /* 기존 UI 스타일 그대로 유지 */
         :root { 
             --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; --emerald: #2ecc71; 
             --neon-red: 0 0 15px rgba(255, 59, 59, 0.8); --neon-blue: 0 0 15px rgba(77, 184, 255, 0.8); --neon-gold: 0 0 20px rgba(255, 211, 105, 0.8); 
@@ -103,8 +103,8 @@ let idToKorMap = {};
 let korToIdMap = {};
 let isWatching = false;
 let watchInterval = null;
-let lastSyncCheck = 0; // 마지막 전적 업데이트 확인 시각
 
+// 요청하신 티어 판별 핵심 로직 추가
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
     let cleanTier = tierStr.replace(/\d+LP/gi, '').trim();
@@ -162,36 +162,27 @@ function mergeData(dbData) {
         const p = dbData.find(d => String(d.id) === String(uuid));
         if (!p) return;
 
-        // 티어/LP 자동 업데이트
         if (!card.querySelector('.tier-override').checked && !card.querySelector('.lp-override').checked) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
+            
+            // findEngTierKey를 사용하여 티어 자동 선택
             const engKey = findEngTierKey(p.tier);
             tSelect.value = engKey;
+            
             lInput.value = p.tier?.match(/(\d+)LP/)?.[1] || "";
             updateTierUI(tSelect);
         }
         
-        // [수정된 핵심 로직] 전적 업데이트 보호
-        const historyItems = card.querySelectorAll('.history-item');
-        
-        p.recent?.forEach((res, idx) => {
-            if (!res || res === 'ing') return;
-
-            const item = historyItems[idx];
+        card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
-            const champInput = item.querySelector('.champ-input');
-
-            // 1. 자동 감시(isWatching) 중일 때만 업데이트
-            // 2. 해당 칸이 'ing(진행)' 상태이고 챔피언 입력이 비어있을 때만 새 전적 기록
-            if (isWatching && btn.classList.contains('ing') && champInput.value.trim() === "") {
+            if (btn.classList.contains('ing')) {
+                const res = p.recent?.[idx];
                 const champ = p.champions?.[idx];
-                
                 if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
                 else if (res === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
-                
                 if (champ && champ !== 'None') {
-                    champInput.value = idToKorMap[champ] || champ;
+                    item.querySelector('.champ-input').value = idToKorMap[champ] || champ;
                 }
             }
         });
@@ -211,7 +202,6 @@ function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
     if(isWatching) {
-        // 감시 시작 시점을 기록 (이 시점 이후에 들어온 데이터만 반영되도록 보호)
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.borderColor = "var(--red)"; btn.style.color = "var(--red)";
         syncWithRiot();
@@ -234,10 +224,11 @@ function createMemberCard(team, data = null) {
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
     
+    // findEngTierKey 적용
     const curTierEng = findEngTierKey(data?.tier);
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
-    card.innerHTML = `<button class="btn-reset-member" onclick="resetMemberRecord(this)" title="기록 초기화">🧹</button>
+    card.innerHTML = `<button class="btn-reset-member" onclick="resetMemberRecord(this)" title="플레이어 정보 초기화">🧹</button>
     <div class="name-row">
         <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
         <div class="input-group" style="flex:1.2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
@@ -251,10 +242,11 @@ function createMemberCard(team, data = null) {
     return card;
 }
 
-// 빗자루: 닉네임/티어 유지, 전적만 초기화
 function resetMemberRecord(btn) {
-    if(!confirm("이 플레이어의 전적 기록만 초기화할까요? (닉네임/티어 유지)")) return;
+    if(!confirm("이 플레이어 정보를 초기화할까요?")) return;
     const card = btn.closest('.member-card');
+    const ts = card.querySelector('.tier-select'); ts.value = "UNRANKED"; updateTierUI(ts);
+    card.querySelector('.lp-input').value = "";
     card.querySelector('.win-val').value = 0; card.querySelector('.lose-val').value = 0;
     card.querySelectorAll('.btn-toggle').forEach(b => { b.innerText = '🕒 진행'; b.className = 'btn-toggle ing'; });
     card.querySelectorAll('.champ-input').forEach(i => i.value = "");
