@@ -324,13 +324,14 @@ function createMemberCard(team, data = null) {
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
     
-// createMemberCard 내부의 이 부분을 아래와 똑같이 맞추세요.
-const curTierKey = findEngTierKey(data?.tier); // 결과: "EMERALD 1"
+// createMemberCard 함수 내부를 찾아서 이 부분을 수정하세요.
+let curTierEng = findEngTierKey(data?.tier); // 예: "EMERALD 1" 반환됨
+let curLP = data?.tier?.match(/(\d+)LP/)?.[1] || "";
 
+// 이 부분이 핵심입니다. value와 curTierEng이 정확히 일치해야 합니다.
 const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => {
-    // eng는 "EMERALD 1", curTierKey도 "EMERALD 1"이어야 매칭됨
-    const isSelected = (curTierKey === eng) ? 'selected' : '';
-    return `<option value="${eng}" ${isSelected}>${kor}</option>`;
+    const isSelected = (curTierEng === eng) ? 'selected' : '';
+    return `<option value="${eng}" ${isSelected}>${kor}</option>`;
 }).join('');
     
     card.innerHTML = `
