@@ -6,7 +6,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 기존 UI 스타일 그대로 유지 */
         :root { 
             --red: #ff3b3b; --blue: #4db8ff; --gold: #ffd369; --emerald: #2ecc71; 
             --neon-red: 0 0 15px rgba(255, 59, 59, 0.8); --neon-blue: 0 0 15px rgba(77, 184, 255, 0.8); --neon-gold: 0 0 20px rgba(255, 211, 105, 0.8); 
@@ -48,8 +47,6 @@
         .lp-input { width: 70px !important; height: 44px !important; background:#000; border: 2px solid var(--tier-color, var(--gold)) !important; border-radius:6px; color: var(--tier-color, var(--gold)) !important; text-align: center; font-weight: 900; font-size:16px; box-shadow: 0 0 15px var(--tier-shadow, rgba(255,211,105,0.4)); outline:none; box-sizing: border-box; }
         .nick-disp { width: 90px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
         .nick-riot { flex: 1.2 !important; min-width: 100px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
-        .red .nick-disp, .red .nick-riot { border-color: var(--red); }
-        .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
         .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; flex: none !important; }
         .score-input-wrap label { font-size: 11px; font-weight: 900; margin-bottom: 6px; }
         .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; height: 35px; }
@@ -103,8 +100,8 @@ let idToKorMap = {};
 let korToIdMap = {};
 let isWatching = false;
 let watchInterval = null;
+let firstWatchSync = true; // 첫 동기화 플래그
 
-// 요청하신 티어 판별 핵심 로직 추가
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
     let cleanTier = tierStr.replace(/\d+LP/gi, '').trim();
@@ -122,9 +119,7 @@ function findEngTierKey(tierStr) {
         { eng: "IRON", keys: ["아이언", "IRON"] }
     ];
     let foundEng = "";
-    for (const t of tierList) {
-        if (t.keys.some(k => cleanInput.includes(k))) { foundEng = t.eng; break; }
-    }
+    for (const t of tierList) { if (t.keys.some(k => cleanInput.includes(k))) { foundEng = t.eng; break; } }
     if (!foundEng) return "UNRANKED";
     let step = "4"; 
     if (cleanInput.includes("IV") || cleanInput.endsWith("4")) step = "4";
@@ -139,9 +134,7 @@ async function initChampMap() {
         const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
-            idToKorMap[c.key] = c.name;
-            idToKorMap[c.id] = c.name;
-            korToIdMap[c.name] = c.id;
+            idToKorMap[c.key] = c.name; idToKorMap[c.id] = c.name; korToIdMap[c.name] = c.id;
         });
     } catch (e) { console.error("챔피언 로드 실패", e); }
 }
@@ -152,6 +145,7 @@ async function syncWithRiot() {
         await fetch(syncUrl); 
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         if (pData) mergeData(pData);
+        firstWatchSync = false; // 첫 동기화 완료 후 플래그 해제
     } catch (e) { console.error("동기화 실패", e); }
 }
 
@@ -162,28 +156,32 @@ function mergeData(dbData) {
         const p = dbData.find(d => String(d.id) === String(uuid));
         if (!p) return;
 
+        // 티어 및 LP 갱신 (항상 작동)
         if (!card.querySelector('.tier-override').checked && !card.querySelector('.lp-override').checked) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
-            
-            // findEngTierKey를 사용하여 티어 자동 선택
             const engKey = findEngTierKey(p.tier);
             tSelect.value = engKey;
-            
             lInput.value = p.tier?.match(/(\d+)LP/)?.[1] || "";
             updateTierUI(tSelect);
         }
-        
+
+        // 전적 데이터 처리
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
+            const res = p.recent?.[idx];
+            const champ = p.champions?.[idx];
+
             if (btn.classList.contains('ing')) {
-                const res = p.recent?.[idx];
-                const champ = p.champions?.[idx];
-                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
-                else if (res === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+                // 첫 동기화(과거 기록)일 때는 챔피언과 결과를 기록하지 않음
+                if (firstWatchSync) return; 
+
+                // 감시 중일 때만 챔피언 이름과 결과를 업데이트
                 if (champ && champ !== 'None') {
                     item.querySelector('.champ-input').value = idToKorMap[champ] || champ;
                 }
+                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+                else if (res === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
             }
         });
     });
@@ -204,6 +202,7 @@ function toggleWatch() {
     if(isWatching) {
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.borderColor = "var(--red)"; btn.style.color = "var(--red)";
+        firstWatchSync = true; // 감시를 새로 시작할 때마다 과거 데이터 차단 활성화
         syncWithRiot();
         watchInterval = setInterval(syncWithRiot, 45000);
     } else {
@@ -223,8 +222,6 @@ function createMemberCard(team, data = null) {
         let champDisp = idToKorMap[data?.champions?.[i]] || "";
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
-    
-    // findEngTierKey 적용
     const curTierEng = findEngTierKey(data?.tier);
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
