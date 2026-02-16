@@ -132,16 +132,12 @@ let cutsceneQueue = [];
 
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
 
-/** [수정] 티어 표기법 및 색상 클래스 판별 로직 **/
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked') || tierStr.includes('언랭크')) {
         return { name: '언랭크', class: 'unranked' };
     }
-
     const t = tierStr.toLowerCase();
     let cls = 'unranked';
-    
-    // 색상 클래스 판별
     if (t.includes('challenger') || t.includes('챌린저')) cls = 'challenger';
     else if (t.includes('grandmaster') || t.includes('그랜드마스터')) cls = 'grandmaster';
     else if (t.includes('master') || t.includes('마스터')) cls = 'master';
@@ -152,25 +148,15 @@ function getTierInfo(tierStr) {
     else if (t.includes('silver') || t.includes('실버')) cls = 'silver';
     else if (t.includes('bronze') || t.includes('브론즈')) cls = 'bronze';
     else if (t.includes('iron') || t.includes('아이언')) cls = 'iron';
-    
-    // 텍스트 변환 (영어 -> 한글, 로마자 -> 숫자)
     let korName = tierStr;
     Object.keys(TIER_KOR_MAP).forEach(eng => {
         const reg = new RegExp(eng, 'gi');
         korName = korName.replace(reg, TIER_KOR_MAP[eng]);
     });
-
-    // 로마자 -> 숫자 변환 (순서가 중요함)
-    korName = korName.replace(/\sIV/g, ' 4')
-                     .replace(/\sIII/g, ' 3')
-                     .replace(/\sII/g, ' 2')
-                     .replace(/\sI(?=\s|-|$)/g, ' 1');
-
-    // 마스터 이상급 뒤의 숫자 1 제거 (예: 마스터 1 -> 마스터)
+    korName = korName.replace(/\sIV/g, ' 4').replace(/\sIII/g, ' 3').replace(/\sII/g, ' 2').replace(/\sI(?=\s|-|$)/g, ' 1');
     if (['master', 'grandmaster', 'challenger'].includes(cls)) {
         korName = korName.replace(/\s1(?=\s|-|$)/g, "");
     }
-
     return { name: korName, class: cls };
 }
 
@@ -245,24 +231,17 @@ function setupRealtime() {
     sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
         const oldP = prevPlayersState[payload.new.name];
         const newP = payload.new;
-
-        // 컷신 트리거가 발동되었을 때
         if (!isInitialLoad && newP.trigger_cutscene === true) {
             const isWin = newP.event_type?.includes('victory') || newP.event_type?.includes('promotion') || (newP.wins > (oldP?.wins || 0));
-            
-            // [중요] 관리자가 계산해서 넣은 lp_diff를 그대로 컷신에 넘겨줍니다.
-            // 만약 lp_diff가 없으면 기본값 +0/-0 처리
             const finalLpDiff = newP.lp_diff || (isWin ? "+0" : "-0");
-
             cutsceneQueue.push({ 
-                player: { ...newP, lp_diff: finalLpDiff }, // 새 데이터에 lp_diff를 확실히 포함
+                player: { ...newP, lp_diff: finalLpDiff }, 
                 isWin: isWin, 
                 kdaText: newP.last_kda || "0/0/0", 
                 autoEvent: newP.event_type 
             });
             processCutsceneQueue();
         }
-        
         prevPlayersState[newP.name] = { ...newP }; 
         loadData();
     }).on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData).subscribe();
@@ -279,21 +258,55 @@ async function loadData() {
         renderAll();
     } catch (e) { console.log(e); }
 }
+
+// [타이머 수정] 모든 타이머 요소를 찾아 업데이트합니다.
 function updateTimer() {
-    const timerAreas = document.querySelectorAll('[id^="timer-display"]'); if (!settings || !settings.timer_end_at) return;
+    const timerAreas = document.querySelectorAll('[id^="timer-display"]'); 
+    if (!settings || !settings.timer_end_at) return;
+    
     const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
+    
     timerAreas.forEach(area => {
-        if (diff <= 0) { area.innerHTML = `<span class="clock-shake">⏰</span> <span style="color:#ffd369;">솔랭 내기 종료!!!</span>`; }
-        else { const h = String(Math.floor(diff/3600000)).padStart(2,'0'), m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0'), s = String(Math.floor((diff%60000)/1000)).padStart(2,'0'); area.innerHTML = `⏰ <span>남은 시간 :</span> <span class="timer-nums">${h}:${m}:${s}</span>`; }
+        if (diff <= 0) { 
+            area.innerHTML = `<span class="clock-shake">⏰</span> <span style="color:#ffd369;">솔랭 내기 종료!!!</span>`; 
+        } else { 
+            const h = String(Math.floor(diff/3600000)).padStart(2,'0');
+            const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+            const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+            area.innerHTML = `⏰ <span style="font-size:24px; color:#fff;">남은 시간 :</span> <span class="timer-nums">${h}:${m}:${s}</span>`; 
+        }
     });
 }
+
 function renderScoreScene() {
     const rW = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.wins||0),0), bW = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.wins||0),0);
     const rL = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.losses||0),0), bL = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.losses||0),0);
     let rC = rW===bW?'draw':(rW>bW?'winner':'loser'), bC = rW===bW?'draw':(bW>rW?'winner':'loser');
-    document.getElementById('scene-score').innerHTML = `<div class="score-board"><div class="timer-label">팀 종합 스코어</div><div class="timer" id="timer-display-score"></div><div class="vs"><span class="team-name-score" style="color:#ff5c5c">${settings.red_team_name||'RED'}</span> <span class="vs-text">VS</span> <span class="team-name-score" style="color:#4db8ff">${settings.blue_team_name||'BLUE'}</span></div><div class="score-wrap"><div class="score-box ${rC}"><div class="score-num">${rW}</div><div class="sub-info">패배 : ${rL}</div></div><div class="score-box ${bC}"><div class="score-num">${bW}</div><div class="sub-info">패배 : ${bL}</div></div></div></div>`;
-    updateTimer();
+    
+    // [타이머 고정] id="timer-display-score"가 반드시 생성되도록 보장
+    document.getElementById('scene-score').innerHTML = `
+    <div class="score-board">
+        <div class="timer-label">팀 종합 스코어</div>
+        <div class="timer" id="timer-display-score"></div>
+        <div class="vs">
+            <span class="team-name-score" style="color:#ff5c5c">${settings.red_team_name||'RED'}</span> 
+            <span class="vs-text">VS</span> 
+            <span class="team-name-score" style="color:#4db8ff">${settings.blue_team_name||'BLUE'}</span>
+        </div>
+        <div class="score-wrap">
+            <div class="score-box ${rC}">
+                <div class="score-num">${rW}</div>
+                <div class="sub-info">패배 : ${rL}</div>
+            </div>
+            <div class="score-box ${bC}">
+                <div class="score-num">${bW}</div>
+                <div class="sub-info">패배 : ${bL}</div>
+            </div>
+        </div>
+    </div>`;
+    updateTimer(); // 렌더링 직후 타이머 텍스트 즉시 채우기
 }
+
 function renderAll() { renderMainScene(document.getElementById('scene-all'), null); renderMainScene(document.getElementById('scene-red'), 'red'); renderMainScene(document.getElementById('scene-blue'), 'blue'); renderScoreScene(); }
 function nextScene() { if(!normalCycle) return; const sc = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue'), document.getElementById('scene-score')]; sc.forEach(s=>s.classList.remove('active')); sIdx=(sIdx+1)%sc.length; sc[sIdx].classList.add('active'); updateTimer(); }
 async function start() { await initChampMap(); await loadData(); setupRealtime(); setInterval(updateTimer, 1000); sceneInterval = setInterval(nextScene, 8000); setTimeout(() => { isInitialLoad = false; }, 5000); }
