@@ -76,9 +76,9 @@
             <button class="btn-load-data btn-reset-all" onclick="resetUIForNewGame()">⚠️ 전적 초기화</button>
         </div>
         <div class="menu-desc">
-            <strong>💡 로직 업데이트 (v1.6)</strong>
-            • <span class="neon-point">실시간 티어 동기화:</span> 송출 화면과 동일한 티어 데이터를 관리자 페이지에도 실시간으로 꽂아줍니다.<br>
-            • <span class="neon-point">수동 수정 고정:</span> 수정 체크박스를 켜면 반영 후에도 데이터가 돌아가지 않고 유지됩니다.
+            <strong>💡 수동 수정 가이드 (v1.7)</strong>
+            • <span class="neon-point">수동 수정 체크:</span> 티어/LP 상단의 '수정' 체크박스를 켜면 자동 동기화 시에도 해당 값이 **절대 변하지 않습니다.**<br>
+            • <span class="neon-point">송출 화면 동기화:</span> 체크박스를 켜고 값을 수정한 뒤 '송출 화면 반영'을 누르면 즉시 고정됩니다.
         </div>
     </div>
 
@@ -95,7 +95,18 @@ const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const TIER_MAP = { "CHALLENGER": "챌린저", "GRANDMASTER": "그랜드마스터", "MASTER": "마스터", "DIAMOND 1": "다이아몬드 1", "DIAMOND 2": "다이아몬드 2", "DIAMOND 3": "다이아몬드 3", "DIAMOND 4": "다이아몬드 4", "EMERALD 1": "에메랄드 1", "EMERALD 2": "에메랄드 2", "EMERALD 3": "에메랄드 3", "EMERALD 4": "에메랄드 4", "PLATINUM 1": "플래티넘 1", "PLATINUM 2": "플래티넘 2", "PLATINUM 3": "플래티넘 3", "PLATINUM 4": "플래티넘 4", "GOLD 1": "골드 1", "GOLD 2": "골드 2", "GOLD 3": "골드 3", "GOLD 4": "골드 4", "SILVER 1": "실버 1", "SILVER 2": "실버 2", "SILVER 3": "실버 3", "SILVER 4": "실버 4", "BRONZE 1": "브론즈 1", "BRONZE 2": "브론즈 2", "BRONZE 3": "브론즈 3", "BRONZE 4": "브론즈 4", "IRON 1": "아이언 1", "IRON 2": "아이언 2", "IRON 3": "아이언 3", "IRON 4": "아이언 4", "UNRANKED": "언랭크" };
+// 송출용 패널의 getTierInfo 로직과 100% 호환되는 맵
+const TIER_MAP = { 
+    "CHALLENGER": "챌린저", "GRANDMASTER": "그랜드마스터", "MASTER": "마스터", 
+    "DIAMOND 1": "다이아몬드 1", "DIAMOND 2": "다이아몬드 2", "DIAMOND 3": "다이아몬드 3", "DIAMOND 4": "다이아몬드 4", 
+    "EMERALD 1": "에메랄드 1", "EMERALD 2": "에메랄드 2", "EMERALD 3": "에메랄드 3", "EMERALD 4": "에메랄드 4", 
+    "PLATINUM 1": "플래티넘 1", "PLATINUM 2": "플래티넘 2", "PLATINUM 3": "플래티넘 3", "PLATINUM 4": "플래티넘 4", 
+    "GOLD 1": "골드 1", "GOLD 2": "골드 2", "GOLD 3": "골드 3", "GOLD 4": "골드 4", 
+    "SILVER 1": "실버 1", "SILVER 2": "실버 2", "SILVER 3": "실버 3", "SILVER 4": "실버 4", 
+    "BRONZE 1": "브론즈 1", "BRONZE 2": "브론즈 2", "BRONZE 3": "브론즈 3", "BRONZE 4": "브론즈 4", 
+    "IRON 1": "아이언 1", "IRON 2": "아이언 2", "IRON 3": "아이언 3", "IRON 4": "아이언 4", 
+    "UNRANKED": "언랭크" 
+};
 
 let cachedPlayers = [];
 let autoSyncInterval = null; 
@@ -165,6 +176,7 @@ async function syncWithRiot() {
         await fetch(syncUrl); 
         const { data: afterData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         
+        // 컷신 트리거 로직
         const updates = [];
         afterData.forEach(newP => {
             const oldP = beforeData.find(p => p.id === newP.id);
@@ -172,11 +184,7 @@ async function syncWithRiot() {
             const winDiff = (newP.wins || 0) - (oldP.wins || 0);
             const lossDiff = (newP.losses || 0) - (oldP.losses || 0);
             if (winDiff > 0 || lossDiff > 0) {
-                updates.push({
-                    id: newP.id,
-                    trigger_cutscene: true,
-                    last_result: winDiff > 0 ? 'win' : 'lose'
-                });
+                updates.push({ id: newP.id, trigger_cutscene: true, last_result: winDiff > 0 ? 'win' : 'lose' });
             }
         });
         if (updates.length > 0) await sb.from('players').upsert(updates);
@@ -192,7 +200,7 @@ function mergeRebuild(dbData) {
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
 
-        // 1. 전적/챔피언 갱신
+        // 1. 전적/챔피언 갱신 (진행 중인 것만)
         const items = card.querySelectorAll('.history-item');
         let wCount = 0, lCount = 0;
         items.forEach((item, idx) => {
@@ -202,7 +210,7 @@ function mergeRebuild(dbData) {
             const dbChamp = dbPlayer.champions?.[idx];
             if (btn.classList.contains('ing')) {
                 if (dbRes === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; } 
-                else if (dbRes === 'lose' || dbRes === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+                else if (dbRes === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
                 if (dbChamp && dbChamp !== 'None') champInp.value = getChampNameById(dbChamp);
             }
             if (btn.innerText.includes('승리')) wCount++;
@@ -211,34 +219,21 @@ function mergeRebuild(dbData) {
         card.querySelector('.win-val').value = wCount;
         card.querySelector('.lose-val').value = lCount;
 
-        // 2. 티어/LP 동기화
-        const tCheck = card.querySelector('.tier-override');
-        const lCheck = card.querySelector('.lp-override');
-        const tSelect = card.querySelector('.tier-select');
-        const lInput = card.querySelector('.lp-input');
-        
-        if (dbPlayer.manual_tier) {
-            tCheck.checked = true;
-            lCheck.checked = true;
-            tSelect.disabled = false;
-            lInput.disabled = false;
-            tSelect.style.opacity = "1";
-            lInput.style.opacity = "1";
-        }
-
-        if (dbPlayer.tier && !dbPlayer.tier.includes("UNRANKED")) {
+        // 2. 티어/LP 동기화 (수동 수정 체크 안 된 경우만)
+        const isManual = card.querySelector('.manual-check').checked;
+        if (!isManual && dbPlayer.tier) {
+            const tSelect = card.querySelector('.tier-select');
+            const lInput = card.querySelector('.lp-input');
+            
+            // "에메랄드 1 - 50LP" 형태 파싱
             const parts = dbPlayer.tier.split(' - ');
-            const tierKor = parts[0].trim(); 
-            const lpPart = parts[1] ? parts[1].replace('LP', '').trim() : "0";
-            const curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierKor);
+            const tierKor = parts[0].trim();
+            const lpVal = parts[1] ? parts[1].replace('LP','').trim() : "0";
 
-            if (curTierEng && !tCheck.checked) {
-                tSelect.value = curTierEng;
-                tSelect.setAttribute('data-tier', TIER_MAP[curTierEng]);
-            }
-            if (lpPart !== "" && !lCheck.checked) {
-                lInput.value = lpPart;
-            }
+            // 한글 티어명을 영어 키로 역매칭
+            const tierEngKey = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierKor);
+            if (tierEngKey) tSelect.value = tierEngKey;
+            lInput.value = lpVal;
         }
     });
 }
@@ -257,6 +252,8 @@ function toggleResult(btn) {
 function createMemberCard(team, data = null) {
     const card = document.createElement('div');
     card.className = 'member-card'; card.dataset.team = team; card.dataset.uuid = data?.id || ""; 
+    
+    // 전적 히스토리 생성
     let historyHTML = '';
     for(let i=0; i<10; i++) {
         const res = data?.recent?.[i] || 'ing';
@@ -265,39 +262,47 @@ function createMemberCard(team, data = null) {
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
     
-    let curTierEng = "UNRANKED", curLP = "";
+    // 티어 데이터 파싱
+    let curTierKey = "UNRANKED", curLP = "0";
     if (data?.tier) {
-        const tierPart = data.tier.split(' - ')[0].trim();
-        curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
-        curLP = data.tier.match(/(\d+)LP/)?.[1] || "";
+        const tName = data.tier.split(' - ')[0].trim();
+        curTierKey = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tName) || "UNRANKED";
+        curLP = data.tier.match(/(\d+)LP/)?.[1] || "0";
     }
-    const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
+
+    const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierKey === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
+    const isManual = data?.manual_tier === true;
+
     card.innerHTML = `
         <div class="name-row">
             <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
             <div class="input-group" style="flex:2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
-            <div class="input-group" style="flex:1.8;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select></div>
-            <div class="input-group" style="width:75px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''}> 수정</label><input class="lp-input" placeholder="0" value="${curLP}" ${data?.manual_tier ? '' : 'disabled'} style="opacity:${data?.manual_tier ? '1' : '0.4'};"></div>
+            <div class="input-group" style="flex:1.8;">
+                <label style="color:var(--gold);"><input type="checkbox" class="manual-check" ${isManual ? 'checked' : ''}> 수정</label>
+                <select class="tier-select" ${isManual ? '' : 'disabled'} style="opacity:${isManual?'1':'0.4'}">${tierOptions}</select>
+            </div>
+            <div class="input-group" style="width:75px;">
+                <label style="color:var(--gold);">LP</label>
+                <input class="lp-input" placeholder="0" value="${curLP}" ${isManual ? '' : 'disabled'} style="opacity:${isManual?'1':'0.4'}">
+            </div>
             <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
             <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? 0}"></div>
         </div>
         <div class="history-editor">${historyHTML}</div>`;
     
+    // 체크박스 이벤트 연결
+    const mCheck = card.querySelector('.manual-check');
     const tSelect = card.querySelector('.tier-select');
-    const updateTierColor = () => tSelect.setAttribute('data-tier', TIER_MAP[tSelect.value]);
-    tSelect.addEventListener('change', updateTierColor);
-    updateTierColor(); 
-
-    const tCheck = card.querySelector('.tier-override');
-    const lCheck = card.querySelector('.lp-override');
     const lInput = card.querySelector('.lp-input');
-    [tCheck, lCheck].forEach(c => c.addEventListener('change', () => {
-        const active = tCheck.checked || lCheck.checked;
-        tSelect.disabled = !active; lInput.disabled = !active;
-        tSelect.style.opacity = active ? "1" : "0.4";
-        lInput.style.opacity = active ? "1" : "0.4";
-    }));
+    
+    mCheck.addEventListener('change', () => {
+        tSelect.disabled = !mCheck.checked;
+        lInput.disabled = !mCheck.checked;
+        tSelect.style.opacity = mCheck.checked ? "1" : "0.4";
+        lInput.style.opacity = mCheck.checked ? "1" : "0.4";
+    });
+
     return card;
 }
 
@@ -330,22 +335,18 @@ async function loadData() {
 
 async function applyToSupabase() {
     const applyBtn = document.querySelector('.btn-apply');
-    const originalText = applyBtn.innerText;
     applyBtn.innerText = "⏳ 반영 중...";
     applyBtn.disabled = true;
 
     const toUpdate = []; 
     const cards = document.querySelectorAll('.member-card');
-    const isReset = window.isResetMode;
-
+    
     for (const card of cards) {
         const name = card.querySelector('.nick-disp').value.trim();
         if (!name) continue;
-        const riot_id = card.querySelector('.nick-riot').value.trim();
-        const cardUuid = card.dataset.uuid;
-        const dbP = cachedPlayers.find(p => p.id === cardUuid);
         
-        const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
+        const cardUuid = card.dataset.uuid;
+        const isManual = card.querySelector('.manual-check').checked;
         const selectedTierKor = TIER_MAP[card.querySelector('.tier-select').value];
         const inputLP = card.querySelector('.lp-input').value || "0";
 
@@ -358,29 +359,41 @@ async function applyToSupabase() {
 
         const curW = Number(card.querySelector('.win-val').value);
         const curL = Number(card.querySelector('.lose-val').value);
-        const baseW = isReset ? 0 : (dbP?.wins || 0);
-        const baseL = isReset ? 0 : (dbP?.losses || 0);
+        const dbP = cachedPlayers.find(p => p.id === cardUuid);
+        const baseW = window.isResetMode ? 0 : (dbP?.wins || 0);
+        const baseL = window.isResetMode ? 0 : (dbP?.losses || 0);
 
         toUpdate.push({ 
-            "id": cardUuid, "name": name, "riot_id": riot_id, "team": card.dataset.team, 
+            "id": cardUuid, "name": name, 
+            "riot_id": card.querySelector('.nick-riot').value.trim(), 
+            "team": card.dataset.team, 
             "wins": curW, "losses": curL, "recent": recent, "champions": champs, 
-            "trigger_cutscene": (!isReset && (curW > baseW || curL > baseL)),
-            "last_result": curW > baseW ? 'win' : (curL > baseL ? 'lose' : null),
             "manual_tier": isManual,
-            "tier": `${selectedTierKor} - ${inputLP}LP`
+            "tier": `${selectedTierKor} - ${inputLP}LP`,
+            "trigger_cutscene": (!window.isResetMode && (curW > baseW || curL > baseL)),
+            "last_result": curW > baseW ? 'win' : (curL > baseL ? 'lose' : null)
         });
     }
 
     try {
-        const { error } = await sb.from('players').upsert(toUpdate);
-        if (error) throw error;
+        await sb.from('players').upsert(toUpdate);
+        
+        // 설정값(팀명, 인원 등)도 함께 저장
+        await sb.from('settings').upsert({
+            id: 1,
+            red_team_name: document.getElementById('redNameInput').value,
+            blue_team_name: document.getElementById('blueNameInput').value,
+            member_count: Number(document.getElementById('teamCount').value),
+            timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null
+        });
+
         window.isResetMode = false;
-        alert('✅ 반영 완료!');
+        alert('✅ 반영 완료! 송출 화면에 즉시 적용되었습니다.');
         await loadData();
     } catch (e) { 
         alert('반영 실패: ' + e.message);
     } finally {
-        applyBtn.innerText = originalText;
+        applyBtn.innerText = "송출 화면 반영";
         applyBtn.disabled = false;
     }
 }
@@ -390,7 +403,6 @@ start();
 </script>
 </body>
 </html>
-
 
 
 
