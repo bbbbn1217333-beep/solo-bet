@@ -258,14 +258,18 @@ function mergeRebuild(dbData) {
         const tSelect = card.querySelector('.tier-select');
         const lInput = card.querySelector('.lp-input');
 
-        // 자동 모드일 때 티어/LP 입력칸 업데이트
+        // --- 여기서부터 수정된 블록 ---
         if (!tierOverride.checked && !lpOverride.checked) {
             if (dbPlayer.tier && dbPlayer.tier !== "언랭크") {
                 const lpValue = dbPlayer.tier.match(/(\d+)LP/)?.[1] || "0";
-                const engKey = findEngTierKey(dbPlayer.tier);
+                const engKey = findEngTierKey(dbPlayer.tier); // 'EMERALD 1' 추출
                 
-                tSelect.value = engKey;
-                tSelect.setAttribute('data-tier', TIER_MAP[engKey]);
+                tSelect.value = engKey; // 콤보박스(select) 값을 EMERALD 1로 변경
+                
+                // TIER_MAP["EMERALD 1"] -> "에메랄드 1" 한글명을 속성에 넣어 색상 반영
+                const korTierName = TIER_MAP[engKey] || "언랭크";
+                tSelect.setAttribute('data-tier', korTierName);
+                
                 lInput.value = lpValue;
             } else {
                 tSelect.value = "UNRANKED";
@@ -273,6 +277,7 @@ function mergeRebuild(dbData) {
                 tSelect.setAttribute('data-tier', "언랭크");
             }
         }
+        // --- 여기까지 ---
 
         const items = card.querySelectorAll('.history-item');
         let wCount = 0, lCount = 0;
