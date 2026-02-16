@@ -10,18 +10,27 @@
         body { margin:0; background:#0e0e0e; color:#fff; font-family:'Pretendard',sans-serif; padding:15px; padding-bottom: 120px; overflow-x: auto; }
         .wrap { width: 1550px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
         .admin-header { background:#1a1a1a; padding:25px; border-radius:15px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); }
-        .top-controls { display:flex; gap:20px; align-items:flex-end; margin-bottom:20px; flex-wrap: nowrap; }
+        .top-controls { display:flex; gap:15px; align-items:flex-end; margin-bottom:20px; flex-wrap: nowrap; }
         .header-group { display:flex; flex-direction:column; gap:8px; }
         .label-red { font-size:15px; font-weight:900; color:var(--red) !important; text-shadow: 0 0 8px rgba(255,59,59,0.5); }
         .label-blue { font-size:15px; font-weight:900; color:var(--blue) !important; text-shadow: 0 0 8px rgba(77,184,255,0.5); }
         .label-gold { font-size:15px; font-weight:900; color:var(--gold); text-shadow: 0 0 8px rgba(255,211,105,0.5); }
-        .top-controls input, .timer-input-wrap, .btn-load-data { height: 50px !important; box-sizing: border-box; }
+        
+        /* 상단 컨트롤 크기 조정 */
+        .top-controls input[type="text"] { width: 160px; } /* 팀명 가로 축소 */
+        .timer-input-wrap { width: 240px; } /* 시간 입력창 가로 축소 */
+        
+        .top-controls input, .timer-input-wrap, .btn-load-data, .btn-reset-all { height: 50px !important; box-sizing: border-box; }
         .top-controls input { padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:900; outline:none; border: 2px solid var(--gold); color: #fff; box-shadow: var(--neon-gold); }
-        .timer-input-wrap { display: flex; align-items: center; background: #000; padding: 0 15px; border-radius: 8px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); width: 320px; }
+        
+        .timer-input-wrap { display: flex; align-items: center; background: #000; padding: 0 15px; border-radius: 8px; border: 2px solid var(--gold); box-shadow: var(--neon-gold); }
         #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; box-shadow: none !important; }
-        #teamCount { width:90px; text-align: center; }
-        .btn-load-data { padding:0 25px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); font-size: 15px; display: flex; align-items: center; justify-content: center; }
-        .btn-reset-all { padding:0 20px; background:#000; color:var(--red); border:2px solid var(--red); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: var(--neon-red); font-size: 14px; display: flex; align-items: center; justify-content: center; }
+        #teamCount { width:70px; text-align: center; }
+        
+        /* 버튼 가로길이 확대 */
+        .btn-load-data { flex: 1; padding:0 30px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); font-size: 15px; display: flex; align-items: center; justify-content: center; }
+        #watchBtn { flex: 1.2; } /* 자동 감시 버튼 더 크게 */
+        .btn-reset-all { flex: 1; padding:0 30px; background:#000; color:var(--red); border:2px solid var(--red); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: var(--neon-red); font-size: 14px; display: flex; align-items: center; justify-content: center; }
         
         .menu-desc { font-size:14px; color:#ccc; line-height:1.8; background:#111; padding:22px; border-radius:10px; border: 2px solid var(--gold); box-shadow: inset 0 0 15px rgba(255,211,105,0.1), var(--neon-gold); margin-top: 10px; font-weight: 800; }
         .menu-desc strong { color: var(--gold); font-size: 18px; text-shadow: 0 0 10px var(--gold); display: block; margin-bottom: 8px; font-weight: 900; }
@@ -35,24 +44,28 @@
         .red .member-card { border-color: var(--red); box-shadow: var(--neon-red); }
         .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
         
-        .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; position: relative; }
+        .name-row { display:flex; gap:10px; margin-bottom:15px; align-items: flex-end; position: relative; }
         .input-group { display: flex; flex-direction: column; align-items: center; }
         .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; white-space: nowrap; }
         
-        /* 티어 및 LP 크기 상향 및 공간 최적화 */
-        .tier-select { height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 2px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:16px; font-weight: 900; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; text-align: center; appearance: none; }
-        .lp-input { width: 75px !important; height: 44px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; font-size:16px; box-shadow: var(--neon-gold); outline:none; }
-        .nick-riot { flex: 1.5 !important; min-width: 120px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
+        /* 티어 및 LP 크기/높이/폰트 최적화 */
+        .tier-select { height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:16px; font-weight: 900; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; text-align: center; appearance: none; font-family: 'Pretendard', sans-serif; cursor: pointer; }
+        .tier-select option { background: #1a1a1a; color: var(--gold); font-weight: 900; font-family: 'Pretendard', sans-serif; }
+        
+        .lp-input { width: 70px !important; height: 44px !important; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; color: var(--gold) !important; text-align: center; font-weight: 900; font-size:16px; box-shadow: var(--neon-gold); outline:none; box-sizing: border-box; }
+        
+        /* 스트리머명 가로 축소 및 롤 닉네임 비율 조정 */
+        .nick-disp { width: 90px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
+        .nick-riot { flex: 1.2 !important; min-width: 110px; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
         
         .btn-reset-member { position: absolute; top: -10px; right: -5px; background: #222; border: 1px solid #555; color: #888; border-radius: 4px; cursor: pointer; font-size: 12px; padding: 3px 6px; z-index: 10; transition: 0.2s; }
         .btn-reset-member:hover { border-color: var(--red); color: var(--red); background: #000; }
 
-        .nick-disp { width: 110px !important; padding:10px; background:#000; border-radius:6px; font-size:14px; font-weight: 900 !important; color: #fff; outline:none; text-align: center; border: 2px solid; }
         .red .nick-disp, .red .nick-riot { border-color: var(--red); }
         .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
         .score-input-wrap { display:flex; flex-direction:column; align-items: center; width:45px; flex: none !important; margin-left: 2px !important; }
         .score-input-wrap label { font-size: 11px; font-weight: 900; margin-bottom: 6px; }
-        .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; }
+        .score-input { width: 100%; text-align:center; border-radius:6px; font-size:16px; font-weight: 900; outline: none; background:#000; padding: 0 !important; height: 35px; }
         .win-val { border: 2px solid var(--gold) !important; box-shadow: var(--neon-gold); color: var(--gold); }
         .lose-val { border: 2px solid var(--red) !important; box-shadow: var(--neon-red); color: var(--red); }
         .history-editor { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; background:#0c0c0c; padding:15px; border-radius:10px; }
@@ -73,8 +86,8 @@
 <div class="wrap">
     <div class="admin-header">
         <div class="top-controls">
-            <div class="header-group"><label class="label-red">🚩 레드 팀 명칭</label><input id="redNameInput" oninput="updateTeamNames()" placeholder="레드 팀"></div>
-            <div class="header-group"><label class="label-blue">🚩 블루 팀 명칭</label><input id="blueNameInput" oninput="updateTeamNames()" placeholder="블루 팀"></div>
+            <div class="header-group"><label class="label-red">🚩 레드 팀 명칭</label><input id="redNameInput" type="text" oninput="updateTeamNames()" placeholder="레드 팀"></div>
+            <div class="header-group"><label class="label-blue">🚩 블루 팀 명칭</label><input id="blueNameInput" type="text" oninput="updateTeamNames()" placeholder="블루 팀"></div>
             <div class="header-group"><label class="label-gold">⏰ 목표 종료 시간</label><div class="timer-input-wrap"><input id="endDateTime" type="datetime-local"></div></div>
             <div class="header-group"><label class="label-gold">👨‍👩‍👧 인원</label><input id="teamCount" type="number" min="1" max="33" value="5" onchange="rebuildWithCache()"></div>
             <button id="watchBtn" class="btn-load-data" onclick="toggleWatch()" style="color:var(--gold); border-color:var(--gold); box-shadow: var(--neon-gold);">▶️ 자동 감시 시작</button>
@@ -111,7 +124,7 @@ let watchStartTime = null;
 
 async function initChampMap() {
     try {
-        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/13.24.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
             idToKorMap[c.id] = c.name;   
@@ -304,9 +317,9 @@ function createMemberCard(team, data = null) {
     card.innerHTML = `<div class="name-row">
         <button class="btn-reset-member" onclick="resetMemberRecord(this)" title="이 플레이어 정보 초기화">🧹 초기화</button>
         <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-        <div class="input-group" style="flex:1.5;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
-        <div class="input-group" style="flex:2.3;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.tier-select')"> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select></div>
-        <div class="input-group" style="width:75px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.lp-input')"> 수정</label><input class="lp-input" placeholder="0" value="${curLP}" ${data?.manual_tier ? '' : 'disabled'} style="opacity:${data?.manual_tier ? '1' : '0.4'};"></div>
+        <div class="input-group" style="flex:1.2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
+        <div class="input-group" style="flex:2.5;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.tier-select')"> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} style="opacity:${data?.manual_tier ? '1' : '0.4'};">${tierOptions}</select></div>
+        <div class="input-group" style="width:70px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.lp-input')"> 수정</label><input class="lp-input" placeholder="0" value="${curLP}" ${data?.manual_tier ? '' : 'disabled'} style="opacity:${data?.manual_tier ? '1' : '0.4'};"></div>
         <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
         <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? 0}"></div>
     </div><div class="history-editor">${historyHTML}</div>`;
