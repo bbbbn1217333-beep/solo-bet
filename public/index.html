@@ -246,23 +246,40 @@ function setupRealtime() {
         const oldP = prevPlayersState[payload.new.name];
         const newP = payload.new;
 
-        // 컷신 트리거가 발동되었을 때
+        // 초기 로딩 중이 아니고, trigger_cutscene이 true로 바뀔 때만 실행
         if (!isInitialLoad && newP.trigger_cutscene === true) {
-            const isWin = newP.event_type?.includes('victory') || newP.event_type?.includes('promotion') || (newP.wins > (oldP?.wins || 0));
             
-            // [중요] 관리자가 계산해서 넣은 lp_diff를 그대로 컷신에 넘겨줍니다.
-            // 만약 lp_diff가 없으면 기본값 +0/-0 처리
-            const finalLpDiff = newP.lp_diff || (isWin ? "+0" : "-0");
+            // 1. 승패 판별 로직을 더욱 명확하게 분리
+            // 승리 조건: event_type에 victory/promotion 포함 OR 승수가 이전보다 증가함
+            const isWinMatch = newP.event_type?.includes('victory') || 
+                               newP.event_type?.includes('promotion') || 
+                               (oldP && newP.wins > oldP.wins);
 
-            cutsceneQueue.push({ 
-                player: { ...newP, lp_diff: finalLpDiff }, // 새 데이터에 lp_diff를 확실히 포함
-                isWin: isWin, 
-                kdaText: newP.last_kda || "0/0/0", 
-                autoEvent: newP.event_type 
-            });
-            processCutsceneQueue();
+            // 패배 조건: event_type에 defeat/demotion 포함 OR 패수가 이전보다 증가함
+            const isLoseMatch = newP.event_type?.includes('defeat') || 
+                                newP.event_type?.includes('demotion') || 
+                                (oldP && newP.losses > oldP.losses);
+
+            // 2. 최종 결정 (승리와 패배가 동시에 잡히는 방지턱)
+            let finalDecision = null;
+            if (isWinMatch) finalDecision = true;
+            else if (isLoseMatch) finalDecision = false;
+
+            // 3. 결정된 경우에만 큐에 삽입
+            if (finalDecision !== null) {
+                const finalLpDiff = newP.lp_diff || (finalDecision ? "+0" : "-0");
+
+                cutsceneQueue.push({ 
+                    player: { ...newP, lp_diff: finalLpDiff },
+                    isWin: finalDecision, 
+                    kdaText: newP.last_kda || "0/0/0", 
+                    autoEvent: newP.event_type 
+                });
+                processCutsceneQueue();
+            }
         }
         
+        // 상태 업데이트
         prevPlayersState[newP.name] = { ...newP }; 
         loadData();
     }).on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData).subscribe();
