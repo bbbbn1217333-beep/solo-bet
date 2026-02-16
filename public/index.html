@@ -308,13 +308,29 @@ function setupRealtime() {
 
 async function loadData() {
     try {
-        const { data: sData } = await sb.from('settings').select('*'); if (sData && sData.length > 0) settings = sData[0];
-        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
-        if (pData) { players = pData.map(p => {
-            let streak = 0; const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
-            if (recent.length > 0) { const lastRes = recent[recent.length - 1]; for(let i = recent.length - 1; i >= 0; i--) { if(recent[i] === lastRes) streak++; else break; } streak = lastRes === 'win' ? streak : -streak; }
-            if (!prevPlayersState[p.name]) prevPlayersState[p.name] = { ...p }; return { ...p, streak };
-        }); }
+        const { data: sData } = await sb.from('settings').select('*'); 
+        if (sData && sData.length > 0) settings = sData[0];
+
+        // [수정 부분] .order('created_at', ...)을 .order('id', ...)로 변경
+        const { data: pData } = await sb.from('players')
+            .select('*')
+            .order('id', { ascending: true }); // ID 순서대로 정렬하여 관리자 패널과 일치시킴
+
+        if (pData) { 
+            players = pData.map(p => {
+                let streak = 0; 
+                const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
+                if (recent.length > 0) { 
+                    const lastRes = recent[recent.length - 1]; 
+                    for(let i = recent.length - 1; i >= 0; i--) { 
+                        if(recent[i] === lastRes) streak++; else break; 
+                    } 
+                    streak = lastRes === 'win' ? streak : -streak; 
+                }
+                if (!prevPlayersState[p.name]) prevPlayersState[p.name] = { ...p }; 
+                return { ...p, streak };
+            }); 
+        }
         renderAll();
     } catch (e) { console.log(e); }
 }
