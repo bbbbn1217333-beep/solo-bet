@@ -274,14 +274,20 @@ function resetMemberRecord(btn) {
 }
 
 async function resetAllRecords() {
-    if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까?")) return;
-    const updates = [];
-    document.querySelectorAll('.member-card').forEach(card => {
-        const id = card.dataset.uuid;
-        if(id) updates.push({ id, name: "", riot_id: "", tier: "언랭크", wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None'), manual_tier: false });
-    });
-    if(updates.length > 0) await sb.from('players').upsert(updates);
-    await loadData();
+    if(!confirm("⚠️ DB의 모든 데이터를 영구 삭제하고 초기화하시겠습니까?")) return;
+    
+    try {
+        // [수정] 업데이트가 아니라 '현재 테이블의 모든 데이터'를 삭제
+        const { error } = await sb.from('players').delete().neq('id', 0); // 모든 ID 삭제
+        
+        if (error) throw error;
+        
+        alert("✅ DB 초기화 완료! 이제 새로 입력하면 1번부터 들어갑니다.");
+        location.reload(); // 페이지 새로고침으로 깨끗하게 시작
+    } catch (e) {
+        console.error("초기화 실패:", e);
+        alert("초기화 중 오류가 발생했습니다.");
+    }
 }
 
 function toggleManual(chk, targetSel) {
