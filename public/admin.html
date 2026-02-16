@@ -191,7 +191,7 @@ function toggleWatch() {
     if(isWatching) {
         btn.innerText = "⏹️ 자동 감시 중지";
         btn.style.borderColor = "var(--red)"; btn.style.color = "var(--red)";
-        watchInterval = setInterval(loadData, 5000);
+        watchInterval = setInterval(loadData, 45000);
     } else {
         btn.innerText = "▶️ 자동 감시 시작";
         btn.style.borderColor = "var(--gold)"; btn.style.color = "var(--gold)";
