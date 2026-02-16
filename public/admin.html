@@ -194,43 +194,28 @@ async function syncWithRiot() {
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크")) return "UNRANKED";
     
-    // 1. 공백 제거 및 대문자화 (비교용)
     const cleanInput = tierStr.toUpperCase().replace(/\s+/g, '');
-    
-    // 2. 최우선 순위: 플래티넘 단계별 강제 매칭 (오타 포함)
-    if (cleanInput.includes("플래1") || cleanInput.includes("플레1") || cleanInput.includes("PLATINUM1") || cleanInput.includes("PLATINUMI")) return "PLATINUM 1";
-    if (cleanInput.includes("플래2") || cleanInput.includes("플레2") || cleanInput.includes("PLATINUM2") || cleanInput.includes("PLATINUMII")) return "PLATINUM 2";
-    if (cleanInput.includes("플래3") || cleanInput.includes("플레3") || cleanInput.includes("PLATINUM3") || cleanInput.includes("PLATINUMIII")) return "PLATINUM 3";
-    if (cleanInput.includes("플래4") || cleanInput.includes("플레4") || cleanInput.includes("PLATINUM4") || cleanInput.includes("PLATINUMIV")) return "PLATINUM 4";
 
-    // 3. 최상위 티어 체크
+    // 1. 최상위 티어 (숫자 없는 애들) 우선 처리
     if (cleanInput.includes("CHALLENGER") || cleanInput.includes("챌린저")) return "CHALLENGER";
     if (cleanInput.includes("GRANDMASTER") || cleanInput.includes("그랜드마스터")) return "GRANDMASTER";
     if (cleanInput.includes("MASTER") || cleanInput.includes("마스터")) return "MASTER";
 
-    // 4. 나머지 티어 및 단계 추출 (다이아, 에메랄드 등)
-    const stepMatch = tierStr.match(/[1-4]/);
-    const step = stepMatch ? stepMatch[0] : (cleanInput.includes("IV") ? "4" : (cleanInput.includes("III") ? "3" : (cleanInput.includes("II") ? "2" : (cleanInput.includes("I") ? "1" : "4"))));
+    // 2. 숫자 또는 로마자 단계 추출 (IV -> III -> II -> I 순서로 검사해야 꼬이지 않음)
+    let step = "4"; // 기본값
+    if (cleanInput.includes("1") || (cleanInput.includes("I") && !cleanInput.includes("II") && !cleanInput.includes("V"))) step = "1";
+    if (cleanInput.includes("2") || cleanInput.includes("II")) step = "2";
+    if (cleanInput.includes("3") || cleanInput.includes("III")) step = "3";
+    if (cleanInput.includes("4") || cleanInput.includes("IV")) step = "4";
 
-    const otherTiers = [
-        { eng: "DIAMOND", keywords: ["DIAMOND", "다이아"] },
-        { eng: "EMERALD", keywords: ["EMERALD", "에메랄드"] },
-        { eng: "GOLD", keywords: ["GOLD", "골드"] },
-        { eng: "SILVER", keywords: ["SILVER", "실버"] },
-        { eng: "BRONZE", keywords: ["BRONZE", "브론즈"] },
-        { eng: "IRON", keywords: ["IRON", "아이언"] }
-    ];
-
-    for (const t of otherTiers) {
-        if (t.keywords.some(k => cleanInput.includes(k))) {
-            return `${t.eng} ${step}`;
-        }
-    }
-
-    // 5. 위에서 안 걸렸는데 "플래"라는 글자라도 있으면 PLATINUM으로 보냄
-    if (cleanInput.includes("플래") || cleanInput.includes("플레") || cleanInput.includes("PLAT")) {
-        return `PLATINUM ${step}`;
-    }
+    // 3. 티어 이름 매칭
+    if (cleanInput.includes("DIAMOND") || cleanInput.includes("다이아")) return "DIAMOND " + step;
+    if (cleanInput.includes("EMERALD") || cleanInput.includes("에메랄드")) return "EMERALD " + step;
+    if (cleanInput.includes("PLATINUM") || cleanInput.includes("플래") || cleanInput.includes("플레")) return "PLATINUM " + step;
+    if (cleanInput.includes("GOLD") || cleanInput.includes("골드")) return "GOLD " + step;
+    if (cleanInput.includes("SILVER") || cleanInput.includes("실버")) return "SILVER " + step;
+    if (cleanInput.includes("BRONZE") || cleanInput.includes("브론즈")) return "BRONZE " + step;
+    if (cleanInput.includes("IRON") || cleanInput.includes("아이언")) return "IRON " + step;
 
     return "UNRANKED";
 }
