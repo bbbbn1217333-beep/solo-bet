@@ -163,6 +163,9 @@ function mergeData(dbData) {
         // [1] 티어 및 LP 로직 (승패 전적과 완전히 분리하여 항상 실행)
         const tOverride = card.querySelector('.tier-override').checked;
         const lOverride = card.querySelector('.lp-override').checked;
+// DB에 저장된 승/패 숫자를 관리자 패널 입력칸에 반영
+card.querySelector('.win-val').value = p.wins ?? 0;
+card.querySelector('.lose-val').value = p.losses ?? 0;
 
         if (!tOverride || !lOverride) {
             const tSelect = card.querySelector('.tier-select');
