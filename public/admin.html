@@ -56,7 +56,6 @@
         }
         .btn-reset-member:hover { border-color: var(--red); color: var(--red); background: #000; box-shadow: var(--neon-red); }
 
-        /* [수정] disabled 상태에서도 선명하게 유지하도록 opacity 제거 */
         .tier-select { 
             height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; 
             background:#000; border: 2px solid var(--tier-color, var(--gold)) !important; 
@@ -157,8 +156,10 @@ function resetMemberRecord(btn) {
     const tSelect = card.querySelector('.tier-select');
     tSelect.value = "UNRANKED"; updateTierUI(tSelect);
     tSelect.disabled = true;
+    tSelect.style.opacity = "0.4"; // 리셋 시 어둡게
     const lInput = card.querySelector('.lp-input');
     lInput.value = ""; lInput.disabled = true;
+    lInput.style.opacity = "0.4"; // 리셋 시 어둡게
     card.querySelector('.tier-override').checked = false;
     card.querySelector('.lp-override').checked = false;
     card.querySelector('.win-val').value = 0;
@@ -223,23 +224,22 @@ function createMemberCard(team, data = null) {
     <div class="name-row">
         <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
         <div class="input-group" style="flex:1.2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
-        <div class="input-group" style="flex:2.5;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.tier-select')"> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} onchange="updateTierUI(this)">${tierOptions}</select></div>
-        <div class="input-group" style="width:70px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.lp-input')"> 수정</label><input class="lp-input" placeholder="0" value="${data?.tier?.match(/(\d+)LP/)?.[1] || ''}" ${data?.manual_tier ? '' : 'disabled'}></div>
+        <div class="input-group" style="flex:2.5;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.tier-select')"> 수정</label><select class="tier-select" ${data?.manual_tier ? '' : 'disabled'} onchange="updateTierUI(this)" style="opacity: ${data?.manual_tier ? '1' : '0.4'}">${tierOptions}</select></div>
+        <div class="input-group" style="width:70px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${data?.manual_tier ? 'checked' : ''} onchange="toggleManual(this, '.lp-input')"> 수정</label><input class="lp-input" placeholder="0" value="${data?.tier?.match(/(\d+)LP/)?.[1] || ''}" ${data?.manual_tier ? '' : 'disabled'} style="opacity: ${data?.manual_tier ? '1' : '0.4'}"></div>
         <div class="score-input-wrap"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
         <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? 0}"></div>
     </div><div class="history-editor">${historyHTML}</div>`;
     
-    // [핵심수정] 선명한 색상 즉시 적용
     const tSelect = card.querySelector('.tier-select');
-    updateTierUI(tSelect); 
+    setTimeout(() => updateTierUI(tSelect), 0);
     return card;
 }
 
 function toggleManual(chk, targetSel) {
     const target = chk.closest('.member-card').querySelector(targetSel);
     target.disabled = !chk.checked;
-    // [수정] opacity 대신 선명함 유지
-    target.style.opacity = "1";
+    // 체크 해제 시 0.4(어둡게), 체크 시 1(밝게)
+    target.style.opacity = chk.checked ? "1" : "0.4";
 }
 
 function toggleResult(btn) {
@@ -315,7 +315,4 @@ start();
 </script>
 </body>
 </html>
-
-
-
 
