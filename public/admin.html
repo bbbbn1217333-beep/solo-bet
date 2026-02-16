@@ -102,7 +102,7 @@ let idToKorMap = {};
 let korToIdMap = {};
 let isWatching = false;
 let watchInterval = null;
-let watchStartTime = 0;
+let watchStartTime = 0; // 감시 시작 시간 기록용
 
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
@@ -147,7 +147,8 @@ async function initChampMap() {
 
 async function syncWithRiot() {
     try {
-        const syncUrl = `/api/sync?t=${Date.now()}`;
+        // 서버에 sync 요청 시 감시 시작 시간을 함께 보냄 (서버 로직이 지원한다면)
+        const syncUrl = `/api/sync?since=${watchStartTime}&t=${Date.now()}`;
         await fetch(syncUrl); 
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         if (pData) mergeData(pData);
@@ -171,32 +172,23 @@ function mergeData(dbData) {
             updateTierUI(tSelect);
         }
         
-        const items = card.querySelectorAll('.history-item');
-        
-        // [수정 포인트 1] 진행 중인 챔피언 표시 로직 추가
-        if (isWatching && p.live_champion && p.live_champion !== 'None') {
-            // 아직 결과가 입력되지 않은(ing인) 첫 번째 칸을 찾음
-            for (let i = 0; i < items.length; i++) {
-                const btn = items[i].querySelector('.btn-toggle');
-                const cInput = items[i].querySelector('.champ-input');
-                if (btn.classList.contains('ing')) {
-                    cInput.value = idToKorMap[p.live_champion] || p.live_champion;
-                    break; // 첫 번째 빈 칸에만 표시
-                }
-            }
-        }
-
-        // [수정 포인트 2] 종료된 전적 업데이트 로직 (과거 기록 차단 유지)
+        // 전적 업데이트 로직 (과거 기록 차단)
         p.recent?.forEach((res, idx) => {
             if (!res || res === 'ing') return;
 
+            const items = card.querySelectorAll('.history-item');
             const btn = items[idx]?.querySelector('.btn-toggle');
             const champInput = items[idx]?.querySelector('.champ-input');
 
-            // 1. 자동 감시 중이고, 2. 현재 칸이 아직 '진행(ing)' 상태일 때만 결과를 덮어씀
+            // [조건 핵심]
+            // 1. 자동 감시 중이어야 함
+            // 2. 현재 시트의 해당 칸이 'ing(진행)' 상태여야 함 (이미 기록된 건 절대 안 바꿈)
+            // 3. 서버의 업데이트 시각(updated_at)이 감시 시작 시각(watchStartTime)보다 이후여야 함
+            // (p.updated_at 정보가 없더라도 btn이 'ing'인 경우만 처리하므로 과거 데이터 중복 방지)
             if (isWatching && btn && btn.classList.contains('ing')) {
                 const champ = p.champions?.[idx];
                 
+                // 만약 라이엇 데이터가 들어왔는데, 현재 내기 시각 이후의 데이터라고 판단될 때만 입력
                 if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
                 else if (res === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
                 
@@ -221,6 +213,7 @@ function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
     if(isWatching) {
+        // 감시 시작 시각을 현재로 설정 (이전 게임 무시용)
         watchStartTime = Date.now();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.borderColor = "var(--red)"; btn.style.color = "var(--red)";
@@ -230,6 +223,7 @@ function toggleWatch() {
         btn.innerText = "▶️ 자동 감시 시작";
         btn.style.borderColor = "var(--gold)"; btn.style.color = "var(--gold)";
         clearInterval(watchInterval);
+        watchStartTime = 0;
     }
 }
 
