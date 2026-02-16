@@ -192,28 +192,38 @@ async function syncWithRiot() {
 }
 
 function findEngTierKey(tierStr) {
-    if (!tierStr || tierStr.includes("언랭크")) return "UNRANKED";
+    if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
     
-    const cleanInput = tierStr.toUpperCase().replace(/\s+/g, '');
+    // 1. 대문자화 및 불필요한 문자(공백, 괄호, 대시) 제거하여 비교 데이터 생성
+    const cleanInput = tierStr.toUpperCase().replace(/[\s\(\)\-]/g, '');
 
+    // 2. 단계가 없는 최상위 티어 즉시 처리
     if (cleanInput.includes("CHALLENGER") || cleanInput.includes("챌린저")) return "CHALLENGER";
     if (cleanInput.includes("GRANDMASTER") || cleanInput.includes("그랜드마스터")) return "GRANDMASTER";
     if (cleanInput.includes("MASTER") || cleanInput.includes("마스터")) return "MASTER";
 
+    // 3. 단계(Rank) 판별 - 순서가 생명입니다!
     let step = "4"; // 기본값
     
-    // 로마자 판별: 긴 것부터 짧은 순서로 체크하여 오판 방지
+    // 'IV'가 포함되어 있는지 먼저 확인 (그래야 'I'와 헷갈리지 않음)
     if (cleanInput.includes("IV") || cleanInput.includes("4")) {
         step = "4";
-    } else if (cleanInput.includes("III") || cleanInput.includes("3")) {
+    } 
+    // 'III' 확인
+    else if (cleanInput.includes("III") || cleanInput.includes("3")) {
         step = "3";
-    } else if (cleanInput.includes("II") || cleanInput.includes("2")) {
+    } 
+    // 'II' 확인 (단, 'III'가 아닐 때)
+    else if (cleanInput.includes("II") || cleanInput.includes("2")) {
         step = "2";
-    } else if (cleanInput.includes("I") || cleanInput.includes("1")) {
+    } 
+    // 'I' 확인 (단, 위 조건들에 걸리지 않았을 때만 순수하게 'I'로 인정)
+    else if (cleanInput.includes("I") || cleanInput.includes("1")) {
         step = "1";
     }
 
-    const tierMapArr = [
+    // 4. 티어 명칭 매칭
+    const tierList = [
         { eng: "DIAMOND", keys: ["다이아", "DIAMOND"] },
         { eng: "EMERALD", keys: ["에메랄드", "EMERALD"] },
         { eng: "PLATINUM", keys: ["플래", "플레", "PLATINUM"] },
@@ -223,11 +233,12 @@ function findEngTierKey(tierStr) {
         { eng: "IRON", keys: ["아이언", "IRON"] }
     ];
 
-    for (const t of tierMapArr) {
+    for (const t of tierList) {
         if (t.keys.some(k => cleanInput.includes(k))) {
-            return `${t.eng} ${step}`; // 예: EMERALD 1 반환
+            return `${t.eng} ${step}`;
         }
     }
+
     return "UNRANKED";
 }
 
