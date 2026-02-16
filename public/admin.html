@@ -41,17 +41,11 @@
         .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; position: relative; }
         .input-group { display: flex; flex-direction: column; align-items: center; position: relative; }
         .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; white-space: nowrap; }
-
-        /* 스트리머명, 롤 닉네임 입력창 테두리 유지 / 글자 및 상단 문구는 흰색 */
         .red .nick-disp, .red .nick-riot { color: #ffffff !important; border-color: var(--red) !important; font-weight: 900; }
         .red .nick-disp:focus, .red .nick-riot:focus { box-shadow: var(--neon-red); outline: none; }
-
         .blue .nick-disp, .blue .nick-riot { color: #ffffff !important; border-color: var(--blue) !important; font-weight: 900; }
         .blue .nick-disp:focus, .blue .nick-riot:focus { box-shadow: var(--neon-blue); outline: none; }
-
-        /* 라벨 문구(스트리머, 롤 닉네임) 흰색 고정 */
         .member-card .input-group label:not([style*="gold"]):not([style*="red"]) { color: #ffffff !important; }
-
         .btn-reset-member { position: absolute; top: -5px; right: 350px; height: 20px; width: 30px; background: #222; border: 1px solid #444; color: #777; border-radius: 4px; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; padding: 0; z-index: 10; }
         .btn-reset-member:hover { border-color: var(--red); color: var(--red); background: #000; box-shadow: var(--neon-red); }
         .tier-select { height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--tier-color, var(--gold)) !important; border-radius:6px; font-size:16px; font-weight: 900; color: var(--tier-color, var(--gold)) !important; box-shadow: 0 0 15px var(--tier-shadow, rgba(255,211,105,0.4)); outline:none; text-align: center; appearance: none; font-family: 'Pretendard', sans-serif; cursor: pointer; }
@@ -141,7 +135,7 @@ function findEngTierKey(tierStr) {
 
 async function initChampMap() {
     try {
-        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/14.3.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
             idToKorMap[c.key] = c.name; idToKorMap[c.id] = c.name; korToIdMap[c.name] = c.id;
@@ -158,6 +152,7 @@ async function syncWithRiot() {
     } catch (e) { console.error("동기화 실패", e); }
 }
 
+// 수정된 mergeData 함수: 실시간 챔피언 정보를 우선적으로 업데이트함
 function mergeData(dbData) {
     cachedPlayers = dbData;
     document.querySelectorAll('.member-card').forEach(card => {
@@ -182,15 +177,20 @@ function mergeData(dbData) {
             }
         }
 
+        // 실시간 챔피언 및 결과 동기화 로직 수정
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
+            const champInput = item.querySelector('.champ-input');
             const res = p.recent?.[idx];
             const champ = p.champions?.[idx];
             
+            // 챔피언 정보 업데이트 (현재 비어있거나 'None'이 아니면 무조건 최신화)
+            if (champ && champ !== 'None') {
+                champInput.value = idToKorMap[champ] || champ;
+            }
+
+            // '진행' 상태인 버튼만 서버 결과에 따라 상태 변경
             if (btn.classList.contains('ing')) {
-                if (champ && champ !== 'None') { 
-                    item.querySelector('.champ-input').value = idToKorMap[champ] || champ; 
-                }
                 if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
                 else if (res === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
             }
@@ -301,7 +301,7 @@ function rebuild(dataList = []) {
     const blues = dataList.filter(p => p.team === 'blue').sort((a,b) => a.id - b.id);
     for(let i=0; i<count; i++) { 
         redWrap.appendChild(createMemberCard('red', reds[i] || {id: i+1, team:'red'})); 
-        blueWrap.appendChild(createMemberCard('blue', blues[i] || {id: i+6, team:'blue'})); 
+        blueWrap.appendChild(createMemberCard('blue', blues[i] || {id: i+21, team:'blue'})); 
     }
 }
 
