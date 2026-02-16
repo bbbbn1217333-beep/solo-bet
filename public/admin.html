@@ -194,25 +194,40 @@ async function syncWithRiot() {
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크")) return "UNRANKED";
     
+    // 1. 대문자 변환 및 모든 공백 제거
     const cleanInput = tierStr.toUpperCase().replace(/\s+/g, '');
     
-    // 1. 숫자가 없는 최상위 티어부터 체크 (챌린저, 그랜드마스터, 마스터)
+    // 2. 최상위 티어 즉시 반환 (챌린저, 그랜드마스터, 마스터)
     if (cleanInput.includes("CHALLENGER") || cleanInput.includes("챌린저")) return "CHALLENGER";
     if (cleanInput.includes("GRANDMASTER") || cleanInput.includes("그랜드마스터")) return "GRANDMASTER";
     if (cleanInput.includes("MASTER") || cleanInput.includes("마스터")) return "MASTER";
 
-    // 2. 단계가 있는 티어들 (다이아, 에메랄드, 플래티넘, 골드 등)
-    const tiers = ["DIAMOND", "EMERALD", "PLATINUM", "GOLD", "SILVER", "BRONZE", "IRON"];
-    const tiersKor = ["다이아", "에메랄드", "플래", "골드", "실버", "브론즈", "아이언"];
+    // 3. 단계(Step) 추출 로직 보강
+    let step = "4"; // 기본값
     
-    // 숫자(단계) 추출
-    const stepMatch = tierStr.match(/[1-4]/);
-    const step = stepMatch ? stepMatch[0] : "4"; // 숫자가 없으면 기본 4
+    // 로마자(I, II, III, IV) 또는 숫자(1, 2, 3, 4) 확인
+    if (cleanInput.includes("1") || cleanInput.includes(" I") || cleanInput.endsWith("I")) {
+        // "IV(4)"와 "I(1)" 구분 (IV가 아니고 I로 끝나거나 I가 포함된 경우)
+        if (!cleanInput.includes("IV")) step = "1";
+    }
+    if (cleanInput.includes("2") || cleanInput.includes("II")) step = "2";
+    if (cleanInput.includes("3") || cleanInput.includes("III")) step = "3";
+    if (cleanInput.includes("4") || cleanInput.includes("IV")) step = "4";
 
-    for (let i = 0; i < tiers.length; i++) {
-        // 영문명 또는 한글명이 포함되어 있는지 확인
-        if (cleanInput.includes(tiers[i]) || cleanInput.includes(tiersKor[i])) {
-            return `${tiers[i]} ${step}`;
+    // 4. 티어 명칭 매칭
+    const tiers = [
+        { eng: "DIAMOND", keywords: ["DIAMOND", "다이아"] },
+        { eng: "EMERALD", keywords: ["EMERALD", "에메랄드"] },
+        { eng: "PLATINUM", keywords: ["PLATINUM", "플래", "플레"] },
+        { eng: "GOLD", keywords: ["GOLD", "골드"] },
+        { eng: "SILVER", keywords: ["SILVER", "실버"] },
+        { eng: "BRONZE", keywords: ["BRONZE", "브론즈"] },
+        { eng: "IRON", keywords: ["IRON", "아이언"] }
+    ];
+
+    for (const t of tiers) {
+        if (t.keywords.some(k => cleanInput.includes(k))) {
+            return `${t.eng} ${step}`;
         }
     }
 
