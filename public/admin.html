@@ -194,30 +194,32 @@ async function syncWithRiot() {
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
     
-    // 1. 대문자화 및 불필요한 문자(공백, 괄호, 대시) 제거하여 비교 데이터 생성
+    // 1. 모든 공백, 괄호, 대시를 제거하고 대문자로 통일 (비교 표준화)
+    // 예: "에메랄드 I - 50LP" -> "에메랄드I50LP"
+    // 예: "EMERALD I (50LP)" -> "EMERALDI50LP"
     const cleanInput = tierStr.toUpperCase().replace(/[\s\(\)\-]/g, '');
 
-    // 2. 단계가 없는 최상위 티어 즉시 처리
+    // 2. 최상위 티어 우선 처리
     if (cleanInput.includes("CHALLENGER") || cleanInput.includes("챌린저")) return "CHALLENGER";
     if (cleanInput.includes("GRANDMASTER") || cleanInput.includes("그랜드마스터")) return "GRANDMASTER";
     if (cleanInput.includes("MASTER") || cleanInput.includes("마스터")) return "MASTER";
 
-    // 3. 단계(Rank) 판별 - 순서가 생명입니다!
+    // 3. 단계(Rank) 판별 - 중요: 긴 로마자부터 체크해야 중복 방지 가능
     let step = "4"; // 기본값
     
-    // 'IV'가 포함되어 있는지 먼저 확인 (그래야 'I'와 헷갈리지 않음)
+    // IV(4) 인지 확인
     if (cleanInput.includes("IV") || cleanInput.includes("4")) {
         step = "4";
     } 
-    // 'III' 확인
+    // III(3) 인지 확인
     else if (cleanInput.includes("III") || cleanInput.includes("3")) {
         step = "3";
     } 
-    // 'II' 확인 (단, 'III'가 아닐 때)
+    // II(2) 인지 확인
     else if (cleanInput.includes("II") || cleanInput.includes("2")) {
         step = "2";
     } 
-    // 'I' 확인 (단, 위 조건들에 걸리지 않았을 때만 순수하게 'I'로 인정)
+    // I(1) 인지 확인 (단, 위 조건에 안 걸렸을 때만)
     else if (cleanInput.includes("I") || cleanInput.includes("1")) {
         step = "1";
     }
