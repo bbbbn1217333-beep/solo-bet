@@ -22,7 +22,6 @@
         .label-blue { font-size:15px; font-weight:900; color:var(--blue) !important; text-shadow: 0 0 8px rgba(77,184,255,0.5); }
         .label-gold { font-size:15px; font-weight:900; color:var(--gold); text-shadow: 0 0 8px rgba(255,211,105,0.5); }
         
-        /* 팀 명칭 입력칸 가로 길이 축소 */
         #redNameInput, #blueNameInput { width: 140px !important; }
         
         .top-controls input, .timer-input-wrap, .btn-load-data, .btn-reset-all { height: 50px !important; box-sizing: border-box; }
@@ -32,7 +31,6 @@
         #endDateTime { background: transparent; border: none; color: #fff; font-family: 'Pretendard'; font-weight: 900; font-size: 16px; outline: none; color-scheme: dark; width: 100%; box-shadow: none !important; }
         #teamCount { width:60px; text-align: center; }
         
-        /* 버튼 가로 길이 확대 */
         .btn-load-data { flex: 1.5; padding:0 20px; background:#000; color:var(--emerald); border:2px solid var(--emerald); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); font-size: 15px; display: flex; align-items: center; justify-content: center; }
         #watchBtn { flex: 2; }
         .btn-reset-all { flex: 1.2; padding:0 20px; background:#000; color:var(--red); border:2px solid var(--red); border-radius:8px; cursor:pointer; font-weight:900; box-shadow: var(--neon-red); font-size: 14px; display: flex; align-items: center; justify-content: center; }
@@ -58,6 +56,7 @@
         }
         .btn-reset-member:hover { border-color: var(--red); color: var(--red); background: #000; box-shadow: var(--neon-red); }
 
+        /* [수정] disabled 상태에서도 선명하게 유지하도록 opacity 제거 */
         .tier-select { 
             height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; 
             background:#000; border: 2px solid var(--tier-color, var(--gold)) !important; 
@@ -157,9 +156,9 @@ function resetMemberRecord(btn) {
     const card = btn.closest('.member-card');
     const tSelect = card.querySelector('.tier-select');
     tSelect.value = "UNRANKED"; updateTierUI(tSelect);
-    tSelect.disabled = true; tSelect.style.opacity = "0.4";
+    tSelect.disabled = true;
     const lInput = card.querySelector('.lp-input');
-    lInput.value = ""; lInput.disabled = true; lInput.style.opacity = "0.4";
+    lInput.value = ""; lInput.disabled = true;
     card.querySelector('.tier-override').checked = false;
     card.querySelector('.lp-override').checked = false;
     card.querySelector('.win-val').value = 0;
@@ -230,15 +229,17 @@ function createMemberCard(team, data = null) {
         <div class="score-input-wrap"><label style="color:var(--red);">패</label><input class="score-input lose-val" value="${data?.losses ?? 0}"></div>
     </div><div class="history-editor">${historyHTML}</div>`;
     
+    // [핵심수정] 선명한 색상 즉시 적용
     const tSelect = card.querySelector('.tier-select');
-    setTimeout(() => updateTierUI(tSelect), 0);
+    updateTierUI(tSelect); 
     return card;
 }
 
 function toggleManual(chk, targetSel) {
     const target = chk.closest('.member-card').querySelector(targetSel);
     target.disabled = !chk.checked;
-    target.style.opacity = chk.checked ? "1" : "0.4";
+    // [수정] opacity 대신 선명함 유지
+    target.style.opacity = "1";
 }
 
 function toggleResult(btn) {
