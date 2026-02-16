@@ -160,27 +160,42 @@ function mergeData(dbData) {
         const p = dbData.find(d => String(d.id) === String(uuid));
         if (!p) return;
 
-        if (!card.querySelector('.tier-override').checked && !card.querySelector('.lp-override').checked) {
+        // --- [항상 업데이트] 티어 및 LP 로직 ---
+        const tOverride = card.querySelector('.tier-override').checked;
+        const lOverride = card.querySelector('.lp-override').checked;
+
+        // 수정 체크박스가 꺼져있을 때만 Riot 데이터 반영
+        if (!tOverride || !lOverride) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
+            
+            // 티어 텍스트에서 영어 키 추출 및 반영
             const engKey = findEngTierKey(p.tier);
-            tSelect.value = engKey;
-            lInput.value = p.tier?.match(/(\d+)LP/)?.[1] || "";
-            updateTierUI(tSelect);
+            if (!tOverride) {
+                tSelect.value = engKey;
+                updateTierUI(tSelect); // UI 색상 변경 포함
+            }
+            
+            // LP 숫자만 추출하여 반영
+            if (!lOverride) {
+                const lpMatch = p.tier?.match(/(\d+)LP/);
+                lInput.value = lpMatch ? lpMatch[1] : "";
+            }
         }
 
+        // --- [조건부 업데이트] 승패 및 챔피언 기록 로직 ---
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
             const res = p.recent?.[idx];
             const champ = p.champions?.[idx];
 
             if (btn.classList.contains('ing')) {
-                // [수정 부분] 챔피언 정보가 있으면 첫 동기화(firstWatchSync)라도 입력창에 기록합니다.
+                // 챔피언 이름은 감시 시작 즉시(첫 동기화 포함) 반영
                 if (champ && champ !== 'None') {
                     item.querySelector('.champ-input').value = idToKorMap[champ] || champ;
                 }
 
-                // 승/패 결과 처리는 기존처럼 첫 동기화 이후부터만 작동 (과거 기록 오입력 방지)
+                // [중요] 승패 결과(버튼 상태)만 첫 동기화 때는 건너뜀
                 if (firstWatchSync) return; 
 
                 if (res === 'win') { 
