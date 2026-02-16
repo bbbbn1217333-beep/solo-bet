@@ -36,12 +36,10 @@
         .team-box.blue { border-color: var(--blue); box-shadow: 0 -5px 15px rgba(77, 184, 255, 0.3); }
         .member-list { display:flex; flex-direction:column; gap:20px; max-height:850px; overflow-y:auto; padding: 10px; }
         .member-card { background:#151515; border-radius:12px; padding:20px; border: 2px solid; margin-bottom: 5px; position: relative; }
-        /* 스트리머, 롤 닉네임 테두리 복원 */
         .red .member-card { border-color: var(--red); box-shadow: var(--neon-red); }
         .blue .member-card { border-color: var(--blue); box-shadow: var(--neon-blue); }
         .red .nick-disp, .red .nick-riot { border-color: var(--red); }
         .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
-        
         .name-row { display:flex; gap:8px; margin-bottom:15px; align-items: flex-end; position: relative; }
         .input-group { display: flex; flex-direction: column; align-items: center; position: relative; }
         .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; white-space: nowrap; }
@@ -147,7 +145,8 @@ async function syncWithRiot() {
     try {
         const syncUrl = `/api/sync?t=${Date.now()}`;
         await fetch(syncUrl); 
-        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        // ID 순으로 불러오기 (정렬 고정)
+        const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
         if (pData) mergeData(pData);
         firstWatchSync = false;
     } catch (e) { console.error("동기화 실패", e); }
@@ -160,50 +159,31 @@ function mergeData(dbData) {
         const p = dbData.find(d => String(d.id) === String(uuid));
         if (!p) return;
 
-        // [1] 티어 및 LP 로직 (승패 전적과 완전히 분리하여 항상 실행)
         const tOverride = card.querySelector('.tier-override').checked;
         const lOverride = card.querySelector('.lp-override').checked;
-// DB에 저장된 승/패 숫자를 관리자 패널 입력칸에 반영
-card.querySelector('.win-val').value = p.wins ?? 0;
-card.querySelector('.lose-val').value = p.losses ?? 0;
+        card.querySelector('.win-val').value = p.wins ?? 0;
+        card.querySelector('.lose-val').value = p.losses ?? 0;
 
         if (!tOverride || !lOverride) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
             const engKey = findEngTierKey(p.tier);
-            
-            if (!tOverride) {
-                tSelect.value = engKey;
-                updateTierUI(tSelect);
-            }
+            if (!tOverride) { tSelect.value = engKey; updateTierUI(tSelect); }
             if (!lOverride) {
                 const lpMatch = p.tier?.match(/(\d+)LP/);
                 lInput.value = lpMatch ? lpMatch[1] : "";
             }
         }
 
-        // [2] 전적 및 챔피언 로직
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
             const res = p.recent?.[idx];
             const champ = p.champions?.[idx];
-
-            // '진행' 상태인 칸에만 데이터 반영
             if (btn.classList.contains('ing')) {
-                // 챔피언 이름은 첫 동기화 상관없이 즉시 반영
-                if (champ && champ !== 'None') {
-                    item.querySelector('.champ-input').value = idToKorMap[champ] || champ;
-                }
-
-                // 승패 결과(버튼 변경)만 첫 동기화(과거기록)일 때 무시
+                if (champ && champ !== 'None') { item.querySelector('.champ-input').value = idToKorMap[champ] || champ; }
                 if (!firstWatchSync) {
-                    if (res === 'win') {
-                        btn.innerText = '😁 승리';
-                        btn.className = 'btn-toggle win';
-                    } else if (res === 'lose') {
-                        btn.innerText = '😡 패배';
-                        btn.className = 'btn-toggle lose';
-                    }
+                    if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+                    else if (res === 'lose') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
                 }
             }
         });
@@ -274,33 +254,35 @@ function resetMemberRecord(btn) {
 }
 
 async function resetAllRecords() {
-    if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까? (삭제 후 새로고침됩니다)")) return;
+    if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까? (순서 고정 및 내용 초기화)")) return;
     
-    // 1. 현재 화면(또는 캐시)에 로드된 모든 플레이어의 ID 추출
-    const idsToDelete = cachedPlayers.map(p => p.id);
-    
-    if (idsToDelete.length === 0) {
-        alert("삭제할 데이터가 없습니다.");
-        return;
+    // [강력한 초기화] ID 1~10번 데이터를 강제 생성하여 자리를 잡습니다.
+    const resetData = [];
+    for(let i=1; i<=10; i++) {
+        resetData.push({
+            id: i,
+            name: "",
+            riot_id: "",
+            tier: "언랭크",
+            wins: 0,
+            losses: 0,
+            recent: Array(10).fill('ing'),
+            champions: Array(10).fill('None'),
+            manual_tier: false,
+            team: i <= 5 ? 'red' : 'blue',
+            trigger_cutscene: false
+        });
     }
 
     try {
-        // 2. 추출한 ID들에 해당하는 행만 삭제
-        const { error } = await sb
-            .from('players')
-            .delete()
-            .in('id', idsToDelete); 
-
+        const { error } = await sb.from('players').upsert(resetData);
         if (error) throw error;
-
-        // 3. 설정값(팀 이름 등)도 초기화하고 싶다면 (선택사항)
-        await sb.from('settings').upsert({ id: 1, red_team_name: "", blue_team_name: "", member_count: 5 });
-
-        alert("✅ 초기화 완료!");
-        location.reload(); // 페이지 새로고침하여 빈 칸으로 만듦
+        await sb.from('settings').upsert({ id: 1, red_team_name: "레드 팀", blue_team_name: "블루 팀", member_count: 5 });
+        alert("✅ 초기화 완료! 이제 1번 칸부터 입력 후 반영하시면 됩니다.");
+        location.reload(); 
     } catch (e) {
-        console.error("초기화 실패 상세:", e);
-        alert("초기화 중 오류가 발생했습니다. (권한 문제일 수 있습니다)");
+        console.error("초기화 실패:", e);
+        alert("초기화 중 오류가 발생했습니다.");
     }
 }
 
@@ -339,7 +321,8 @@ async function loadData() {
             document.getElementById('teamCount').value = sData.member_count || 5;
             updateTeamNames();
         }
-        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        // ID 순으로 불러오기 (정렬 고정)
+        const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
         cachedPlayers = pData || []; rebuild(pData);
     } catch (e) { console.error(e); }
 }
