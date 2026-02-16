@@ -194,28 +194,40 @@ async function syncWithRiot() {
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크")) return "UNRANKED";
     
+    // 1. 대문자화 및 공백 제거 (비교를 위해)
     const cleanInput = tierStr.toUpperCase().replace(/\s+/g, '');
 
-    // 1. 최상위 티어 (숫자 없는 애들) 우선 처리
+    // 2. 최상위 티어 (숫자 없는 티어)
     if (cleanInput.includes("CHALLENGER") || cleanInput.includes("챌린저")) return "CHALLENGER";
     if (cleanInput.includes("GRANDMASTER") || cleanInput.includes("그랜드마스터")) return "GRANDMASTER";
     if (cleanInput.includes("MASTER") || cleanInput.includes("마스터")) return "MASTER";
 
-    // 2. 숫자 또는 로마자 단계 추출 (IV -> III -> II -> I 순서로 검사해야 꼬이지 않음)
-    let step = "4"; // 기본값
-    if (cleanInput.includes("1") || (cleanInput.includes("I") && !cleanInput.includes("II") && !cleanInput.includes("V"))) step = "1";
-    if (cleanInput.includes("2") || cleanInput.includes("II")) step = "2";
-    if (cleanInput.includes("3") || cleanInput.includes("III")) step = "3";
-    if (cleanInput.includes("4") || cleanInput.includes("IV")) step = "4";
+    // 3. 단계(Rank) 추출 - 로마자(IV, III, II, I) 우선 판별
+    let step = "";
+    
+    // IV를 4로, III를 3으로... 순서가 중요합니다 (IV를 I보다 먼저 체크)
+    if (cleanInput.includes("IV") || cleanInput.includes("4")) step = "4";
+    else if (cleanInput.includes("III") || cleanInput.includes("3")) step = "3";
+    else if (cleanInput.includes("II") || cleanInput.includes("2")) step = "2";
+    else if (cleanInput.includes("I") || cleanInput.includes("1")) step = "1";
+    else step = "4"; // 기본값
 
-    // 3. 티어 이름 매칭
-    if (cleanInput.includes("DIAMOND") || cleanInput.includes("다이아")) return "DIAMOND " + step;
-    if (cleanInput.includes("EMERALD") || cleanInput.includes("에메랄드")) return "EMERALD " + step;
-    if (cleanInput.includes("PLATINUM") || cleanInput.includes("플래") || cleanInput.includes("플레")) return "PLATINUM " + step;
-    if (cleanInput.includes("GOLD") || cleanInput.includes("골드")) return "GOLD " + step;
-    if (cleanInput.includes("SILVER") || cleanInput.includes("실버")) return "SILVER " + step;
-    if (cleanInput.includes("BRONZE") || cleanInput.includes("브론즈")) return "BRONZE " + step;
-    if (cleanInput.includes("IRON") || cleanInput.includes("아이언")) return "IRON " + step;
+    // 4. 티어 이름 매칭
+    const tierList = [
+        { eng: "DIAMOND", keys: ["다이아", "DIAMOND"] },
+        { eng: "EMERALD", keys: ["에메랄드", "EMERALD"] },
+        { eng: "PLATINUM", keys: ["플래", "플레", "PLATINUM"] },
+        { eng: "GOLD", keys: ["골드", "GOLD"] },
+        { eng: "SILVER", keys: ["실버", "SILVER"] },
+        { eng: "BRONZE", keys: ["브론즈", "BRONZE"] },
+        { eng: "IRON", keys: ["아이언", "IRON"] }
+    ];
+
+    for (const t of tierList) {
+        if (t.keys.some(k => cleanInput.includes(k))) {
+            return `${t.eng} ${step}`;
+        }
+    }
 
     return "UNRANKED";
 }
