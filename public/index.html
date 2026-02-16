@@ -117,196 +117,183 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_l2wj1IeGSfcxgKVjJ28n0w_WK9iHm-j";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const LOL_VER = "16.3.1"; 
+const LOL_VER = "16.3.1"; 
 
-let champMap = {}; 
+let champMap = {}; 
 let champIdToKey = {};
 let players = [];
-let prevPlayersState = {}; 
+let prevPlayersState = {}; 
 let settings = {};
 let sIdx = 0;
 let normalCycle = true;
 let sceneInterval;
-let isInitialLoad = true; 
-let cutsceneQueue = []; 
+let isInitialLoad = true; 
+let cutsceneQueue = []; 
 
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
 
+/** [수정] 티어 표기법 및 색상 클래스 판별 로직 **/
 function getTierInfo(tierStr) {
-    if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked') || tierStr.includes('언랭크')) {
-        return { name: '언랭크', class: 'unranked' };
-    }
-    const t = tierStr.toLowerCase();
-    let cls = 'unranked';
-    if (t.includes('challenger') || t.includes('챌린저')) cls = 'challenger';
-    else if (t.includes('grandmaster') || t.includes('그랜드마스터')) cls = 'grandmaster';
-    else if (t.includes('master') || t.includes('마스터')) cls = 'master';
-    else if (t.includes('diamond') || t.includes('다이아몬드')) cls = 'diamond';
-    else if (t.includes('emerald') || t.includes('에메랄드')) cls = 'emerald';
-    else if (t.includes('platinum') || t.includes('플래티넘')) cls = 'platinum';
-    else if (t.includes('gold') || t.includes('골드')) cls = 'gold';
-    else if (t.includes('silver') || t.includes('실버')) cls = 'silver';
-    else if (t.includes('bronze') || t.includes('브론즈')) cls = 'bronze';
-    else if (t.includes('iron') || t.includes('아이언')) cls = 'iron';
-    let korName = tierStr;
-    Object.keys(TIER_KOR_MAP).forEach(eng => {
-        const reg = new RegExp(eng, 'gi');
-        korName = korName.replace(reg, TIER_KOR_MAP[eng]);
-    });
-    korName = korName.replace(/\sIV/g, ' 4').replace(/\sIII/g, ' 3').replace(/\sII/g, ' 2').replace(/\sI(?=\s|-|$)/g, ' 1');
-    if (['master', 'grandmaster', 'challenger'].includes(cls)) {
-        korName = korName.replace(/\s1(?=\s|-|$)/g, "");
-    }
-    return { name: korName, class: cls };
+    if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked') || tierStr.includes('언랭크')) {
+        return { name: '언랭크', class: 'unranked' };
+    }
+
+    const t = tierStr.toLowerCase();
+    let cls = 'unranked';
+    
+    // 색상 클래스 판별
+    if (t.includes('challenger') || t.includes('챌린저')) cls = 'challenger';
+    else if (t.includes('grandmaster') || t.includes('그랜드마스터')) cls = 'grandmaster';
+    else if (t.includes('master') || t.includes('마스터')) cls = 'master';
+    else if (t.includes('diamond') || t.includes('다이아몬드')) cls = 'diamond';
+    else if (t.includes('emerald') || t.includes('에메랄드')) cls = 'emerald';
+    else if (t.includes('platinum') || t.includes('플래티넘')) cls = 'platinum';
+    else if (t.includes('gold') || t.includes('골드')) cls = 'gold';
+    else if (t.includes('silver') || t.includes('실버')) cls = 'silver';
+    else if (t.includes('bronze') || t.includes('브론즈')) cls = 'bronze';
+    else if (t.includes('iron') || t.includes('아이언')) cls = 'iron';
+    
+    // 텍스트 변환 (영어 -> 한글, 로마자 -> 숫자)
+    let korName = tierStr;
+    Object.keys(TIER_KOR_MAP).forEach(eng => {
+        const reg = new RegExp(eng, 'gi');
+        korName = korName.replace(reg, TIER_KOR_MAP[eng]);
+    });
+
+    // 로마자 -> 숫자 변환 (순서가 중요함)
+    korName = korName.replace(/\sIV/g, ' 4')
+                     .replace(/\sIII/g, ' 3')
+                     .replace(/\sII/g, ' 2')
+                     .replace(/\sI(?=\s|-|$)/g, ' 1');
+
+    // 마스터 이상급 뒤의 숫자 1 제거 (예: 마스터 1 -> 마스터)
+    if (['master', 'grandmaster', 'challenger'].includes(cls)) {
+        korName = korName.replace(/\s1(?=\s|-|$)/g, "");
+    }
+
+    return { name: korName, class: cls };
 }
 
 async function initChampMap() {
-    try {
-        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/data/ko_KR/champion.json`);
-        const json = await res.json();
-        Object.values(json.data).forEach(champ => { champMap[champ.name] = champ.id; champIdToKey[champ.key] = champ.id; });
-    } catch (e) { console.error(e); }
+    try {
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/data/ko_KR/champion.json`);
+        const json = await res.json();
+        Object.values(json.data).forEach(champ => { champMap[champ.name] = champ.id; champIdToKey[champ.key] = champ.id; });
+    } catch (e) { console.error(e); }
 }
 
 const fixChamp = c => {
-    if(!c || c === 'None' || c === '' || c === 'undefined') return 'None';
-    let raw = c.toString().trim();
-    if (champIdToKey[raw]) raw = champIdToKey[raw];
-    const lowerRaw = raw.toLowerCase().replace(/\s+/g, '');
-    if (lowerRaw === '미스포츈' || lowerRaw === 'missfortune') return 'MissFortune';
-    if (lowerRaw === '크산테' || lowerRaw === 'ksante' || lowerRaw === "k'sante") return 'KSante';
-    const exceptions = { '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai', '누누와 윌럼프': 'Nunu', '누누': 'Nunu' };
-    if (exceptions[raw]) return exceptions[raw];
-    if (champMap[raw]) return champMap[raw];
-    return raw.split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join('');
+    if(!c || c === 'None' || c === '' || c === 'undefined') return 'None';
+    let raw = c.toString().trim();
+    if (champIdToKey[raw]) raw = champIdToKey[raw];
+    const lowerRaw = raw.toLowerCase().replace(/\s+/g, '');
+    if (lowerRaw === '미스포츈' || lowerRaw === 'missfortune') return 'MissFortune';
+    if (lowerRaw === '크산테' || lowerRaw === 'ksante' || lowerRaw === "k'sante") return 'KSante';
+    const exceptions = { '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai', '누누와 윌럼프': 'Nunu', '누누': 'Nunu' };
+    if (exceptions[raw]) return exceptions[raw];
+    if (champMap[raw]) return champMap[raw];
+    return raw.split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join('');
 };
 
 function renderMainScene(container, filterTeam) {
-    const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
-    container.innerHTML = `<div class="container">${teams.map(t => {
-        const teamPlayers = players.filter(p => p.team === t);
-        const tW = teamPlayers.reduce((a,b)=>a+(b.wins||0),0), tL = teamPlayers.reduce((a,b)=>a+(b.losses||0),0);
-        return `<div class="team ${t}"><div class="team-header"><h1>${(t==='red'?settings.red_team_name:settings.blue_team_name)||t.toUpperCase()}</h1><div class="summary"><span class="win">😁${tW}승</span> / <span class="lose">😡${tL}패</span></div></div><div class="members">
-        ${teamPlayers.map(p => {
-            const level = Math.min(Math.abs(p.streak), 5), streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
-            const tInfo = getTierInfo(p.tier);
-            let icon = p.streak>=3?'<span class="status-icon crown-glow">👑</span>':(p.streak<=-3?'<span class="status-icon skull-shake">💀</span>':'');
-            let sText = p.streak > 0 ? (p.streak === 1 ? '1승중' : p.streak + '연승') : (p.streak < 0 ? (p.streak === -1 ? '1패중' : Math.abs(p.streak) + '연패') : '');
-            return `<div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">${icon}<div class="info-line"><span class="name">${p.name}</span><span class="tier ${tInfo.class}">${tInfo.name}</span><div class="record"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div>${sText?`<span class="streak ${p.streak>0?'win':'lose'}">${sText}</span>`:''}</div><div class="history">
-            ${(p.recent || Array(10).fill(null)).map((r,i)=>{
-                const c = fixChamp(p.champions ? p.champions[i] : 'None');
-                const isResult = (r === 'win' || r === 'lose');
-                const isIngame = (r === 'ing' && c !== 'None');
-                const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
-                const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
-                return `<div class="champ">
-                    <img src="${c==='None'?'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7':`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${c}.png`}" class="${isIngame?'ingame':''}">
-                    <span class="wl-badge ${badgeClass}">${badgeText}</span>
-                </div>`
-            }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
+    const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
+    container.innerHTML = `<div class="container">${teams.map(t => {
+        const teamPlayers = players.filter(p => p.team === t);
+        const tW = teamPlayers.reduce((a,b)=>a+(b.wins||0),0), tL = teamPlayers.reduce((a,b)=>a+(b.losses||0),0);
+        return `<div class="team ${t}"><div class="team-header"><h1>${(t==='red'?settings.red_team_name:settings.blue_team_name)||t.toUpperCase()}</h1><div class="summary"><span class="win">😁${tW}승</span> / <span class="lose">😡${tL}패</span></div></div><div class="members">
+        ${teamPlayers.map(p => {
+            const level = Math.min(Math.abs(p.streak), 5), streakCol = p.streak > 0 ? `rgba(255,183,3,${0.3+level*0.13})` : (p.streak < 0 ? `rgba(176,0,0,${0.3+level*0.13})` : 'rgba(120,120,120,0.3)');
+            const tInfo = getTierInfo(p.tier);
+            let icon = p.streak>=3?'<span class="status-icon crown-glow">👑</span>':(p.streak<=-3?'<span class="status-icon skull-shake">💀</span>':'');
+            let sText = p.streak > 0 ? (p.streak === 1 ? '1승중' : p.streak + '연승') : (p.streak < 0 ? (p.streak === -1 ? '1패중' : Math.abs(p.streak) + '연패') : '');
+            return `<div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4+level*2}px ${streakCol}">${icon}<div class="info-line"><span class="name">${p.name}</span><span class="tier ${tInfo.class}">${tInfo.name}</span><div class="record"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div>${sText?`<span class="streak ${p.streak>0?'win':'lose'}">${sText}</span>`:''}</div><div class="history">
+            ${(p.recent || Array(10).fill(null)).map((r,i)=>{
+                const c = fixChamp(p.champions ? p.champions[i] : 'None');
+                const isResult = (r === 'win' || r === 'lose');
+                const isIngame = (r === 'ing' && c !== 'None');
+                const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
+                const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
+                return `<div class="champ">
+                    <img src="${c==='None'?'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7':`https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${c}.png`}" class="${isIngame?'ingame':''}">
+                    <span class="wl-badge ${badgeClass}">${badgeText}</span>
+                </div>`
+            }).join('')}</div></div>`}).join('')}</div></div>`}).join('')}</div>`;
 }
 
 function processCutsceneQueue() { if (cutsceneQueue.length > 0 && normalCycle) { const next = cutsceneQueue.shift(); runCutscene(next.player, next.isWin, next.kdaText, next.autoEvent); } }
 async function runCutscene(player, isWin, kdaText, autoEvent) {
-    normalCycle = false; clearInterval(sceneInterval);
-    const [k, d, a] = kdaText.split('/').map(Number);
-    const kdaVal = d === 0 ? "PERFECT" : ((k + a) / d).toFixed(2);
-    let streakCount = 0; const recent = (player.recent || []).filter(r => r === 'win' || r === 'lose');
-    if (recent.length > 0) { const lastRes = recent[recent.length - 1]; for (let i = recent.length - 1; i >= 0; i--) { if (recent[i] === lastRes) streakCount++; else break; } }
-    const streakLabel = isWin ? (streakCount <= 1 ? '1승중' : streakCount + '연승') : (streakCount <= 1 ? '1패중' : streakCount + '연패');
-    let statusBadgeHTML = "";
-    if (autoEvent === 'promotion_major') statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
-    else if (autoEvent === 'promotion') statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
-    else if (autoEvent === 'demotion') statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
-    const tierInfo = getTierInfo(player.tier);
-    let lpDiff = player.lp_diff || (isWin ? "+0" : "-0"); if (!lpDiff.startsWith('+') && !lpDiff.startsWith('-')) lpDiff = (isWin ? "+" : "-") + lpDiff;
-    const displayChamp = fixChamp(player.target_champion || 'None');
-    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
-    const targetScene = isWin ? document.getElementById('scene-game-win') : document.getElementById('scene-game-lose');
-    targetScene.innerHTML = `<div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}"><h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1><div class="res-nick"><span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${player.team==='red'?(settings.red_team_name||'RED'):(settings.blue_team_name||'BLUE')}</span><span>${player.name}</span><span style="font-size: 32px; font-weight: 900; margin-left:10px;"><span style="color:#ffd369;">😁 ${player.wins || 0}승</span> <span style="color:#ff6b6b;">😡 ${player.losses || 0}패</span></span><span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span></div><div class="res-tier-wrap"><div class="res-tier tier ${tierInfo.class}" style="color:#fff !important;"><span>${tierInfo.name}</span><span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>${statusBadgeHTML}</div></div><div class="res-champ"><img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><div class="res-kda-box"><span class="kda-main">${kdaText}</span><span class="kda-calc">K/D/A : (${kdaVal})</span></div></div></div>`;
-    targetScene.classList.add('active');
-    setTimeout(() => { targetScene.classList.remove('active'); normalCycle = true; sIdx = 0; document.getElementById('scene-all').classList.add('active'); sceneInterval = setInterval(nextScene, 8000); processCutsceneQueue(); }, 6000); 
+    normalCycle = false; clearInterval(sceneInterval);
+    const [k, d, a] = kdaText.split('/').map(Number);
+    const kdaVal = d === 0 ? "PERFECT" : ((k + a) / d).toFixed(2);
+    let streakCount = 0; const recent = (player.recent || []).filter(r => r === 'win' || r === 'lose');
+    if (recent.length > 0) { const lastRes = recent[recent.length - 1]; for (let i = recent.length - 1; i >= 0; i--) { if (recent[i] === lastRes) streakCount++; else break; } }
+    const streakLabel = isWin ? (streakCount <= 1 ? '1승중' : streakCount + '연승') : (streakCount <= 1 ? '1패중' : streakCount + '연패');
+    let statusBadgeHTML = "";
+    if (autoEvent === 'promotion_major') statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
+    else if (autoEvent === 'promotion') statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
+    else if (autoEvent === 'demotion') statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
+    const tierInfo = getTierInfo(player.tier);
+    let lpDiff = player.lp_diff || (isWin ? "+0" : "-0"); if (!lpDiff.startsWith('+') && !lpDiff.startsWith('-')) lpDiff = (isWin ? "+" : "-") + lpDiff;
+    const displayChamp = fixChamp(player.target_champion || 'None');
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    const targetScene = isWin ? document.getElementById('scene-game-win') : document.getElementById('scene-game-lose');
+    targetScene.innerHTML = `<div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}"><h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1><div class="res-nick"><span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${player.team==='red'?(settings.red_team_name||'RED'):(settings.blue_team_name||'BLUE')}</span><span>${player.name}</span><span style="font-size: 32px; font-weight: 900; margin-left:10px;"><span style="color:#ffd369;">😁 ${player.wins || 0}승</span> <span style="color:#ff6b6b;">😡 ${player.losses || 0}패</span></span><span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span></div><div class="res-tier-wrap"><div class="res-tier tier ${tierInfo.class}" style="color:#fff !important;"><span>${tierInfo.name}</span><span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>${statusBadgeHTML}</div></div><div class="res-champ"><img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><div class="res-kda-box"><span class="kda-main">${kdaText}</span><span class="kda-calc">K/D/A : (${kdaVal})</span></div></div></div>`;
+    targetScene.classList.add('active');
+    setTimeout(() => { targetScene.classList.remove('active'); normalCycle = true; sIdx = 0; document.getElementById('scene-all').classList.add('active'); sceneInterval = setInterval(nextScene, 8000); processCutsceneQueue(); }, 6000); 
 }
 function setupRealtime() {
-    sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
-        const oldP = prevPlayersState[payload.new.name];
-        const newP = payload.new;
-        if (!isInitialLoad && newP.trigger_cutscene === true) {
-            const isWin = newP.event_type?.includes('victory') || newP.event_type?.includes('promotion') || (newP.wins > (oldP?.wins || 0));
-            const finalLpDiff = newP.lp_diff || (isWin ? "+0" : "-0");
-            cutsceneQueue.push({ 
-                player: { ...newP, lp_diff: finalLpDiff }, 
-                isWin: isWin, 
-                kdaText: newP.last_kda || "0/0/0", 
-                autoEvent: newP.event_type 
-            });
-            processCutsceneQueue();
-        }
-        prevPlayersState[newP.name] = { ...newP }; 
-        loadData();
-    }).on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData).subscribe();
+    sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
+        const oldP = prevPlayersState[payload.new.name];
+        const newP = payload.new;
+
+        // 컷신 트리거가 발동되었을 때
+        if (!isInitialLoad && newP.trigger_cutscene === true) {
+            const isWin = newP.event_type?.includes('victory') || newP.event_type?.includes('promotion') || (newP.wins > (oldP?.wins || 0));
+            
+            // [중요] 관리자가 계산해서 넣은 lp_diff를 그대로 컷신에 넘겨줍니다.
+            // 만약 lp_diff가 없으면 기본값 +0/-0 처리
+            const finalLpDiff = newP.lp_diff || (isWin ? "+0" : "-0");
+
+            cutsceneQueue.push({ 
+                player: { ...newP, lp_diff: finalLpDiff }, // 새 데이터에 lp_diff를 확실히 포함
+                isWin: isWin, 
+                kdaText: newP.last_kda || "0/0/0", 
+                autoEvent: newP.event_type 
+            });
+            processCutsceneQueue();
+        }
+        
+        prevPlayersState[newP.name] = { ...newP }; 
+        loadData();
+    }).on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData).subscribe();
 }
 async function loadData() {
-    try {
-        const { data: sData } = await sb.from('settings').select('*'); if (sData && sData.length > 0) settings = sData[0];
-        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
-        if (pData) { players = pData.map(p => {
-            let streak = 0; const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
-            if (recent.length > 0) { const lastRes = recent[recent.length - 1]; for(let i = recent.length - 1; i >= 0; i--) { if(recent[i] === lastRes) streak++; else break; } streak = lastRes === 'win' ? streak : -streak; }
-            if (!prevPlayersState[p.name]) prevPlayersState[p.name] = { ...p }; return { ...p, streak };
-        }); }
-        renderAll();
-    } catch (e) { console.log(e); }
+    try {
+        const { data: sData } = await sb.from('settings').select('*'); if (sData && sData.length > 0) settings = sData[0];
+        const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
+        if (pData) { players = pData.map(p => {
+            let streak = 0; const recent = (p.recent || []).filter(r => r === 'win' || r === 'lose');
+            if (recent.length > 0) { const lastRes = recent[recent.length - 1]; for(let i = recent.length - 1; i >= 0; i--) { if(recent[i] === lastRes) streak++; else break; } streak = lastRes === 'win' ? streak : -streak; }
+            if (!prevPlayersState[p.name]) prevPlayersState[p.name] = { ...p }; return { ...p, streak };
+        }); }
+        renderAll();
+    } catch (e) { console.log(e); }
 }
-
-// [타이머 수정] 모든 타이머 요소를 찾아 업데이트합니다.
 function updateTimer() {
-    const timerAreas = document.querySelectorAll('[id^="timer-display"]'); 
-    if (!settings || !settings.timer_end_at) return;
-    
-    const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
-    
-    timerAreas.forEach(area => {
-        if (diff <= 0) { 
-            area.innerHTML = `<span class="clock-shake">⏰</span> <span style="color:#ffd369;">솔랭 내기 종료!!!</span>`; 
-        } else { 
-            const h = String(Math.floor(diff/3600000)).padStart(2,'0');
-            const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
-            const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
-            area.innerHTML = `⏰ <span style="font-size:24px; color:#fff;">남은 시간 :</span> <span class="timer-nums">${h}:${m}:${s}</span>`; 
-        }
-    });
+    const timerAreas = document.querySelectorAll('[id^="timer-display"]'); if (!settings || !settings.timer_end_at) return;
+    const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
+    timerAreas.forEach(area => {
+        if (diff <= 0) { area.innerHTML = `<span class="clock-shake">⏰</span> <span style="color:#ffd369;">솔랭 내기 종료!!!</span>`; }
+        else { const h = String(Math.floor(diff/3600000)).padStart(2,'0'), m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0'), s = String(Math.floor((diff%60000)/1000)).padStart(2,'0'); area.innerHTML = `⏰ <span>남은 시간 :</span> <span class="timer-nums">${h}:${m}:${s}</span>`; }
+    });
 }
-
 function renderScoreScene() {
-    const rW = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.wins||0),0), bW = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.wins||0),0);
-    const rL = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.losses||0),0), bL = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.losses||0),0);
-    let rC = rW===bW?'draw':(rW>bW?'winner':'loser'), bC = rW===bW?'draw':(bW>rW?'winner':'loser');
-    
-    // [타이머 고정] id="timer-display-score"가 반드시 생성되도록 보장
-    document.getElementById('scene-score').innerHTML = `
-    <div class="score-board">
-        <div class="timer-label">팀 종합 스코어</div>
-        <div class="timer" id="timer-display-score"></div>
-        <div class="vs">
-            <span class="team-name-score" style="color:#ff5c5c">${settings.red_team_name||'RED'}</span> 
-            <span class="vs-text">VS</span> 
-            <span class="team-name-score" style="color:#4db8ff">${settings.blue_team_name||'BLUE'}</span>
-        </div>
-        <div class="score-wrap">
-            <div class="score-box ${rC}">
-                <div class="score-num">${rW}</div>
-                <div class="sub-info">패배 : ${rL}</div>
-            </div>
-            <div class="score-box ${bC}">
-                <div class="score-num">${bW}</div>
-                <div class="sub-info">패배 : ${bL}</div>
-            </div>
-        </div>
-    </div>`;
-    updateTimer(); // 렌더링 직후 타이머 텍스트 즉시 채우기
+    const rW = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.wins||0),0), bW = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.wins||0),0);
+    const rL = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.losses||0),0), bL = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.losses||0),0);
+    let rC = rW===bW?'draw':(rW>bW?'winner':'loser'), bC = rW===bW?'draw':(bW>rW?'winner':'loser');
+    document.getElementById('scene-score').innerHTML = `<div class="score-board"><div class="timer-label">팀 종합 스코어</div><div class="timer" id="timer-display-score"></div><div class="vs"><span class="team-name-score" style="color:#ff5c5c">${settings.red_team_name||'RED'}</span> <span class="vs-text">VS</span> <span class="team-name-score" style="color:#4db8ff">${settings.blue_team_name||'BLUE'}</span></div><div class="score-wrap"><div class="score-box ${rC}"><div class="score-num">${rW}</div><div class="sub-info">패배 : ${rL}</div></div><div class="score-box ${bC}"><div class="score-num">${bW}</div><div class="sub-info">패배 : ${bL}</div></div></div></div>`;
+    updateTimer();
 }
-
 function renderAll() { renderMainScene(document.getElementById('scene-all'), null); renderMainScene(document.getElementById('scene-red'), 'red'); renderMainScene(document.getElementById('scene-blue'), 'blue'); renderScoreScene(); }
 function nextScene() { if(!normalCycle) return; const sc = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue'), document.getElementById('scene-score')]; sc.forEach(s=>s.classList.remove('active')); sIdx=(sIdx+1)%sc.length; sc[sIdx].classList.add('active'); updateTimer(); }
 async function start() { await initChampMap(); await loadData(); setupRealtime(); setInterval(updateTimer, 1000); sceneInterval = setInterval(nextScene, 8000); setTimeout(() => { isInitialLoad = false; }, 5000); }
