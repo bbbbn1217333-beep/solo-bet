@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>이라네 솔랭 내기 시트지 관리자용 (v1.2)</title>
+    <title>이라네 솔랭 내기 시트지 관리자용</title>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -85,9 +85,8 @@
         </div>
         <div class="menu-desc">
             <strong>💡 전적 기록 로직 안내</strong>
-            • <span class="neon-point">닉네임 교체 시:</span> 'Riot ID'를 수정하고 반영하면 이전 전적과 내부 식별값(PUUID)이 즉시 초기화됩니다.<br>
-            • <span class="neon-point">패배 기록:</span> 일반 패배 및 본인 탈주 패배(Leaver)는 즉시 기록됩니다.<br>
-            • <span class="neon-point">무효판(Remake):</span> 다시하기 판은 자동으로 감지되어 진행 중으로 복구됩니다.
+            • <span class="neon-point">챔피언 이름:</span> 자동 감시 시 영문 ID가 아닌 **한글 이름**으로 자동 변환되어 입력됩니다.<br>
+            • <span class="neon-point">닉네임 교체 시:</span> Riot ID를 수정하고 반영하면 이전 기록과 내부 PUUID가 즉시 초기화됩니다.
         </div>
     </div>
 
@@ -112,13 +111,15 @@ let champNameMap = {};
 let idToNameMap = {}; 
 let watchStartTime = null; 
 
+// 챔피언 데이터를 가져올 때 id(Aatrox)와 key(266) 둘 다 매핑해둡니다.
 async function initChampMap() {
     try {
         const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
-            champNameMap[c.id] = c.name; 
-            idToNameMap[c.key] = c.name; 
+            champNameMap[c.id] = c.name; // Aatrox -> 아트록스
+            idToNameMap[c.key] = c.name; // 266 -> 아트록스
+            champNameMap[c.name] = c.id; // 아트록스 -> Aatrox (반대 매핑)
         });
     } catch (e) { console.error("챔피언 로드 실패:", e); }
 }
@@ -136,10 +137,6 @@ function resetHistoryUI(keepIngData = false) {
                 input.value = '';
             }
         });
-        if(!keepIngData) {
-            card.querySelector('.win-val').value = 0;
-            card.querySelector('.lose-val').value = 0;
-        }
     });
 }
 
@@ -159,13 +156,10 @@ async function toggleWatch() {
 
 async function syncWithRiot() { 
     try { 
-        // 1. 현재 화면의 데이터(변경 전 LP 등) 백업
         const { data: beforeData } = await sb.from('players').select('*').order('created_at', { ascending: true });
-        
         const syncUrl = watchStartTime ? `/api/sync?startTime=${watchStartTime}` : `/api/sync`;
         await fetch(syncUrl); 
         
-        // 2. 동기화 완료 후 최신 데이터 가져오기
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         
         if (pData) {
@@ -173,24 +167,14 @@ async function syncWithRiot() {
             pData.forEach(newP => {
                 const oldP = beforeData.find(p => p.id === newP.id);
                 if(!oldP) return;
-
-                const oldLpMatch = oldP.tier?.match(/(\d+)LP/);
-                const oldLp = oldLpMatch ? parseInt(oldLpMatch[1]) : 0;
-                
-                const newLpMatch = newP.tier?.match(/(\d+)LP/);
-                const newLp = newLpMatch ? parseInt(newLpMatch[1]) : 0;
-                
-                // 판수 변화가 있을 때만 LP 차이 계산 (컷씬 트리거 보조)
+                const oldLp = parseInt(oldP.tier?.match(/(\d+)LP/)?.[1] || "0");
+                const newLp = parseInt(newP.tier?.match(/(\d+)LP/)?.[1] || "0");
                 if (newP.wins > oldP.wins || newP.losses > oldP.losses) {
                     let diff = newLp - oldLp;
-                    let diffStr = diff >= 0 ? `+${diff}` : `${diff}`;
-                    toUpdateDiff.push({ id: newP.id, lp_diff: diffStr });
+                    toUpdateDiff.push({ id: newP.id, lp_diff: diff >= 0 ? `+${diff}` : `${diff}` });
                 }
             });
-
-            if (toUpdateDiff.length > 0) { 
-                await sb.from('players').upsert(toUpdateDiff); 
-            }
+            if (toUpdateDiff.length > 0) await sb.from('players').upsert(toUpdateDiff); 
             mergeRebuild(pData); 
         }
     } catch (e) { console.error("동기화 실패:", e); } 
@@ -200,13 +184,12 @@ function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
     let cleanTier = tierStr.replace(/\d+LP/gi, '').trim();
     const cleanInput = cleanTier.toUpperCase().replace(/[\s\(\)\-]/g, '');
-    if (cleanInput.includes("CHALLENGER") || cleanInput.includes("챌린저")) return "CHALLENGER";
-    if (cleanInput.includes("GRANDMASTER") || cleanInput.includes("그랜드마스터")) return "GRANDMASTER";
-    if (cleanInput.includes("MASTER") || cleanInput.includes("마스터")) return "MASTER";
-    const tierList = [{ eng: "DIAMOND", keys: ["다이아", "DIAMOND"] },{ eng: "EMERALD", keys: ["에메랄드", "EMERALD"] },{ eng: "PLATINUM", keys: ["플래", "플레", "PLATINUM"] },{ eng: "GOLD", keys: ["골드", "GOLD"] },{ eng: "SILVER", keys: ["실버", "SILVER"] },{ eng: "BRONZE", keys: ["브론즈", "BRONZE"] },{ eng: "IRON", keys: ["아이언", "IRON"] }];
+    const tiers = ["CHALLENGER","GRANDMASTER","MASTER","DIAMOND","EMERALD","PLATINUM","GOLD","SILVER","BRONZE","IRON"];
+    const korTiers = ["챌린저","그랜드마스터","마스터","다이아","에메랄드","플래","골드","실버","브론즈","아이언"];
     let foundEng = "";
-    for (const t of tierList) { if (t.keys.some(k => cleanInput.includes(k))) { foundEng = t.eng; break; } }
+    for(let i=0; i<tiers.length; i++) { if(cleanInput.includes(tiers[i]) || cleanInput.includes(korTiers[i])) { foundEng = tiers[i]; break; } }
     if (!foundEng) return "UNRANKED";
+    if (["CHALLENGER","GRANDMASTER","MASTER"].includes(foundEng)) return foundEng;
     let step = "4"; 
     if (cleanInput.includes("IV") || cleanInput.endsWith("4")) step = "4";
     else if (cleanInput.includes("III") || cleanInput.endsWith("3")) step = "3";
@@ -225,13 +208,11 @@ function mergeRebuild(dbData) {
         const tSelect = card.querySelector('.tier-select');
         const lInput = card.querySelector('.lp-input');
         if (!card.querySelector('.tier-override').checked && !card.querySelector('.lp-override').checked) {
-            if (dbPlayer.tier && dbPlayer.tier !== "언랭크") {
-                const lpValue = dbPlayer.tier.match(/(\d+)LP/)?.[1] || "0";
-                const engKey = findEngTierKey(dbPlayer.tier);
-                tSelect.value = engKey;
-                tSelect.setAttribute('data-tier', TIER_MAP[engKey] || "언랭크");
-                lInput.value = lpValue;
-            }
+            const lpValue = dbPlayer.tier?.match(/(\d+)LP/)?.[1] || "";
+            const engKey = findEngTierKey(dbPlayer.tier);
+            tSelect.value = engKey;
+            tSelect.setAttribute('data-tier', TIER_MAP[engKey] || "언랭크");
+            lInput.value = lpValue;
         }
         const items = card.querySelectorAll('.history-item');
         let wCount = 0, lCount = 0;
@@ -239,12 +220,17 @@ function mergeRebuild(dbData) {
             const btn = item.querySelector('.btn-toggle');
             const champInp = item.querySelector('.champ-input');
             const dbRes = dbPlayer.recent?.[idx];
-            const dbChamp = dbPlayer.champions?.[idx];
+            const dbChamp = dbPlayer.champions?.[idx]; // 보통 영문 ID (예: 'Aatrox')
+
             if (btn.classList.contains('ing')) {
                 if (dbRes === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
                 else if (dbRes === 'lose' || dbRes === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
                 else if (['remake', 'remake_loss', 'remake_win'].includes(dbRes)) { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; champInp.value = ''; }
-                if (!['remake', 'remake_loss', 'remake_win'].includes(dbRes) && dbChamp && dbChamp !== 'None') { champInp.value = idToNameMap[dbChamp] || dbChamp; }
+                
+                // [한글 변환] 영문 ID를 한글 이름으로 변환하여 입력창에 투척
+                if (!['remake', 'remake_loss', 'remake_win'].includes(dbRes) && dbChamp && dbChamp !== 'None') {
+                    champInp.value = champNameMap[dbChamp] || idToNameMap[dbChamp] || dbChamp;
+                }
             }
             if (btn.innerText.includes('승리')) wCount++;
             if (btn.innerText.includes('패배')) lCount++;
@@ -272,8 +258,9 @@ function createMemberCard(team, data = null) {
     for(let i=0; i<10; i++) {
         const res = data?.recent?.[i] || 'ing';
         const resText = res === 'win' ? '😁 승리' : (res === 'lose' ? '😡 패배' : '🕒 진행');
-        let rawChamp = data?.champions?.[i];
-        let champDisp = (rawChamp && rawChamp !== 'None') ? (idToNameMap[rawChamp] || rawChamp) : '';
+        let dbChamp = data?.champions?.[i];
+        // [한글 변환] 초기 로드 시에도 영문 ID를 한글로 변환
+        let champDisp = (dbChamp && dbChamp !== 'None') ? (champNameMap[dbChamp] || idToNameMap[dbChamp] || dbChamp) : '';
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
     let curTierEng = findEngTierKey(data?.tier);
@@ -315,7 +302,6 @@ async function loadData() {
     } catch (e) { console.error(e); }
 }
 
-// [핵심] 닉네임 교체 시 초기화 로직이 포함된 반영 함수
 async function applyToSupabase() {
     const applyBtn = document.querySelector('.btn-apply');
     const originalText = applyBtn.innerText;
@@ -330,65 +316,37 @@ async function applyToSupabase() {
         const cardUuid = card.dataset.uuid;
         const dbP = cachedPlayers.find(p => p.id === cardUuid);
         const newRiotId = card.querySelector('.nick-riot').value.trim();
-
-        // [중요] Riot ID가 이전과 다르면 데이터 완전 초기화 대상으로 판단
         let isIdChanged = dbP && dbP.riot_id !== newRiotId;
 
         let recent = [], champs = [];
         card.querySelectorAll('.history-item').forEach(item => {
             const btn = item.querySelector('.btn-toggle');
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
-            let rawChamp = item.querySelector('.champ-input').value.trim() || 'None';
-            const engKey = Object.keys(champNameMap).find(key => champNameMap[key] === rawChamp);
-            champs.push(engKey || rawChamp);
+            let val = item.querySelector('.champ-input').value.trim() || 'None';
+            // [저장 시 역변환] 한글 이름이면 영문 ID로 바꿔서 DB에 저장 (데이터 통일성)
+            champs.push(champNameMap[val] || val);
         });
 
         const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
-        let finalTierStr = "언랭크";
         const tSelect = card.querySelector('.tier-select');
         const lInput = card.querySelector('.lp-input');
-        
-        if (isManual) {
-            const tEng = tSelect.value;
-            const lpVal = lInput.value.trim();
-            finalTierStr = (lpVal && tEng !== "UNRANKED") ? `${TIER_MAP[tEng]} - ${lpVal}LP` : TIER_MAP[tEng];
-        } else {
-            finalTierStr = dbP?.tier || "언랭크";
-        }
+        let finalTierStr = isManual ? (lInput.value && tSelect.value !== "UNRANKED" ? `${TIER_MAP[tSelect.value]} - ${lInput.value}LP` : TIER_MAP[tSelect.value]) : (dbP?.tier || "언랭크");
 
-        const updateData = {
-            "id": cardUuid, 
-            "name": name, 
-            "team": card.dataset.team, 
-            "riot_id": newRiotId,
-            "tier": finalTierStr, 
-            "manual_tier": isManual, 
-            "wins": Number(card.querySelector('.win-val').value), 
-            "losses": Number(card.querySelector('.lose-val').value),
-            "recent": isIdChanged ? Array(10).fill('ing') : recent, // 닉네임 바뀌면 진행중으로 초기화
-            "champions": isIdChanged ? Array(10).fill('None') : champs, 
-            "trigger_cutscene": false,
-            "lp_diff": ""
-        };
-
-        // ID가 바뀌었다면 동기화 기준점들도 초기화 (새로운 PUUID를 따오도록 유도)
-        if (isIdChanged) {
-            updateData.last_match_id = null;
-            updateData.puuid = null;
-        }
-
-        toUpdate.push(updateData);
+        toUpdate.push({
+            "id": cardUuid, "name": name, "team": card.dataset.team, "riot_id": newRiotId,
+            "tier": finalTierStr, "manual_tier": isManual, "wins": Number(card.querySelector('.win-val').value), "losses": Number(card.querySelector('.lose-val').value),
+            "recent": isIdChanged ? Array(10).fill('ing') : recent,
+            "champions": isIdChanged ? Array(10).fill('None') : champs,
+            "trigger_cutscene": false, "lp_diff": "", "puuid": isIdChanged ? null : dbP?.puuid, "last_match_id": isIdChanged ? null : dbP?.last_match_id
+        });
     }
 
     try {
         await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
         if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
-        
         alert('✅ 송출 화면 반영 완료!');
         await loadData();
-    } catch (e) { console.error(e); } finally {
-        applyBtn.innerText = originalText; applyBtn.disabled = false;
-    }
+    } catch (e) { console.error(e); } finally { applyBtn.innerText = originalText; applyBtn.disabled = false; }
 }
 
 async function start() { await initChampMap(); await loadData(); }
