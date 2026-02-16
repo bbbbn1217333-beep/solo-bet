@@ -120,27 +120,34 @@ async function syncWithRiot() {
     } catch (e) { console.error(e); } 
 }
 
-// ⚠️ 초강력 티어 매칭 함수 (플래티넘 매칭 해결사)
+// 티어 매칭을 위한 헬퍼 함수 (유연한 비교 보강)
 function findEngTierKey(tierStr) {
-    if (!tierStr || tierStr.includes("언랭크")) return "UNRANKED";
+    if (!tierStr || tierStr === "언랭크") return "UNRANKED";
     
-    // 1. "플래티넘 1 - 50LP" -> "플래티넘1" (공백/특수문자 제거)
-    const cleanInput = tierStr.split('-')[0].replace(/\s+/g, '').replace(/[0-9]/g, ''); 
+    // 1. 입력을 대문자로 바꾸고 모든 공백 제거 (예: "Platinum 1" -> "PLATINUM1")
+    const cleanInput = tierStr.toUpperCase().replace(/\s+/g, '');
     
-    // 2. 맵을 돌며 가장 유사한 키 찾기
+    // 2. TIER_MAP을 돌며 매칭 확인
     for (const [eng, kor] of Object.entries(TIER_MAP)) {
-        const cleanKor = kor.replace(/\s+/g, '').replace(/[0-9]/g, '');
-        // "플래티넘" 글자가 포함되어 있다면 즉시 해당 영문 키 반환
-        if (cleanInput.includes(cleanKor) || cleanKor.includes(cleanInput)) {
-            // 상세 단계(1,2,3,4)가 있다면 그것까지 포함해서 찾기
-            const stepMatch = tierStr.match(/[1-4]/);
-            if (stepMatch) {
-                const specificKey = eng.split(' ')[0] + " " + stepMatch[0];
-                if (TIER_MAP[specificKey]) return specificKey;
-            }
+        const cleanEng = eng.replace(/\s+/g, ''); // "PLATINUM 1" -> "PLATINUM1"
+        const cleanKor = kor.replace(/\s+/g, ''); // "플래티넘 1" -> "플래티넘1"
+        
+        // 영문 키나 한글 명칭이 입력값에 포함되어 있는지 확인
+        if (cleanInput.includes(cleanEng) || 
+            cleanInput.includes(cleanKor) || 
+            cleanEng.includes(cleanInput) || 
+            cleanKor.includes(cleanInput)) {
             return eng;
         }
     }
+
+    // 3. 예외 케이스: "플레"라고 입력될 경우를 대비한 플래티넘 전용 보정
+    if (cleanInput.includes("플래") || cleanInput.includes("플레") || cleanInput.includes("PLAT")) {
+        // 단계를 찾음 (1, 2, 3, 4)
+        const level = tierStr.match(/[1-4]/);
+        return level ? `PLATINUM ${level[0]}` : "PLATINUM 4";
+    }
+
     return "UNRANKED";
 }
 
