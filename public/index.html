@@ -36,7 +36,6 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
 
-/* 티어별 색상 클래스 */
 .tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;}
 .tier.bronze{--t-clr:#cd7f32; color:var(--t-clr) !important;}
 .tier.silver{--t-clr:#c0c0c0; color:var(--t-clr) !important;}
@@ -89,11 +88,11 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .res-team { padding: 4px 12px; border-radius: 6px; font-size: 20px; vertical-align: middle; color: #fff; text-transform: uppercase; }
 .res-tier-wrap { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px; margin-bottom: 20px; }
 .res-tier { font-size: 28px; font-weight: 800; color: #fff !important; padding: 10px 25px; border-radius: 8px; border: 2px solid var(--t-clr); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 10px var(--t-clr), 0 0 15px var(--t-clr); display: flex; align-items: center; gap: 15px; }
-.status-badge { font-size: 32px; font-weight: 900; text-shadow: 2px 2px 4px #000; font-family:'Pretendard'; white-space: nowrap; }
+.status-badge { font-size: 32px; font-weight: 900; text-shadow: 2px 2px 4px #000; font-family:'Pretendard'; white-space: nowrap; margin-left: 10px; }
 .badge-pro-super { color: #FFD700 !important; }
 .badge-pro { color: #FFFACD !important; }
 .badge-dem { color: #FF4D4D !important; }
-.res-point { font-weight: 900; font-family: 'Orbitron'; font-size: 32px; margin-left: 5px; }
+.res-point { font-weight: 900; font-family: 'Orbitron'; font-size: 32px; margin-left: 10px; }
 .res-point.win { color: #ffd369; text-shadow: 0 0 10px #ffd369; }
 .res-point.lose { color: #ff6b6b; text-shadow: 0 0 10px #ff6b6b; }
 .res-champ img { width: 140px; height: 140px; border-radius: 50%; border: 4px solid #fff; margin-bottom: 15px; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
@@ -132,16 +131,12 @@ let cutsceneQueue = [];
 
 const TIER_KOR_MAP = { 'iron': '아이언', 'bronze': '브론즈', 'silver': '실버', 'gold': '골드', 'platinum': '플래티넘', 'emerald': '에메랄드', 'diamond': '다이아몬드', 'master': '마스터', 'grandmaster': '그랜드마스터', 'challenger': '챌린저', 'unranked': '언랭크' };
 
-/** [수정] 티어 표기법 및 색상 클래스 판별 로직 **/
 function getTierInfo(tierStr) {
     if (!tierStr || tierStr.trim() === "" || tierStr.toLowerCase().includes('unranked') || tierStr.includes('언랭크')) {
         return { name: '언랭크', class: 'unranked' };
     }
-
     const t = tierStr.toLowerCase();
     let cls = 'unranked';
-    
-    // 색상 클래스 판별
     if (t.includes('challenger') || t.includes('챌린저')) cls = 'challenger';
     else if (t.includes('grandmaster') || t.includes('그랜드마스터')) cls = 'grandmaster';
     else if (t.includes('master') || t.includes('마스터')) cls = 'master';
@@ -153,24 +148,15 @@ function getTierInfo(tierStr) {
     else if (t.includes('bronze') || t.includes('브론즈')) cls = 'bronze';
     else if (t.includes('iron') || t.includes('아이언')) cls = 'iron';
     
-    // 텍스트 변환 (영어 -> 한글, 로마자 -> 숫자)
     let korName = tierStr;
     Object.keys(TIER_KOR_MAP).forEach(eng => {
         const reg = new RegExp(eng, 'gi');
         korName = korName.replace(reg, TIER_KOR_MAP[eng]);
     });
-
-    // 로마자 -> 숫자 변환 (순서가 중요함)
-    korName = korName.replace(/\sIV/g, ' 4')
-                     .replace(/\sIII/g, ' 3')
-                     .replace(/\sII/g, ' 2')
-                     .replace(/\sI(?=\s|-|$)/g, ' 1');
-
-    // 마스터 이상급 뒤의 숫자 1 제거 (예: 마스터 1 -> 마스터)
+    korName = korName.replace(/\sIV/g, ' 4').replace(/\sIII/g, ' 3').replace(/\sII/g, ' 2').replace(/\sI(?=\s|-|$)/g, ' 1');
     if (['master', 'grandmaster', 'challenger'].includes(cls)) {
         korName = korName.replace(/\s1(?=\s|-|$)/g, "");
     }
-
     return { name: korName, class: cls };
 }
 
@@ -221,6 +207,7 @@ function renderMainScene(container, filterTeam) {
 }
 
 function processCutsceneQueue() { if (cutsceneQueue.length > 0 && normalCycle) { const next = cutsceneQueue.shift(); runCutscene(next.player, next.isWin, next.kdaText, next.autoEvent); } }
+
 async function runCutscene(player, isWin, kdaText, autoEvent) {
     normalCycle = false; clearInterval(sceneInterval);
     const [k, d, a] = kdaText.split('/').map(Number);
@@ -228,49 +215,79 @@ async function runCutscene(player, isWin, kdaText, autoEvent) {
     let streakCount = 0; const recent = (player.recent || []).filter(r => r === 'win' || r === 'lose');
     if (recent.length > 0) { const lastRes = recent[recent.length - 1]; for (let i = recent.length - 1; i >= 0; i--) { if (recent[i] === lastRes) streakCount++; else break; } }
     const streakLabel = isWin ? (streakCount <= 1 ? '1승중' : streakCount + '연승') : (streakCount <= 1 ? '1패중' : streakCount + '연패');
+    
+    // 승격/승급/강등 문구 처리
     let statusBadgeHTML = "";
-    if (autoEvent === 'promotion_major') statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
-    else if (autoEvent === 'promotion') statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
-    else if (autoEvent === 'demotion') statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
+    if (autoEvent?.includes('promotion_major')) statusBadgeHTML = `<span class="status-badge badge-pro-super">승격!</span>`;
+    else if (autoEvent?.includes('promotion')) statusBadgeHTML = `<span class="status-badge badge-pro">승급!</span>`;
+    else if (autoEvent?.includes('demotion')) statusBadgeHTML = `<span class="status-badge badge-dem">강등..</span>`;
+    
     const tierInfo = getTierInfo(player.tier);
-    let lpDiff = player.lp_diff || (isWin ? "+0" : "-0"); if (!lpDiff.startsWith('+') && !lpDiff.startsWith('-')) lpDiff = (isWin ? "+" : "-") + lpDiff;
+    
+    // 점수 변동 강제 기호 처리 (+/-)
+    let lpDiff = player.lp_diff || "0"; 
+    lpDiff = lpDiff.toString().replace(/[+-]/g, ''); // 기존 기호 제거 후 재조립
+    lpDiff = (isWin ? "+" : "-") + lpDiff;
+
     const displayChamp = fixChamp(player.target_champion || 'None');
     document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    
     const targetScene = isWin ? document.getElementById('scene-game-win') : document.getElementById('scene-game-lose');
-    targetScene.innerHTML = `<div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}"><h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1><div class="res-nick"><span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${player.team==='red'?(settings.red_team_name||'RED'):(settings.blue_team_name||'BLUE')}</span><span>${player.name}</span><span style="font-size: 32px; font-weight: 900; margin-left:10px;"><span style="color:#ffd369;">😁 ${player.wins || 0}승</span> <span style="color:#ff6b6b;">😡 ${player.losses || 0}패</span></span><span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span></div><div class="res-tier-wrap"><div class="res-tier tier ${tierInfo.class}" style="color:#fff !important;"><span>${tierInfo.name}</span><span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>${statusBadgeHTML}</div></div><div class="res-champ"><img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'"><div class="res-kda-box"><span class="kda-main">${kdaText}</span><span class="kda-calc">K/D/A : (${kdaVal})</span></div></div></div>`;
+    targetScene.innerHTML = `
+        <div class="game-result-card ${isWin ? 'res-win' : 'res-lose'}">
+            <h1 class="res-title">${isWin ? '😁 승리!!!' : '😡 패배!!!'}</h1>
+            <div class="res-nick">
+                <span class="res-team" style="background:${player.team==='red'?'#ff5c5c':'#4db8ff'}">${player.team==='red'?(settings.red_team_name||'RED'):(settings.blue_team_name||'BLUE')}</span>
+                <span>${player.name}</span>
+                <span style="font-size: 32px; font-weight: 900; margin-left:10px;">
+                    <span style="color:#ffd369;">😁 ${player.wins || 0}승</span> 
+                    <span style="color:#ff6b6b;">😡 ${player.losses || 0}패</span>
+                </span>
+                <span class="res-streak ${isWin ? 'win' : 'lose'}">${streakLabel}</span>
+            </div>
+            <div class="res-tier-wrap">
+                <div class="res-tier tier ${tierInfo.class}" style="color:#fff !important;">
+                    <span>${tierInfo.name}</span>
+                    <span class="res-point ${isWin ? 'win' : 'lose'}">${lpDiff}</span>
+                    ${statusBadgeHTML}
+                </div>
+            </div>
+            <div class="res-champ">
+                <img src="https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${displayChamp}.png" onerror="this.src='https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/profileicon/29.png'">
+                <div class="res-kda-box">
+                    <span class="kda-main">${kdaText}</span>
+                    <span class="kda-calc">K/D/A : (${kdaVal})</span>
+                </div>
+            </div>
+        </div>`;
+    
     targetScene.classList.add('active');
-    setTimeout(() => { targetScene.classList.remove('active'); normalCycle = true; sIdx = 0; document.getElementById('scene-all').classList.add('active'); sceneInterval = setInterval(nextScene, 8000); processCutsceneQueue(); }, 6000); 
+    setTimeout(() => { 
+        targetScene.classList.remove('active'); 
+        normalCycle = true; 
+        sIdx = 0; 
+        document.getElementById('scene-all').classList.add('active'); 
+        sceneInterval = setInterval(nextScene, 8000); 
+        processCutsceneQueue(); 
+    }, 6000); 
 }
+
 function setupRealtime() {
     sb.channel('db_changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
         const oldP = prevPlayersState[payload.new.name];
         const newP = payload.new;
 
-        // 초기 로딩 중이 아니고, trigger_cutscene이 true로 바뀔 때만 실행
         if (!isInitialLoad && newP.trigger_cutscene === true) {
-            
-            // 1. 승패 판별 로직을 더욱 명확하게 분리
-            // 승리 조건: event_type에 victory/promotion 포함 OR 승수가 이전보다 증가함
-            const isWinMatch = newP.event_type?.includes('victory') || 
-                               newP.event_type?.includes('promotion') || 
-                               (oldP && newP.wins > oldP.wins);
+            const isWinMatch = newP.event_type?.includes('victory') || newP.event_type?.includes('promotion') || (oldP && newP.wins > oldP.wins);
+            const isLoseMatch = newP.event_type?.includes('defeat') || newP.event_type?.includes('demotion') || (oldP && newP.losses > oldP.losses);
 
-            // 패배 조건: event_type에 defeat/demotion 포함 OR 패수가 이전보다 증가함
-            const isLoseMatch = newP.event_type?.includes('defeat') || 
-                                newP.event_type?.includes('demotion') || 
-                                (oldP && newP.losses > oldP.losses);
-
-            // 2. 최종 결정 (승리와 패배가 동시에 잡히는 방지턱)
             let finalDecision = null;
             if (isWinMatch) finalDecision = true;
             else if (isLoseMatch) finalDecision = false;
 
-            // 3. 결정된 경우에만 큐에 삽입
             if (finalDecision !== null) {
-                const finalLpDiff = newP.lp_diff || (finalDecision ? "+0" : "-0");
-
                 cutsceneQueue.push({ 
-                    player: { ...newP, lp_diff: finalLpDiff },
+                    player: { ...newP },
                     isWin: finalDecision, 
                     kdaText: newP.last_kda || "0/0/0", 
                     autoEvent: newP.event_type 
@@ -278,12 +295,11 @@ function setupRealtime() {
                 processCutsceneQueue();
             }
         }
-        
-        // 상태 업데이트
         prevPlayersState[newP.name] = { ...newP }; 
         loadData();
     }).on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadData).subscribe();
 }
+
 async function loadData() {
     try {
         const { data: sData } = await sb.from('settings').select('*'); if (sData && sData.length > 0) settings = sData[0];
@@ -296,6 +312,7 @@ async function loadData() {
         renderAll();
     } catch (e) { console.log(e); }
 }
+
 function updateTimer() {
     const timerAreas = document.querySelectorAll('[id^="timer-display"]'); if (!settings || !settings.timer_end_at) return;
     const diff = new Date(settings.timer_end_at).getTime() - new Date().getTime();
@@ -304,6 +321,7 @@ function updateTimer() {
         else { const h = String(Math.floor(diff/3600000)).padStart(2,'0'), m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0'), s = String(Math.floor((diff%60000)/1000)).padStart(2,'0'); area.innerHTML = `⏰ <span>남은 시간 :</span> <span class="timer-nums">${h}:${m}:${s}</span>`; }
     });
 }
+
 function renderScoreScene() {
     const rW = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.wins||0),0), bW = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.wins||0),0);
     const rL = players.filter(p=>p.team==='red').reduce((a,b)=>a+(b.losses||0),0), bL = players.filter(p=>p.team==='blue').reduce((a,b)=>a+(b.losses||0),0);
@@ -311,6 +329,7 @@ function renderScoreScene() {
     document.getElementById('scene-score').innerHTML = `<div class="score-board"><div class="timer-label">팀 종합 스코어</div><div class="timer" id="timer-display-score"></div><div class="vs"><span class="team-name-score" style="color:#ff5c5c">${settings.red_team_name||'RED'}</span> <span class="vs-text">VS</span> <span class="team-name-score" style="color:#4db8ff">${settings.blue_team_name||'BLUE'}</span></div><div class="score-wrap"><div class="score-box ${rC}"><div class="score-num">${rW}</div><div class="sub-info">패배 : ${rL}</div></div><div class="score-box ${bC}"><div class="score-num">${bW}</div><div class="sub-info">패배 : ${bL}</div></div></div></div>`;
     updateTimer();
 }
+
 function renderAll() { renderMainScene(document.getElementById('scene-all'), null); renderMainScene(document.getElementById('scene-red'), 'red'); renderMainScene(document.getElementById('scene-blue'), 'blue'); renderScoreScene(); }
 function nextScene() { if(!normalCycle) return; const sc = [document.getElementById('scene-all'), document.getElementById('scene-red'), document.getElementById('scene-blue'), document.getElementById('scene-score')]; sc.forEach(s=>s.classList.remove('active')); sIdx=(sIdx+1)%sc.length; sc[sIdx].classList.add('active'); updateTimer(); }
 async function start() { await initChampMap(); await loadData(); setupRealtime(); setInterval(updateTimer, 1000); sceneInterval = setInterval(nextScene, 8000); setTimeout(() => { isInitialLoad = false; }, 5000); }
