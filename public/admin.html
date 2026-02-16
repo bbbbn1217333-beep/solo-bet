@@ -37,7 +37,8 @@
         .input-group label { font-size:12px; font-weight:900; color:#fff; margin-bottom: 6px; text-align: center; white-space: nowrap; }
         .nick-disp, .nick-riot, .lp-input, .score-input { height: 44px !important; box-sizing: border-box !important; }
         .tier-select { height: 44px !important; width: 100%; box-sizing: border-box !important; padding: 0 10px; background:#000; border: 2px solid var(--gold) !important; border-radius:6px; font-size:14px; font-weight: 900; color: var(--gold) !important; box-shadow: var(--neon-gold); outline:none; text-align: center; appearance: none; }
-        /* 티어별 색상 */
+        
+        /* 티어 색상 정의 */
         .tier-select[data-tier^="챌린저"] { color: #ff4e50 !important; border-color: #ff4e50 !important; box-shadow: 0 0 10px rgba(255,78,80,0.5) !important; }
         .tier-select[data-tier^="그랜드마스터"] { color: #ff7f7f !important; border-color: #ff7f7f !important; }
         .tier-select[data-tier^="마스터"] { color: #e3a3ff !important; border-color: #e3a3ff !important; }
@@ -159,7 +160,6 @@ async function toggleWatch() {
 
 async function syncWithRiot() { 
     try { 
-        // 1. 현재 DB의 최신 상태를 먼저 가져와서 비교군 생성
         const { data: beforeData } = await sb.from('players').select('id, tier').order('created_at', { ascending: true });
         const lpMapBefore = {};
         beforeData.forEach(p => {
@@ -170,7 +170,6 @@ async function syncWithRiot() {
         const syncUrl = watchStartTime ? `/api/sync?startTime=${watchStartTime}` : `/api/sync`;
         await fetch(syncUrl); 
         
-        // 2. 동기화 후 업데이트된 데이터 가져오기
         const { data: pData } = await sb.from('players').select('*').order('created_at', { ascending: true });
         
         if (pData) {
@@ -183,20 +182,30 @@ async function syncWithRiot() {
                 let diff = newLp - oldLp;
                 let diffStr = diff >= 0 ? `+${diff}` : `${diff}`;
 
-                toUpdateDiff.push({
-                    id: newP.id,
-                    lp_diff: diffStr
-                });
+                toUpdateDiff.push({ id: newP.id, lp_diff: diffStr });
             });
 
-            if (toUpdateDiff.length > 0) {
-                await sb.from('players').upsert(toUpdateDiff);
-            }
-            
-            // UI 강제 갱신 (티어 포함)
+            if (toUpdateDiff.length > 0) { await sb.from('players').upsert(toUpdateDiff); }
             mergeRebuild(pData); 
         }
     } catch (e) { console.error("동기화 실패:", e); } 
+}
+
+// 티어 매칭을 위한 헬퍼 함수 (유연한 비교)
+function findEngTierKey(tierStr) {
+    if (!tierStr || tierStr === "언랭크") return "UNRANKED";
+    
+    // 1. "플래티넘 1 - 50LP" 같은 문자열에서 티어 부분만 추출 ("플래티넘 1")
+    const tierPart = tierStr.split(' - ')[0].trim().replace(/\s+/g, ''); // 모든 공백 제거
+    
+    // 2. TIER_MAP을 돌며 공백 없이 비교
+    for (const [eng, kor] of Object.entries(TIER_MAP)) {
+        const cleanKor = kor.replace(/\s+/g, ''); // "플래티넘 1" -> "플래티넘1"
+        if (tierPart === cleanKor || tierPart.includes(cleanKor) || cleanKor.includes(tierPart)) {
+            return eng;
+        }
+    }
+    return "UNRANKED";
 }
 
 function mergeRebuild(dbData) {
@@ -208,25 +217,21 @@ function mergeRebuild(dbData) {
         const dbPlayer = dbData.find(p => p.id === uuid);
         if (!dbPlayer) return;
 
-        // [핵심] 티어/LP 입력 칸 실시간 동기화 (수정 체크박스 해제 시)
         const tierOverride = card.querySelector('.tier-override');
         const lpOverride = card.querySelector('.lp-override');
         const tSelect = card.querySelector('.tier-select');
         const lInput = card.querySelector('.lp-input');
 
+        // 자동 모드일 때 티어/LP 입력칸 업데이트
         if (!tierOverride.checked && !lpOverride.checked) {
             if (dbPlayer.tier && dbPlayer.tier !== "언랭크") {
-                const parts = dbPlayer.tier.split(' - ');
-                const tierName = parts[0]; 
                 const lpValue = dbPlayer.tier.match(/(\d+)LP/)?.[1] || "0";
-
-                const engTierKey = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierName);
-                if (engTierKey) {
-                    tSelect.value = engTierKey;
-                    tSelect.setAttribute('data-tier', tierName);
-                }
+                const engKey = findEngTierKey(dbPlayer.tier);
+                
+                tSelect.value = engKey;
+                tSelect.setAttribute('data-tier', TIER_MAP[engKey]);
                 lInput.value = lpValue;
-            } else if (dbPlayer.tier === "언랭크") {
+            } else {
                 tSelect.value = "UNRANKED";
                 lInput.value = "";
                 tSelect.setAttribute('data-tier', "언랭크");
@@ -244,22 +249,16 @@ function mergeRebuild(dbData) {
 
             if (btn.classList.contains('ing')) {
                 if (dbRes === 'win') {
-                    btn.innerText = '😁 승리';
-                    btn.className = 'btn-toggle win';
+                    btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
                 } else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
-                    btn.innerText = '😡 패배';
-                    btn.className = 'btn-toggle lose';
+                    btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
                 } else if (['remake', 'remake_loss', 'remake_win'].includes(dbRes)) {
-                    btn.innerText = '🕒 진행';
-                    btn.className = 'btn-toggle ing';
-                    champInp.value = ''; 
+                    btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; champInp.value = ''; 
                 }
-                
                 if (!['remake', 'remake_loss', 'remake_win'].includes(dbRes) && dbChamp && dbChamp !== 'None') {
                     champInp.value = idToNameMap[dbChamp] || dbChamp;
                 }
             }
-
             if (btn.innerText.includes('승리')) wCount++;
             if (btn.innerText.includes('패배')) lCount++;
         });
@@ -292,12 +291,9 @@ function createMemberCard(team, data = null) {
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
     
-    let curTierEng = "UNRANKED", curLP = "";
-    if (data?.tier && !data.tier.includes("언랭크")) {
-        const tierPart = data.tier.split(' - ')[0];
-        curTierEng = Object.keys(TIER_MAP).find(key => TIER_MAP[key] === tierPart) || "UNRANKED";
-        curLP = data.tier.match(/(\d+)LP/)?.[1] || "";
-    }
+    let curTierEng = findEngTierKey(data?.tier);
+    let curLP = data?.tier?.match(/(\d+)LP/)?.[1] || "";
+    
     const tierOptions = Object.entries(TIER_MAP).map(([eng, kor]) => `<option value="${eng}" ${curTierEng === eng ? 'selected' : ''}>${kor}</option>`).join('');
     
     card.innerHTML = `
@@ -358,8 +354,7 @@ async function loadData() {
 async function applyToSupabase() {
     const applyBtn = document.querySelector('.btn-apply');
     const originalText = applyBtn.innerText;
-    applyBtn.innerText = "⏳ 반영 중...";
-    applyBtn.disabled = true;
+    applyBtn.innerText = "⏳ 반영 중..."; applyBtn.disabled = true;
 
     watchStartTime = Date.now();
     resetHistoryUI(true); 
@@ -381,15 +376,11 @@ async function applyToSupabase() {
             champs.push(engKey || rawChamp);
         });
 
-        const tCheck = card.querySelector('.tier-override');
-        const lCheck = card.querySelector('.lp-override');
-        const isManual = tCheck.checked || lCheck.checked;
-        
+        const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
         let finalTierStr = "언랭크";
         const tSelect = card.querySelector('.tier-select');
         const lInput = card.querySelector('.lp-input');
         
-        // 체크박스가 체크되어 있으면 화면의 값을, 아니면 기존 DB 캐시값을 사용
         if (isManual) {
             const tEng = tSelect.value;
             const lpVal = lInput.value.trim();
@@ -410,10 +401,9 @@ async function applyToSupabase() {
         await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value), timer_end_at: document.getElementById('endDateTime').value ? new Date(document.getElementById('endDateTime').value).toISOString() : null });
         if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
         alert('✅ 송출 화면 반영 완료!');
-        await loadData(); // 반영 후 최신 데이터로 다시 로드
+        await loadData();
     } catch (e) { console.error(e); } finally {
-        applyBtn.innerText = originalText;
-        applyBtn.disabled = false;
+        applyBtn.innerText = originalText; applyBtn.disabled = false;
     }
 }
 
