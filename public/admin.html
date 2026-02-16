@@ -160,50 +160,47 @@ function mergeData(dbData) {
         const p = dbData.find(d => String(d.id) === String(uuid));
         if (!p) return;
 
-        // --- [항상 업데이트] 티어 및 LP 로직 ---
+        // [1] 티어 및 LP 로직 (승패 전적과 완전히 분리하여 항상 실행)
         const tOverride = card.querySelector('.tier-override').checked;
         const lOverride = card.querySelector('.lp-override').checked;
 
-        // 수정 체크박스가 꺼져있을 때만 Riot 데이터 반영
         if (!tOverride || !lOverride) {
             const tSelect = card.querySelector('.tier-select');
             const lInput = card.querySelector('.lp-input');
-            
-            // 티어 텍스트에서 영어 키 추출 및 반영
             const engKey = findEngTierKey(p.tier);
+            
             if (!tOverride) {
                 tSelect.value = engKey;
-                updateTierUI(tSelect); // UI 색상 변경 포함
+                updateTierUI(tSelect);
             }
-            
-            // LP 숫자만 추출하여 반영
             if (!lOverride) {
                 const lpMatch = p.tier?.match(/(\d+)LP/);
                 lInput.value = lpMatch ? lpMatch[1] : "";
             }
         }
 
-        // --- [조건부 업데이트] 승패 및 챔피언 기록 로직 ---
+        // [2] 전적 및 챔피언 로직
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
             const res = p.recent?.[idx];
             const champ = p.champions?.[idx];
 
+            // '진행' 상태인 칸에만 데이터 반영
             if (btn.classList.contains('ing')) {
-                // 챔피언 이름은 감시 시작 즉시(첫 동기화 포함) 반영
+                // 챔피언 이름은 첫 동기화 상관없이 즉시 반영
                 if (champ && champ !== 'None') {
                     item.querySelector('.champ-input').value = idToKorMap[champ] || champ;
                 }
 
-                // [중요] 승패 결과(버튼 상태)만 첫 동기화 때는 건너뜀
-                if (firstWatchSync) return; 
-
-                if (res === 'win') { 
-                    btn.innerText = '😁 승리'; 
-                    btn.className = 'btn-toggle win'; 
-                } else if (res === 'lose') { 
-                    btn.innerText = '😡 패배'; 
-                    btn.className = 'btn-toggle lose'; 
+                // 승패 결과(버튼 변경)만 첫 동기화(과거기록)일 때 무시
+                if (!firstWatchSync) {
+                    if (res === 'win') {
+                        btn.innerText = '😁 승리';
+                        btn.className = 'btn-toggle win';
+                    } else if (res === 'lose') {
+                        btn.innerText = '😡 패배';
+                        btn.className = 'btn-toggle lose';
+                    }
                 }
             }
         });
