@@ -274,19 +274,33 @@ function resetMemberRecord(btn) {
 }
 
 async function resetAllRecords() {
-    if(!confirm("⚠️ DB의 모든 데이터를 영구 삭제하고 초기화하시겠습니까?")) return;
+    if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까? (삭제 후 새로고침됩니다)")) return;
     
+    // 1. 현재 화면(또는 캐시)에 로드된 모든 플레이어의 ID 추출
+    const idsToDelete = cachedPlayers.map(p => p.id);
+    
+    if (idsToDelete.length === 0) {
+        alert("삭제할 데이터가 없습니다.");
+        return;
+    }
+
     try {
-        // [수정] 업데이트가 아니라 '현재 테이블의 모든 데이터'를 삭제
-        const { error } = await sb.from('players').delete().neq('id', 0); // 모든 ID 삭제
-        
+        // 2. 추출한 ID들에 해당하는 행만 삭제
+        const { error } = await sb
+            .from('players')
+            .delete()
+            .in('id', idsToDelete); 
+
         if (error) throw error;
-        
-        alert("✅ DB 초기화 완료! 이제 새로 입력하면 1번부터 들어갑니다.");
-        location.reload(); // 페이지 새로고침으로 깨끗하게 시작
+
+        // 3. 설정값(팀 이름 등)도 초기화하고 싶다면 (선택사항)
+        await sb.from('settings').upsert({ id: 1, red_team_name: "", blue_team_name: "", member_count: 5 });
+
+        alert("✅ 초기화 완료!");
+        location.reload(); // 페이지 새로고침하여 빈 칸으로 만듦
     } catch (e) {
-        console.error("초기화 실패:", e);
-        alert("초기화 중 오류가 발생했습니다.");
+        console.error("초기화 실패 상세:", e);
+        alert("초기화 중 오류가 발생했습니다. (권한 문제일 수 있습니다)");
     }
 }
 
