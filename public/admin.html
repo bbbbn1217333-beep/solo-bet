@@ -386,32 +386,74 @@ async function loadData() {
 
 async function applyToSupabase() {
     const applyBtn = document.querySelector('.btn-apply');
-    applyBtn.innerText = "⏳ 반영 중..."; applyBtn.disabled = true;
-    const toUpdate = [];
-    document.querySelectorAll('.member-card').forEach(card => {
-        const id = card.dataset.uuid;
-        let recent = [], champs = [];
-        card.querySelectorAll('.history-item').forEach(item => {
-            const btn = item.querySelector('.btn-toggle');
-            recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
-            champs.push(korToIdMap[item.querySelector('.champ-input').value.trim()] || 'None');
+    applyBtn.innerText = "⏳ 반영 중...";
+    applyBtn.disabled = true;
+
+    try {
+        const toUpdate = [];
+        const cards = document.querySelectorAll('.member-card');
+
+        for (const card of cards) {
+            const uuid = card.dataset.uuid; // HTML에 저장된 ID 값
+            if (!uuid) continue;
+
+            let recent = [], champs = [];
+            card.querySelectorAll('.history-item').forEach(item => {
+                const btn = item.querySelector('.btn-toggle');
+                recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
+                
+                const champName = item.querySelector('.champ-input').value.trim();
+                champs.push(korToIdMap[champName] || 'None');
+            });
+
+            const tCheck = card.querySelector('.tier-override');
+            const lCheck = card.querySelector('.lp-override');
+            const tVal = card.querySelector('.tier-select').value;
+            const lpVal = card.querySelector('.lp-input').value;
+
+            // 핵심 수정: ID가 숫자 형태라면 숫자로, UUID 형태라면 문자열 그대로 유지
+            // 만약 DB의 ID가 1, 2, 3 같은 숫자라면 Number(uuid)를 사용해야 함
+            const formattedId = isNaN(uuid) ? uuid : parseInt(uuid);
+
+            toUpdate.push({
+                id: formattedId, 
+                name: card.querySelector('.nick-disp').value.trim(),
+                team: card.dataset.team,
+                riot_id: card.querySelector('.nick-riot').value.trim(),
+                tier: tCheck.checked ? (lpVal ? `${TIER_MAP[tVal]} - ${lpVal}LP` : TIER_MAP[tVal]) : (card.querySelector('.tier-select').disabled ? "언랭크" : `${TIER_MAP[tVal]} - ${lpVal}LP`),
+                manual_tier: tCheck.checked || lCheck.checked,
+                wins: Number(card.querySelector('.win-val').value),
+                losses: Number(card.querySelector('.lose-val').value),
+                recent: recent,
+                champions: champs
+            });
+        }
+
+        // 1. 설정 저장 (팀 이름 등)
+        await sb.from('settings').upsert({ 
+            id: 1, 
+            red_team_name: document.getElementById('redNameInput').value, 
+            blue_team_name: document.getElementById('blueNameInput').value, 
+            member_count: Number(document.getElementById('teamCount').value) 
         });
-        const tCheck = card.querySelector('.tier-override');
-        const lCheck = card.querySelector('.lp-override');
-        const tVal = card.querySelector('.tier-select').value;
-        const lpVal = card.querySelector('.lp-input').value;
-        toUpdate.push({
-            id: parseInt(id), name: card.querySelector('.nick-disp').value.trim(), team: card.dataset.team,
-            riot_id: card.querySelector('.nick-riot').value.trim(),
-            tier: tCheck.checked ? (lpVal ? `${TIER_MAP[tVal]} - ${lpVal}LP` : TIER_MAP[tVal]) : (card.querySelector('.tier-select').disabled ? "언랭크" : `${TIER_MAP[tVal]} - ${lpVal}LP`),
-            manual_tier: tCheck.checked || lCheck.checked, wins: Number(card.querySelector('.win-val').value),
-            losses: Number(card.querySelector('.lose-val').value), recent, champions: champs
-        });
-    });
-    await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value) });
-    await sb.from('players').upsert(toUpdate);
-    alert('✅ 반영 완료!');
-    applyBtn.innerText = "송출 화면 반영"; applyBtn.disabled = false;
+
+        // 2. 플레이어 데이터 업데이트
+        const { error } = await sb.from('players').upsert(toUpdate);
+
+        if (error) {
+            console.error("데이터 저장 실패:", error);
+            alert(`저장 중 오류가 발생했습니다: ${error.message}`);
+        } else {
+            alert('✅ 반영 완료!');
+        }
+
+    } catch (e) {
+        console.error("실행 오류:", e);
+        alert("알 수 없는 오류가 발생했습니다.");
+    } finally {
+        applyBtn.innerText = "송출 화면 반영";
+        applyBtn.disabled = false;
+    }
 }
 
 async function start() { await initChampMap(); await loadData(); }
