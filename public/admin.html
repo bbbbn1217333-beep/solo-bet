@@ -258,7 +258,6 @@ function mergeData(dbData) {
             lInput.value = p.tier?.match(/(\d+)LP/)?.[1] || "0";
         }
 
-        // 전체 스코어는 실시간 반영
         card.querySelector('.win-val').value = p.wins || 0;
         card.querySelector('.lose-val').value = p.losses || 0;
 
@@ -269,16 +268,23 @@ function mergeData(dbData) {
             const champ = p.champions?.[idx];
             const matchTime = p.last_sync ? new Date(p.last_sync) : null;
 
-            // [로직 강화] 감시 시작 시각보다 명확하게(최소 30초 이상) 이후에 발생한 데이터만 필터링
-            if (watchStartTime && matchTime && (matchTime.getTime() > watchStartTime.getTime() + 30000)) {
-                if (res === 'win') { 
-                    btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; 
-                } else if (res === 'lose' || res === 'leaver_loss') { 
-                    btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; 
-                } else { 
-                    btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; 
-                }
+            // [변경] 감시 중일 때는 감시 시작 이후 기록만 갱신
+            if (isWatching && watchStartTime) {
+                if (matchTime && (matchTime.getTime() > watchStartTime.getTime() + 30000)) {
+                    if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; } 
+                    else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; } 
+                    else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
 
+                    if (champ && champ !== 'None') {
+                        champInput.value = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
+                    }
+                }
+            } else {
+                // [변경] 감시 중이 아닐 때는 DB에 있는 모든 기록을 화면에 그대로 표시 (불러오기 기능)
+                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+                else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+                else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
+                
                 if (champ && champ !== 'None') {
                     champInput.value = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
                 }
@@ -291,10 +297,11 @@ async function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
     if(isWatching) {
-        // [중요] 버튼 누른 현재 시간을 정확히 마킹
+        // [중요] DB를 삭제하지 않고, 오직 "지금부터 추적하겠다"는 기준점만 잡습니다.
         watchStartTime = new Date();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)";
+        
         syncWithRiot();
         watchInterval = setInterval(syncWithRiot, 45000);
     } else {
