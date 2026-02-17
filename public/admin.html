@@ -258,6 +258,7 @@ function mergeData(dbData) {
             lInput.value = p.tier?.match(/(\d+)LP/)?.[1] || "0";
         }
 
+        // 전체 스코어는 실시간 반영
         card.querySelector('.win-val').value = p.wins || 0;
         card.querySelector('.lose-val').value = p.losses || 0;
 
@@ -268,14 +269,13 @@ function mergeData(dbData) {
             const champ = p.champions?.[idx];
             const matchTime = p.last_sync ? new Date(p.last_sync) : null;
 
-            if (watchStartTime && matchTime && matchTime >= watchStartTime) {
-                // [수정된 로직] 진행 중인 판은 챔피언만 업데이트, 결과 나오면 승패 처리
+            // [로직 강화] 감시 시작 시각보다 명확하게(최소 30초 이상) 이후에 발생한 데이터만 필터링
+            if (watchStartTime && matchTime && (matchTime.getTime() > watchStartTime.getTime() + 30000)) {
                 if (res === 'win') { 
                     btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; 
                 } else if (res === 'lose' || res === 'leaver_loss') { 
                     btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; 
                 } else { 
-                    // 결과가 아직 'ing'인 경우 챔피언만 반영하고 버튼은 진행중 유지
                     btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; 
                 }
 
@@ -291,6 +291,7 @@ async function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
     if(isWatching) {
+        // [중요] 버튼 누른 현재 시간을 정확히 마킹
         watchStartTime = new Date();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)";
@@ -300,6 +301,7 @@ async function toggleWatch() {
         btn.innerText = "▶️ 자동 감시 시작";
         btn.style.color = "var(--gold)"; btn.style.borderColor = "var(--gold)";
         clearInterval(watchInterval);
+        watchStartTime = null; 
     }
 }
 
