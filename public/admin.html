@@ -140,9 +140,9 @@
         </div>
         <div class="menu-desc">
             <strong>💡 전적 기록 로직 안내</strong>
-            • <span class="neon-point">패배 기록:</span> 일반 패배 및 **본인 탈주 패배(Leaver)**는 즉시 패배로 기록됩니다.<br>
-            • <span class="neon-point">무효판(Remake):</span> 다시하기 판은 (본인 탈주가 아닌 경우) 챔피언 이름을 지우고 진행 중으로 되돌립니다.<br>
-            • <span class="neon-point">수동 수정:</span> 수정 체크박스 체크 시 API 데이터를 무시하고 입력한 티어/LP가 우선 적용됩니다.
+            • <span class="neon-point">실시간 필터:</span> '자동 감시'를 누른 시점 **이후**에 종료된 게임만 화면에 기록됩니다.<br>
+            • <span class="neon-point">패배 기록:</span> 일반 패배 및 본인 탈주 패배(Leaver)는 즉시 패배로 기록됩니다.<br>
+            • <span class="neon-point">수동 수정:</span> 수정 체크박스 체크 시 API 데이터를 무시하고 입력한 정보가 우선 적용됩니다.
         </div>
     </div>
     <div class="teams-container">
@@ -263,32 +263,40 @@ function mergeData(dbData) {
 
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
-            const champInput = item.querySelector('.champ-input'); // 관리자 페이지의 입력창
+            const champInput = item.querySelector('.champ-input');
             const res = p.recent?.[idx];
-            const champ = p.champions?.[idx]; // DB/API에서 넘어온 챔피언 ID
+            const champ = p.champions?.[idx];
+            
+            // [중요] 게임 기록 시각 확인 (last_sync 또는 다른 시간 필드가 있다면 사용)
+            // 서버에서 넘어온 p.last_sync가 버튼 누른 시점보다 이후인 경우만 자동 반영
+            const matchTime = p.last_sync ? new Date(p.last_sync) : null;
+            const isFreshData = isWatching && watchStartTime && matchTime && (matchTime.getTime() > watchStartTime.getTime());
 
-            // 1. 승패 버튼 및 텍스트 실시간 갱신
-            if (res === 'win') { 
-                btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; 
-            } else if (res === 'lose' || res === 'leaver_loss') { 
-                btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; 
-            } else { 
-                btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; 
-            }
-
-            // 2. [핵심] 감시 중일 때 챔피언 이름 실시간 반영
-            if (isWatching && champ && champ !== 'None') {
-                // ID(Aatrox) -> 한글(아트록스) 변환
-                const korChampName = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
-                
-                // 입력창이 비어있거나 값이 다를 때만 '글자'를 써넣음 (새로고침 없이 반영되는 부분)
-                if (champInput.value !== korChampName) {
-                    champInput.value = korChampName;
+            if (isFreshData) {
+                // 1. 감시 중이고 새 데이터라면 전적/챔피언 즉시 갱신
+                if (res === 'win') { 
+                    btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; 
+                } else if (res === 'lose' || res === 'leaver_loss') { 
+                    btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; 
+                } else { 
+                    btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; 
                 }
-            } else if (!isWatching && champ && champ !== 'None') {
-                // 감시 중이 아닐 때(처음 로드 시)도 이름이 있다면 채워줌
-                const korChampName = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
-                if (!champInput.value) champInput.value = korChampName;
+
+                if (champ && champ !== 'None') {
+                    const korChampName = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
+                    if (champInput.value !== korChampName) {
+                        champInput.value = korChampName;
+                    }
+                }
+            } else if (!isWatching) {
+                // 2. 처음 불러오기(감시X) 일 때는 기존 데이터 표시
+                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+                else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+                else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
+
+                if (champ && champ !== 'None' && !champInput.value) {
+                    champInput.value = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
+                }
             }
         });
     });
@@ -298,6 +306,7 @@ async function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
     if(isWatching) {
+        // [핵심] 현재 시각을 기준으로 잡음 (이 시간 이전 판은 무시됨)
         watchStartTime = new Date();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)";
