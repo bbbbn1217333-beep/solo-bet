@@ -393,43 +393,46 @@ async function applyToSupabase() {
         const toUpdate = [];
         const cards = document.querySelectorAll('.member-card');
 
-        for (const card of cards) {
-            const uuid = card.dataset.uuid; // DB에서 불러왔던 원본 ID
-            if (!uuid || uuid === "undefined" || uuid === "") continue;
+        cards.forEach(card => {
+            const rawId = card.dataset.uuid;
+            if (!rawId) return;
 
-            let recent = [], champs = [];
+            let recent = [], champions = [];
             card.querySelectorAll('.history-item').forEach(item => {
                 const btn = item.querySelector('.btn-toggle');
                 recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
-                
                 const champName = item.querySelector('.champ-input').value.trim();
-                champs.push(korToIdMap[champName] || 'None');
+                champions.push(korToIdMap[champName] || 'None');
             });
 
-            const tCheck = card.querySelector('.tier-override');
-            const lCheck = card.querySelector('.lp-override');
+            const tCheck = card.querySelector('.tier-override').checked;
+            const lCheck = card.querySelector('.lp-override').checked;
             const tVal = card.querySelector('.tier-select').value;
             const lpVal = card.querySelector('.lp-input').value;
-
-            // 핵심 수정: DB에서 가져온 ID가 숫자면 숫자로, 문자열(UUID)이면 문자열로 유지
-            const finalId = isNaN(uuid) ? uuid : parseInt(uuid);
-
-            // 중요: DB 컬럼명과 정확히 일치하는지 확인하며 객체 생성
-            toUpdate.push({
-                id: finalId, 
+            
+            // 핵심 로직: UUID 환경 대응
+            const playerData = {
                 name: card.querySelector('.nick-disp').value.trim(),
                 team: card.dataset.team,
                 riot_id: card.querySelector('.nick-riot').value.trim(),
-                tier: tCheck.checked ? (lpVal ? `${TIER_MAP[tVal]} - ${lpVal}LP` : TIER_MAP[tVal]) : (card.querySelector('.tier-select').disabled ? "언랭크" : `${TIER_MAP[tVal]} - ${lpVal}LP`),
-                manual_tier: tCheck.checked || lCheck.checked,
+                tier: tCheck ? (lpVal ? `${TIER_MAP[tVal]} - ${lpVal}LP` : TIER_MAP[tVal]) : (card.querySelector('.tier-select').disabled ? "언랭크" : `${TIER_MAP[tVal]} - ${lpVal}LP`),
+                manual_tier: (tCheck || lCheck),
                 wins: parseInt(card.querySelector('.win-val').value) || 0,
                 losses: parseInt(card.querySelector('.lose-val').value) || 0,
                 recent: recent,
-                champions: champs
-            });
-        }
+                champions: champions
+            };
 
-        // 1. 설정값 먼저 업데이트
+            // 만약 id가 진짜 UUID(길고 복잡한 문자열)라면 포함시키고,
+            // 1, 2, 1358 같은 숫자라면 아예 id 필드를 빼버립니다 (서버가 자동생성하게 함)
+            if (rawId && rawId.length > 10) { 
+                playerData.id = rawId; 
+            }
+
+            toUpdate.push(playerData);
+        });
+
+        // 설정 저장 (settings 테이블의 id는 보통 1로 고정된 int일 확률이 높음)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -437,21 +440,20 @@ async function applyToSupabase() {
             member_count: Number(document.getElementById('teamCount').value) 
         });
 
-        // 2. 플레이어 데이터 업데이트 (select: false를 추가해 불필요한 컬럼 요청 방지)
-        const { error } = await sb
-            .from('players')
-            .upsert(toUpdate, { onConflict: 'id' }); 
+        // 플레이어 업데이트
+        const { error } = await sb.from('players').upsert(toUpdate);
 
         if (error) {
-            console.error("❌ 상세 오류 내용:", error);
-            alert(`저장 실패: ${error.message}\n(힌트: ${error.hint || '없음'})`);
+            console.error("❌ 전송 실패:", error);
+            alert(`저장 실패: ${error.message}`);
         } else {
-            alert('✅ 송출 화면에 성공적으로 반영되었습니다!');
+            alert('✅ UUID 기반 데이터 반영 완료!');
+            // 반영 후 ID가 새로 생성되었을 수 있으므로 데이터를 다시 불러옵니다.
+            loadData(); 
         }
 
     } catch (e) {
         console.error("⚠️ 시스템 오류:", e);
-        alert("데이터 처리 중 오류가 발생했습니다.");
     } finally {
         applyBtn.innerText = "송출 화면 반영";
         applyBtn.disabled = false;
