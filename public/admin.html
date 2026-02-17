@@ -187,22 +187,41 @@ async function initChampMap() {
 
 async function syncWithRiot() {
     try {
-        // 인증 헤더를 추가하여 API 호출 (apikey 오류 방지)
-        await fetch(`${SUPABASE_URL}/rest/v1/players`, {
-            method: 'GET',
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`
-            }
-        });
+        console.log("데이터 동기화 시도 중...");
+        
+        // 1. 서버에 동기화 신호 보내기 (만약 별도의 API 엔드포인트가 있다면)
+        // 아래 경로는 사용자님의 서버 환경에 맞춰져 있어야 합니다. 
+        // 만약 단순히 DB 값만 긁어오는 거라면 이 fetch는 생략해도 됩니다.
+        try {
+            await fetch("https://hsvknfmnsehwytnvaiwr.supabase.co/functions/v1/sync", {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'apikey': SUPABASE_KEY
+                }
+            });
+        } catch(e) { 
+            console.log("외부 싱크 호출 생략 또는 오류 (DB 직접 조회로 넘어감)");
+        }
 
-        // 데이터베이스에서 최신 정보 다시 가져오기
-        const { data: pData, error } = await sb.from('players').select('*').order('id', { ascending: true });
+        // 2. Supabase 라이브러리를 사용하여 안전하게 데이터 가져오기 (인증 자동 포함)
+        const { data: pData, error } = await sb
+            .from('players')
+            .select('*')
+            .order('id', { ascending: true });
+
+        if (error) {
+            console.error("데이터 가져오기 실패:", error.message);
+            return;
+        }
+
         if (pData) {
             mergeData(pData);
-            console.log("감시 중... 데이터 갱신 완료");
+            console.log("✅ 실시간 데이터 갱신 완료:", new Date().toLocaleTimeString());
         }
-    } catch (e) { console.error("동기화 실패", e); }
+    } catch (e) { 
+        console.error("동기화 과정 전체 오류:", e); 
+    }
 }
 
 function mergeData(dbData) {
