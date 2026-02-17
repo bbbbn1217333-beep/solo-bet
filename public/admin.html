@@ -394,9 +394,8 @@ async function applyToSupabase() {
         const cards = document.querySelectorAll('.member-card');
 
         cards.forEach(card => {
-            const rawId = card.dataset.uuid;
-            if (!rawId) return;
-
+            const rawId = card.dataset.uuid; // HTML의 dataset에 저장된 ID
+            
             let recent = [], champions = [];
             card.querySelectorAll('.history-item').forEach(item => {
                 const btn = item.querySelector('.btn-toggle');
@@ -410,7 +409,7 @@ async function applyToSupabase() {
             const tVal = card.querySelector('.tier-select').value;
             const lpVal = card.querySelector('.lp-input').value;
             
-            // 핵심 로직: UUID 환경 대응
+            // 전송할 기본 데이터 (ID 제외)
             const playerData = {
                 name: card.querySelector('.nick-disp').value.trim(),
                 team: card.dataset.team,
@@ -423,16 +422,20 @@ async function applyToSupabase() {
                 champions: champions
             };
 
-            // 만약 id가 진짜 UUID(길고 복잡한 문자열)라면 포함시키고,
-            // 1, 2, 1358 같은 숫자라면 아예 id 필드를 빼버립니다 (서버가 자동생성하게 함)
-            if (rawId && rawId.length > 10) { 
+            // [핵심] ID 처리 로직
+            // rawId가 있고, 숫자가 아닐 때만(진짜 UUID일 때만) id 필드를 추가합니다.
+            // 만약 rawId가 1, 2, 3 같은 숫자라면 id를 보내지 않습니다 -> 서버가 새 UUID를 자동 생성함.
+            if (rawId && isNaN(rawId)) { 
                 playerData.id = rawId; 
             }
 
-            toUpdate.push(playerData);
+            // 닉네임이나 롤 ID가 있는 경우에만 리스트에 추가 (빈 카드는 저장 안 함)
+            if (playerData.name || playerData.riot_id) {
+                toUpdate.push(playerData);
+            }
         });
 
-        // 설정 저장 (settings 테이블의 id는 보통 1로 고정된 int일 확률이 높음)
+        // 1. 설정 저장 (settings 테이블)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -440,20 +443,18 @@ async function applyToSupabase() {
             member_count: Number(document.getElementById('teamCount').value) 
         });
 
-        // 플레이어 업데이트
-        const { error } = await sb.from('players').upsert(toUpdate);
-
-        if (error) {
-            console.error("❌ 전송 실패:", error);
-            alert(`저장 실패: ${error.message}`);
-        } else {
-            alert('✅ UUID 기반 데이터 반영 완료!');
-            // 반영 후 ID가 새로 생성되었을 수 있으므로 데이터를 다시 불러옵니다.
-            loadData(); 
+        // 2. 플레이어 데이터 저장
+        if (toUpdate.length > 0) {
+            const { error } = await sb.from('players').upsert(toUpdate);
+            if (error) throw error;
         }
 
+        alert('✅ 데이터가 UUID 체계에 맞게 저장되었습니다!');
+        loadData(); // 저장 후 새로 생성된 UUID들을 다시 불러오기
+
     } catch (e) {
-        console.error("⚠️ 시스템 오류:", e);
+        console.error("❌ 저장 오류:", e);
+        alert(`저장 중 오류 발생: ${e.message || e.hint}`);
     } finally {
         applyBtn.innerText = "송출 화면 반영";
         applyBtn.disabled = false;
