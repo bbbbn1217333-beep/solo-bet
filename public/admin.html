@@ -166,6 +166,7 @@ let korToIdMap = {};
 let engToIdMap = {}; 
 let isWatching = false;
 let watchInterval = null;
+let watchStartTime = null;
 
 // [알고리즘] 티어 텍스트 분석기
 function findEngTierKey(tierStr) {
@@ -266,18 +267,18 @@ function mergeData(dbData) {
             const champInput = item.querySelector('.champ-input');
             const res = p.recent?.[idx];
             const champ = p.champions?.[idx];
+            const matchTime = p.last_sync ? new Date(p.last_sync) : null;
 
-            if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
-            else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
-            else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
+            if (watchStartTime && matchTime && matchTime >= watchStartTime) {
+                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+                else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+                else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
 
-            // [수정된 챔피언 한글화 매핑 로직]
-            if (champ && champ !== 'None') {
-                // 1. 숫자 Key일 경우 한글 매핑 (idToKorMap)
-                // 2. 영어 이름일 경우(Aatrox 등) 한글 매핑 (engToIdMap)
-                champInput.value = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
-            } else {
-                champInput.value = "";
+                if (champ && champ !== 'None') {
+                    champInput.value = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
+                } else {
+                    champInput.value = "";
+                }
             }
         });
     });
@@ -287,6 +288,7 @@ async function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
     if(isWatching) {
+        watchStartTime = new Date();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)";
         syncWithRiot();
