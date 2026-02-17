@@ -163,9 +163,48 @@ const TIER_COLORS = { "CHALLENGER": "#f7d61b", "GRANDMASTER": "#ff4e50", "MASTER
 let cachedPlayers = [];
 let idToKorMap = {};
 let korToIdMap = {};
-let engToIdMap = {};
+let engToIdMap = {}; 
 let isWatching = false;
 let watchInterval = null;
+
+// [추가된 핵심 알고리즘] 티어 텍스트 분석기
+function findEngTierKey(tierStr) {
+    if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
+
+    let cleanTier = tierStr.replace(/\d+LP/gi, '').trim();
+    const cleanInput = cleanTier.toUpperCase().replace(/[\s\(\)\-]/g, '');
+
+    if (cleanInput.includes("CHALLENGER") || cleanInput.includes("챌린저")) return "CHALLENGER";
+    if (cleanInput.includes("GRANDMASTER") || cleanInput.includes("그랜드마스터")) return "GRANDMASTER";
+    if (cleanInput.includes("MASTER") || cleanInput.includes("마스터")) return "MASTER";
+
+    const tierList = [
+        { eng: "DIAMOND", keys: ["다이아", "DIAMOND"] },
+        { eng: "EMERALD", keys: ["에메랄드", "EMERALD"] },
+        { eng: "PLATINUM", keys: ["플래", "플레", "PLATINUM"] },
+        { eng: "GOLD", keys: ["골드", "GOLD"] },
+        { eng: "SILVER", keys: ["실버", "SILVER"] },
+        { eng: "BRONZE", keys: ["브론즈", "BRONZE"] },
+        { eng: "IRON", keys: ["아이언", "IRON"] }
+    ];
+
+    let foundEng = "";
+    for (const t of tierList) {
+        if (t.keys.some(k => cleanInput.includes(k))) {
+            foundEng = t.eng;
+            break;
+        }
+    }
+    if (!foundEng) return "UNRANKED";
+
+    let step = "4"; 
+    if (cleanInput.includes("IV") || cleanInput.endsWith("4")) step = "4";
+    else if (cleanInput.includes("III") || cleanInput.endsWith("3")) step = "3";
+    else if (cleanInput.includes("II") || cleanInput.endsWith("2")) step = "2";
+    else if (cleanInput.includes("I") || cleanInput.endsWith("1")) step = "1";
+
+    return `${foundEng} ${step}`;
+}
 
 function updateTierUI(selectElement) {
     const val = selectElement.value;
@@ -196,22 +235,35 @@ async function syncWithRiot() {
         
         if (result.success) {
             console.log("✅ 서버 동기화 성공, DB에서 최신 데이터 가져오는 중...");
-            const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
-            if (pData) mergeData(pData);
+            const { data: pData, error } = await sb
+                .from('players')
+                .select('*')
+                .order('id', { ascending: true });
+
+            if (pData) {
+                mergeData(pData);
+                console.log("✅ 화면 갱신 완료:", new Date().toLocaleTimeString());
+            }
         }
-    } catch (e) { console.error("⚠️ 동기화 중 오류 발생:", e); }
+    } catch (e) { 
+        console.error("⚠️ 동기화 중 오류 발생:", e); 
+    }
 }
 
 function mergeData(dbData) {
     cachedPlayers = dbData;
     const cards = document.querySelectorAll('.member-card');
     
-    cards.forEach((card) => {
+    cards.forEach((card, index) => {
         const currentName = card.querySelector('.nick-disp').value.trim();
         const currentRiotId = card.querySelector('.nick-riot').value.trim();
         const team = card.dataset.team;
 
-        let p = dbData.find(d => (currentName && d.name === currentName) || (currentRiotId && d.riot_id === currentRiotId));
+        let p = dbData.find(d => 
+            (currentName && d.name === currentName) || 
+            (currentRiotId && d.riot_id === currentRiotId)
+        );
+
         if (!p) {
             const teamPlayers = dbData.filter(d => d.team === team);
             const cardIndex = Array.from(card.parentNode.children).indexOf(card);
@@ -221,28 +273,16 @@ function mergeData(dbData) {
         if (!p) return;
         card.dataset.uuid = p.id;
 
-        // [티어 인식 로직 보강] '실버 2' 같은 한글이나 'SILVER 2' 같은 영문 모두 대응
         const tCheck = card.querySelector('.tier-override');
         const lCheck = card.querySelector('.lp-override');
         
         if (!tCheck.checked) {
             const tSelect = card.querySelector('.tier-select');
             if (p.tier) {
-                // DB의 티어 텍스트(예: "실버 2 - 50LP")에서 티어 부분만 추출
-                const tierPart = p.tier.split(' - ')[0].trim();
-                // TIER_MAP의 값(한글)이나 키(영문)와 일치하는 것을 찾음
-                const matchedKey = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart || k === tierPart.toUpperCase());
-                
-                if (matchedKey) { 
-                    tSelect.value = matchedKey;
+                const engTier = findEngTierKey(p.tier); // [변경] 개선된 알고리즘 적용
+                if (engTier) { 
+                    tSelect.value = engTier;
                     updateTierUI(tSelect);
-                } else {
-                    // 특수 케이스: "실버 2"인데 맵에는 "SILVER 2"인 경우 등 포함 검사
-                    const partialKey = Object.keys(TIER_MAP).find(k => tierPart.toUpperCase().includes(k));
-                    if(partialKey) {
-                        tSelect.value = partialKey;
-                        updateTierUI(tSelect);
-                    }
                 }
             }
         }
@@ -268,7 +308,9 @@ function mergeData(dbData) {
             if (champ && champ !== 'None') {
                 const champKey = engToIdMap[champ.toLowerCase()] || champ;
                 champInput.value = idToKorMap[champKey] || idToKorMap[champ] || champ;
-            } else { champInput.value = ""; }
+            } else {
+                champInput.value = "";
+            }
         });
     });
 }
@@ -317,9 +359,8 @@ function createMemberCard(team, data = null) {
     setTimeout(() => {
         const sel = card.querySelector('.tier-select');
         if(data?.tier) {
-            const tierPart = data.tier.split(' - ')[0].trim();
-            const matchedKey = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart || k === tierPart.toUpperCase());
-            if(matchedKey) sel.value = matchedKey;
+            const engTier = findEngTierKey(data.tier); // [변경] 개선된 알고리즘 적용
+            if(engTier) sel.value = engTier;
         }
         updateTierUI(sel);
     }, 0);
@@ -370,9 +411,11 @@ function rebuild(dataList = []) {
     const redWrap = document.getElementById('redPlayers'); 
     const blueWrap = document.getElementById('bluePlayers'); 
     const count = Number(document.getElementById('teamCount').value);
+    
     redWrap.innerHTML = ''; blueWrap.innerHTML = '';
     const reds = dataList.filter(p => p.team === 'red');
     const blues = dataList.filter(p => p.team === 'blue');
+    
     for(let i=0; i<count; i++) { 
         redWrap.appendChild(createMemberCard('red', reds[i] || {id: `temp-red-${i}`, team:'red'})); 
         blueWrap.appendChild(createMemberCard('blue', blues[i] || {id: `temp-blue-${i}`, team:'blue'})); 
@@ -432,16 +475,33 @@ async function applyToSupabase() {
                 champions: champions
             };
 
-            if (rawId && isNaN(rawId)) playerData.id = rawId; 
-            if (playerData.name || playerData.riot_id) toUpdate.push(playerData);
+            if (rawId && isNaN(rawId)) { 
+                playerData.id = rawId; 
+            }
+
+            if (playerData.name || playerData.riot_id) {
+                toUpdate.push(playerData);
+            }
         });
 
-        await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value) });
-        if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
+        await sb.from('settings').upsert({ 
+            id: 1, 
+            red_team_name: document.getElementById('redNameInput').value, 
+            blue_team_name: document.getElementById('blueNameInput').value, 
+            member_count: Number(document.getElementById('teamCount').value) 
+        });
+
+        if (toUpdate.length > 0) {
+            const { error } = await sb.from('players').upsert(toUpdate);
+            if (error) throw error;
+        }
 
         alert('✅ 데이터가 성공적으로 반영되었습니다!');
         loadData();
-    } catch (e) { alert(`저장 중 오류 발생: ${e.message}`); } finally {
+    } catch (e) {
+        console.error("❌ 저장 오류:", e);
+        alert(`저장 중 오류 발생: ${e.message || e.hint}`);
+    } finally {
         applyBtn.innerText = "송출 화면 반영";
         applyBtn.disabled = false;
     }
