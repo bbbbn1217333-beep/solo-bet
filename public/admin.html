@@ -168,7 +168,6 @@ let isWatching = false;
 let watchInterval = null;
 let watchStartTime = null;
 
-// [알고리즘] 티어 텍스트 분석기
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
     let cleanTier = tierStr.replace(/\d+LP/gi, '').trim();
@@ -212,7 +211,7 @@ async function initChampMap() {
         Object.values(json.data).forEach(c => {
             idToKorMap[c.key] = c.name; 
             korToIdMap[c.name] = c.id;
-            engToIdMap[c.id.toLowerCase()] = c.name; // [수정] 영어 소문자 Key -> 한글 이름 직접 매핑
+            engToIdMap[c.id.toLowerCase()] = c.name;
         });
     } catch (e) { console.error("챔피언 로드 실패", e); }
 }
@@ -270,14 +269,18 @@ function mergeData(dbData) {
             const matchTime = p.last_sync ? new Date(p.last_sync) : null;
 
             if (watchStartTime && matchTime && matchTime >= watchStartTime) {
-                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
-                else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
-                else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
+                // [수정된 로직] 진행 중인 판은 챔피언만 업데이트, 결과 나오면 승패 처리
+                if (res === 'win') { 
+                    btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; 
+                } else if (res === 'lose' || res === 'leaver_loss') { 
+                    btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; 
+                } else { 
+                    // 결과가 아직 'ing'인 경우 챔피언만 반영하고 버튼은 진행중 유지
+                    btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; 
+                }
 
                 if (champ && champ !== 'None') {
                     champInput.value = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
-                } else {
-                    champInput.value = "";
                 }
             }
         });
@@ -308,7 +311,6 @@ function createMemberCard(team, data = null) {
     for(let i=0; i<10; i++) {
         const res = data?.recent?.[i] || 'ing';
         const resText = res === 'win' ? '😁 승리' : (res === 'lose' ? '😡 패배' : '🕒 진행');
-        // 카드 생성 시에도 한글 매핑 적용
         let champDisp = idToKorMap[data?.champions?.[i]] || engToIdMap[data?.champions?.[i]?.toLowerCase()] || "";
         historyHTML += `<div class="history-item"><span>${i+1}판</span><input type="text" class="champ-input" placeholder="챔피언" value="${champDisp}"><button class="btn-toggle ${res === 'win'?'win':res==='lose'?'lose':'ing'}" onclick="toggleResult(this)">${resText}</button></div>`;
     }
