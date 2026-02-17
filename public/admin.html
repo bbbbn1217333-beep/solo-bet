@@ -69,16 +69,14 @@
             border: 2px solid; 
             box-sizing: border-box !important; 
             padding: 0 10px;
-            font-family: 'Pretendard', sans-serif !important; /* 폰트 강제 적용 */
+            font-family: 'Pretendard', sans-serif !important;
         }
 
         .red .nick-disp, .red .nick-riot { border-color: var(--red); }
         .blue .nick-disp, .blue .nick-riot { border-color: var(--blue); }
-        
         .nick-disp { width: 95px; flex: none; }
         .nick-riot { width: 220px; flex: none; }
 
-        /* 티어 선택 및 옵션 창 스타일 */
         .tier-select { 
             width: 140px; 
             border-color: var(--tier-color, var(--gold)) !important; 
@@ -91,7 +89,6 @@
             background-position: right 10px center;
         }
 
-        /* 티어 누를 때 뜨는 옵션창 폰트 및 스타일 */
         .tier-select option { 
             background: #1a1a1a; 
             color: #fff; 
@@ -141,7 +138,6 @@
             <button class="btn-load-data" onclick="loadData()">🔄 데이터 불러오기</button>
             <button class="btn-reset-all" onclick="resetAllRecords()">🧹 전체 초기화</button>
         </div>
-
         <div class="menu-desc">
             <strong>💡 전적 기록 로직 안내</strong>
             • <span class="neon-point">패배 기록:</span> 일반 패배 및 **본인 탈주 패배(Leaver)**는 즉시 패배로 기록됩니다.<br>
@@ -149,13 +145,11 @@
             • <span class="neon-point">수동 수정:</span> 수정 체크박스 체크 시 API 데이터를 무시하고 입력한 티어/LP가 우선 적용됩니다.
         </div>
     </div>
-
     <div class="teams-container">
         <div class="team-box red"><h2 id="redTitle" style="color:var(--red); font-weight:900; font-size:32px; margin-bottom:20px;">레드 팀</h2><div id="redPlayers" class="member-list"></div></div>
         <div class="team-box blue"><h2 id="blueTitle" style="color:var(--blue); font-weight:900; font-size:32px; margin-bottom:20px;">블루 팀</h2><div id="bluePlayers" class="member-list"></div></div>
     </div>
 </div>
-
 <button class="btn-apply" onclick="applyToSupabase()">송출 화면 반영</button>
 
 <script>
@@ -193,9 +187,21 @@ async function initChampMap() {
 
 async function syncWithRiot() {
     try {
-        await fetch(`/api/sync?t=${Date.now()}`);
-        const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
-        if (pData) mergeData(pData);
+        // 인증 헤더를 추가하여 API 호출 (apikey 오류 방지)
+        await fetch(`${SUPABASE_URL}/rest/v1/players`, {
+            method: 'GET',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+        });
+
+        // 데이터베이스에서 최신 정보 다시 가져오기
+        const { data: pData, error } = await sb.from('players').select('*').order('id', { ascending: true });
+        if (pData) {
+            mergeData(pData);
+            console.log("감시 중... 데이터 갱신 완료");
+        }
     } catch (e) { console.error("동기화 실패", e); }
 }
 
@@ -205,31 +211,49 @@ function mergeData(dbData) {
         const uuid = card.dataset.uuid;
         const p = dbData.find(d => String(d.id) === String(uuid));
         if (!p) return;
-        const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
-        if (!isManual) {
+
+        // 티어/LP 업데이트 (수동 수정 체크 안 된 경우만)
+        const tCheck = card.querySelector('.tier-override');
+        const lCheck = card.querySelector('.lp-override');
+        
+        if (!tCheck.checked) {
             const tSelect = card.querySelector('.tier-select');
-            const lInput = card.querySelector('.lp-input');
             if (p.tier) {
                 const tierPart = p.tier.split(' - ')[0];
-                const lpPart = p.tier.match(/(\d+)LP/)?.[1] || "";
                 const engTier = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart);
                 if (engTier) { 
-                    tSelect.value = engTier; lInput.value = lpPart; 
+                    tSelect.value = engTier;
                     updateTierUI(tSelect);
                 }
             }
         }
+        if (!lCheck.checked) {
+            const lInput = card.querySelector('.lp-input');
+            const lpPart = p.tier?.match(/(\d+)LP/)?.[1] || "0";
+            lInput.value = lpPart;
+        }
+
+        // 승/패 자동 업데이트
+        card.querySelector('.win-val').value = p.wins || 0;
+        card.querySelector('.lose-val').value = p.losses || 0;
+
+        // 전적(최근 10판) 및 챔피언 업데이트
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
             const champInput = item.querySelector('.champ-input');
             const res = p.recent?.[idx];
             const champ = p.champions?.[idx];
-            if (btn.classList.contains('ing')) {
-                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
-                else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
-                if (champ && champ !== 'None' && !['remake', 'remake_loss'].includes(res)) {
-                    champInput.value = idToKorMap[champ] || champ;
-                }
+
+            // 결과 업데이트
+            if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+            else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+            else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
+
+            // 챔피언 이름 업데이트
+            if (champ && champ !== 'None') {
+                champInput.value = idToKorMap[champ] || champ;
+            } else {
+                champInput.value = "";
             }
         });
     });
@@ -269,10 +293,7 @@ function createMemberCard(team, data = null) {
     card.innerHTML = `<button class="btn-reset-member" onclick="resetMemberRecord(this)" title="플레이어 정보 초기화">🧹</button>
     <div class="name-row">
         <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="닉네임" value="${data?.name || ''}"></div>
-        <div class="input-group" style="flex:2;">
-    <label>롤 닉네임</label>
-    <input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}">
-</div>
+        <div class="input-group" style="flex:2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="닉네임#태그" value="${data?.riot_id || ''}"></div>
         <div class="input-group" style="flex:2.5;"><label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${isManual ? 'checked' : ''} onchange="toggleManual(this)"> 수정</label><select class="tier-select" ${isManual ? '' : 'disabled'} onchange="updateTierUI(this)" style="opacity: ${isManual ? '1' : '0.4'}">${tierOptions}</select></div>
         <div class="input-group" style="width:70px;"><label style="color:var(--gold);"><input type="checkbox" class="lp-override" ${isManual ? 'checked' : ''} onchange="toggleManual(this)"> 수정</label><input class="lp-input" placeholder="0" value="${data?.tier?.match(/(\d+)LP/)?.[1] || ''}" ${isManual ? '' : 'disabled'} style="opacity: ${isManual ? '1' : '0.4'}"></div>
         <div class="input-group"><label style="color:var(--gold);">승</label><input class="score-input win-val" value="${data?.wins ?? 0}"></div>
@@ -320,7 +341,8 @@ function resetMemberRecord(btn) {
 
 async function resetAllRecords() {
     if(!confirm("⚠️ 모든 데이터를 초기화하시겠습니까?")) return;
-    const resetData = cachedPlayers.map(p => ({
+    const { data: currentPlayers } = await sb.from('players').select('id, team');
+    const resetData = currentPlayers.map(p => ({
         id: p.id, name: "", riot_id: "", tier: "언랭크", wins: 0, losses: 0,
         recent: Array(10).fill('ing'), champions: Array(10).fill('None'),
         manual_tier: false, team: p.team
@@ -370,14 +392,15 @@ async function applyToSupabase() {
             recent.push(btn.innerText.includes('승리') ? 'win' : (btn.innerText.includes('패배') ? 'lose' : 'ing'));
             champs.push(korToIdMap[item.querySelector('.champ-input').value.trim()] || 'None');
         });
-        const isManual = card.querySelector('.tier-override').checked || card.querySelector('.lp-override').checked;
+        const tCheck = card.querySelector('.tier-override');
+        const lCheck = card.querySelector('.lp-override');
         const tVal = card.querySelector('.tier-select').value;
         const lpVal = card.querySelector('.lp-input').value;
         toUpdate.push({
             id: parseInt(id), name: card.querySelector('.nick-disp').value.trim(), team: card.dataset.team,
             riot_id: card.querySelector('.nick-riot').value.trim(),
-            tier: isManual ? (lpVal ? `${TIER_MAP[tVal]} - ${lpVal}LP` : TIER_MAP[tVal]) : "언랭크",
-            manual_tier: isManual, wins: Number(card.querySelector('.win-val').value),
+            tier: tCheck.checked ? (lpVal ? `${TIER_MAP[tVal]} - ${lpVal}LP` : TIER_MAP[tVal]) : (card.querySelector('.tier-select').disabled ? "언랭크" : `${TIER_MAP[tVal]} - ${lpVal}LP`),
+            manual_tier: tCheck.checked || lCheck.checked, wins: Number(card.querySelector('.win-val').value),
             losses: Number(card.querySelector('.lose-val').value), recent, champions: champs
         });
     });
