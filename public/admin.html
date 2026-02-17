@@ -261,44 +261,37 @@ function mergeData(dbData) {
         card.querySelector('.win-val').value = p.wins || 0;
         card.querySelector('.lose-val').value = p.losses || 0;
 
-// mergeData 함수 내부의 history-item 반복문 구간을 아래와 같이 수정하세요
+        // [핵심] 히스토리 실시간 반영 구간
+        card.querySelectorAll('.history-item').forEach((item, idx) => {
+            const btn = item.querySelector('.btn-toggle');
+            const champInput = item.querySelector('.champ-input');
+            const res = p.recent?.[idx];
+            const champ = p.champions?.[idx];
 
-card.querySelectorAll('.history-item').forEach((item, idx) => {
-    const btn = item.querySelector('.btn-toggle');
-    const champInput = item.querySelector('.champ-input'); // 관리자 페이지의 입력창
-    const res = p.recent?.[idx];
-    const champ = p.champions?.[idx]; // DB/API에서 넘어온 챔피언 ID
+            // 1. 승패 버튼 갱신
+            if (res === 'win') { 
+                btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; 
+            } else if (res === 'lose' || res === 'leaver_loss') { 
+                btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; 
+            } else { 
+                btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; 
+            }
 
-    // 1. 승패 버튼 및 텍스트 실시간 갱신
-    if (res === 'win') { 
-        btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; 
-    } else if (res === 'lose' || res === 'leaver_loss') { 
-        btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; 
-    } else { 
-        btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; 
-    }
-
-    // 2. [핵심] 감시 중일 때 챔피언 이름 실시간 반영
-    if (isWatching && champ && champ !== 'None') {
-        // ID(Aatrox) -> 한글(아트록스) 변환
-        const korChampName = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
-        
-        // 입력창이 비어있거나 값이 다를 때만 '글자'를 써넣음 (새로고침 없이 반영되는 부분)
-        if (champInput.value !== korChampName) {
-            champInput.value = korChampName;
-        }
-    } else if (!isWatching && champ && champ !== 'None') {
-        // 감시 중이 아닐 때(처음 로드 시)도 이름이 있다면 채워줌
-        const korChampName = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
-        if (!champInput.value) champInput.value = korChampName;
-    }
-});
+            // 2. 챔피언 이름 실시간 기입 (감시 모드 여부와 관계없이 텍스트 박스가 비었거나 다르면 채움)
+            if (champ && champ !== 'None') {
+                const korChampName = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
+                if (champInput.value !== korChampName) {
+                    champInput.value = korChampName;
+                }
+            }
+        });
+    });
+}
 
 async function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
     if(isWatching) {
-        // [중요] DB를 삭제하지 않고, 오직 "지금부터 추적하겠다"는 기준점만 잡습니다.
         watchStartTime = new Date();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)";
@@ -443,7 +436,7 @@ async function applyToSupabase() {
                 losses: parseInt(card.querySelector('.lose-val').value) || 0,
                 recent: recent, champions: champions
             };
-            if (rawId && isNaN(rawId)) playerData.id = rawId;
+            if (rawId && !rawId.startsWith('temp-')) playerData.id = rawId;
             if (playerData.name || playerData.riot_id) toUpdate.push(playerData);
         });
         await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value) });
@@ -466,6 +459,10 @@ document.addEventListener('keydown', function(e) {
 });
 
 async function start() { await initChampMap(); await loadData(); }
+start();
+</script>
+</body>
+</html>
 start();
 </script>
 </body>
