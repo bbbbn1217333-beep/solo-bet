@@ -185,27 +185,32 @@ async function initChampMap() {
     } catch (e) { console.error("챔피언 로드 실패", e); }
 }
 
+// 관리자 패널의 syncWithRiot 함수 수정
 async function syncWithRiot() {
     try {
-        console.log("🔄 데이터 동기화 시도 중 (DB 직접 조회)...");
+        console.log("🔄 Riot API 동기화 서버 호출 중...");
         
-        // 라이브러리를 사용해 데이터 가져오기 (CORS 및 인증 자동 해결)
-        const { data: pData, error } = await sb
-            .from('players')
-            .select('*')
-            .order('id', { ascending: true });
+        // 1. 실제로 서버측 sync.js를 실행시킴 (경로는 본인의 설정에 맞게 수정)
+        // 예: /api/sync 또는 Vercel 주소
+        const response = await fetch('/api/sync'); 
+        const result = await response.json();
+        
+        if (result.success) {
+            console.log("✅ 서버 동기화 성공, DB에서 최신 데이터 가져오는 중...");
+            
+            // 2. 서버가 DB를 바꿨으니, 이제 DB를 읽어옴
+            const { data: pData, error } = await sb
+                .from('players')
+                .select('*')
+                .order('id', { ascending: true });
 
-        if (error) {
-            console.error("❌ DB 조회 실패:", error.message);
-            return;
-        }
-
-        if (pData) {
-            mergeData(pData);
-            console.log("✅ 동기화 완료:", new Date().toLocaleTimeString());
+            if (pData) {
+                mergeData(pData);
+                console.log("✅ 화면 갱신 완료:", new Date().toLocaleTimeString());
+            }
         }
     } catch (e) { 
-        console.error("⚠️ 예상치 못한 오류 발생:", e); 
+        console.error("⚠️ 동기화 중 오류 발생:", e); 
     }
 }
 
