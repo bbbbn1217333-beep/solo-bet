@@ -163,6 +163,7 @@ const TIER_COLORS = { "CHALLENGER": "#f7d61b", "GRANDMASTER": "#ff4e50", "MASTER
 let cachedPlayers = [];
 let idToKorMap = {};
 let korToIdMap = {};
+let engToIdMap = {}; // 영어 이름을 Riot ID로 매핑하기 위한 추가 객체
 let isWatching = false;
 let watchInterval = null;
 
@@ -180,25 +181,21 @@ async function initChampMap() {
         const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => {
-            idToKorMap[c.key] = c.name; korToIdMap[c.name] = c.id;
+            idToKorMap[c.key] = c.name; 
+            korToIdMap[c.name] = c.id;
+            engToIdMap[c.id.toLowerCase()] = c.id; // 영어(소문자) -> Riot 원본 ID 매핑
         });
     } catch (e) { console.error("챔피언 로드 실패", e); }
 }
 
-// 관리자 패널의 syncWithRiot 함수 수정
 async function syncWithRiot() {
     try {
         console.log("🔄 Riot API 동기화 서버 호출 중...");
-        
-        // 1. 실제로 서버측 sync.js를 실행시킴 (경로는 본인의 설정에 맞게 수정)
-        // 예: /api/sync 또는 Vercel 주소
         const response = await fetch('/api/sync'); 
         const result = await response.json();
         
         if (result.success) {
             console.log("✅ 서버 동기화 성공, DB에서 최신 데이터 가져오는 중...");
-            
-            // 2. 서버가 DB를 바꿨으니, 이제 DB를 읽어옴
             const { data: pData, error } = await sb
                 .from('players')
                 .select('*')
@@ -223,26 +220,20 @@ function mergeData(dbData) {
         const currentRiotId = card.querySelector('.nick-riot').value.trim();
         const team = card.dataset.team;
 
-        // 닉네임이 있으면 닉네임으로 찾고, 없으면 같은 팀의 순서(Index)로 찾음
         let p = dbData.find(d => 
             (currentName && d.name === currentName) || 
             (currentRiotId && d.riot_id === currentRiotId)
         );
 
-        // 찾지 못했다면 해당 팀의 데이터 중 하나를 할당 (초기 동기화용)
         if (!p) {
             const teamPlayers = dbData.filter(d => d.team === team);
-            // 각 팀 박스 내에서의 순서를 계산
             const cardIndex = Array.from(card.parentNode.children).indexOf(card);
             p = teamPlayers[cardIndex];
         }
 
         if (!p) return;
-
-        // 중요: DB의 진짜 UUID를 HTML에 심어줌 (다음번 applyToSupabase 시 필수)
         card.dataset.uuid = p.id;
 
-        // 티어/LP 업데이트 (수동 수정 체크 안 된 경우만)
         const tCheck = card.querySelector('.tier-override');
         const lCheck = card.querySelector('.lp-override');
         
@@ -263,7 +254,6 @@ function mergeData(dbData) {
             lInput.value = lpPart;
         }
 
-        // 승/패 및 전적 업데이트
         card.querySelector('.win-val').value = p.wins || 0;
         card.querySelector('.lose-val').value = p.losses || 0;
 
@@ -278,7 +268,10 @@ function mergeData(dbData) {
             else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
 
             if (champ && champ !== 'None') {
-                champInput.value = idToKorMap[champ] || champ;
+                // 1. 숫자 ID인 경우 한글 매핑
+                // 2. 영어 이름인 경우(Aatrox 등) 한글 매핑 시도
+                const champKey = engToIdMap[champ.toLowerCase()] || champ;
+                champInput.value = idToKorMap[champKey] || idToKorMap[champ] || champ;
             } else {
                 champInput.value = "";
             }
@@ -385,13 +378,10 @@ function rebuild(dataList = []) {
     const count = Number(document.getElementById('teamCount').value);
     
     redWrap.innerHTML = ''; blueWrap.innerHTML = '';
-    
-    // DB 데이터를 팀별로 분리
     const reds = dataList.filter(p => p.team === 'red');
     const blues = dataList.filter(p => p.team === 'blue');
     
     for(let i=0; i<count; i++) { 
-        // 데이터가 있으면 해당 데이터를 쓰고, 없으면 임시 ID 부여
         redWrap.appendChild(createMemberCard('red', reds[i] || {id: `temp-red-${i}`, team:'red'})); 
         blueWrap.appendChild(createMemberCard('blue', blues[i] || {id: `temp-blue-${i}`, team:'blue'})); 
     }
@@ -424,8 +414,7 @@ async function applyToSupabase() {
         const cards = document.querySelectorAll('.member-card');
 
         cards.forEach(card => {
-            const rawId = card.dataset.uuid; // HTML의 dataset에 저장된 ID
-            
+            const rawId = card.dataset.uuid;
             let recent = [], champions = [];
             card.querySelectorAll('.history-item').forEach(item => {
                 const btn = item.querySelector('.btn-toggle');
@@ -439,7 +428,6 @@ async function applyToSupabase() {
             const tVal = card.querySelector('.tier-select').value;
             const lpVal = card.querySelector('.lp-input').value;
             
-            // 전송할 기본 데이터 (ID 제외)
             const playerData = {
                 name: card.querySelector('.nick-disp').value.trim(),
                 team: card.dataset.team,
@@ -452,20 +440,15 @@ async function applyToSupabase() {
                 champions: champions
             };
 
-            // [핵심] ID 처리 로직
-            // rawId가 있고, 숫자가 아닐 때만(진짜 UUID일 때만) id 필드를 추가합니다.
-            // 만약 rawId가 1, 2, 3 같은 숫자라면 id를 보내지 않습니다 -> 서버가 새 UUID를 자동 생성함.
             if (rawId && isNaN(rawId)) { 
                 playerData.id = rawId; 
             }
 
-            // 닉네임이나 롤 ID가 있는 경우에만 리스트에 추가 (빈 카드는 저장 안 함)
             if (playerData.name || playerData.riot_id) {
                 toUpdate.push(playerData);
             }
         });
 
-        // 1. 설정 저장 (settings 테이블)
         await sb.from('settings').upsert({ 
             id: 1, 
             red_team_name: document.getElementById('redNameInput').value, 
@@ -473,15 +456,13 @@ async function applyToSupabase() {
             member_count: Number(document.getElementById('teamCount').value) 
         });
 
-        // 2. 플레이어 데이터 저장
         if (toUpdate.length > 0) {
             const { error } = await sb.from('players').upsert(toUpdate);
             if (error) throw error;
         }
 
-        alert('✅ 데이터가 UUID 체계에 맞게 저장되었습니다!');
-        loadData(); // 저장 후 새로 생성된 UUID들을 다시 불러오기
-
+        alert('✅ 데이터가 성공적으로 반영되었습니다!');
+        loadData();
     } catch (e) {
         console.error("❌ 저장 오류:", e);
         alert(`저장 중 오류 발생: ${e.message || e.hint}`);
@@ -490,6 +471,22 @@ async function applyToSupabase() {
         applyBtn.disabled = false;
     }
 }
+
+// [추가] 엔터 키 이동 리스너
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        const target = e.target;
+        if (target.tagName === 'INPUT') {
+            e.preventDefault();
+            const focusable = Array.from(document.querySelectorAll('input:not([type="hidden"]), select'));
+            const index = focusable.indexOf(target);
+            if (index > -1 && index < focusable.length - 1) {
+                focusable[index + 1].focus();
+                if (focusable[index + 1].tagName === 'INPUT') focusable[index + 1].select();
+            }
+        }
+    }
+});
 
 async function start() { await initChampMap(); await loadData(); }
 start();
