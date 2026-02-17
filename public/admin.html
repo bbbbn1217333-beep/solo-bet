@@ -187,40 +187,25 @@ async function initChampMap() {
 
 async function syncWithRiot() {
     try {
-        console.log("데이터 동기화 시도 중...");
+        console.log("🔄 데이터 동기화 시도 중 (DB 직접 조회)...");
         
-        // 1. 서버에 동기화 신호 보내기 (만약 별도의 API 엔드포인트가 있다면)
-        // 아래 경로는 사용자님의 서버 환경에 맞춰져 있어야 합니다. 
-        // 만약 단순히 DB 값만 긁어오는 거라면 이 fetch는 생략해도 됩니다.
-        try {
-            await fetch("https://hsvknfmnsehwytnvaiwr.supabase.co/functions/v1/sync", {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'apikey': SUPABASE_KEY
-                }
-            });
-        } catch(e) { 
-            console.log("외부 싱크 호출 생략 또는 오류 (DB 직접 조회로 넘어감)");
-        }
-
-        // 2. Supabase 라이브러리를 사용하여 안전하게 데이터 가져오기 (인증 자동 포함)
+        // 라이브러리를 사용해 데이터 가져오기 (CORS 및 인증 자동 해결)
         const { data: pData, error } = await sb
             .from('players')
             .select('*')
             .order('id', { ascending: true });
 
         if (error) {
-            console.error("데이터 가져오기 실패:", error.message);
+            console.error("❌ DB 조회 실패:", error.message);
             return;
         }
 
         if (pData) {
             mergeData(pData);
-            console.log("✅ 실시간 데이터 갱신 완료:", new Date().toLocaleTimeString());
+            console.log("✅ 동기화 완료:", new Date().toLocaleTimeString());
         }
     } catch (e) { 
-        console.error("동기화 과정 전체 오류:", e); 
+        console.error("⚠️ 예상치 못한 오류 발생:", e); 
     }
 }
 
