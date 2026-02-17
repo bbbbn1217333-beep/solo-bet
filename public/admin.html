@@ -211,10 +211,31 @@ async function syncWithRiot() {
 
 function mergeData(dbData) {
     cachedPlayers = dbData;
-    document.querySelectorAll('.member-card').forEach(card => {
-        const uuid = card.dataset.uuid;
-        const p = dbData.find(d => String(d.id) === String(uuid));
+    const cards = document.querySelectorAll('.member-card');
+    
+    cards.forEach((card, index) => {
+        const currentName = card.querySelector('.nick-disp').value.trim();
+        const currentRiotId = card.querySelector('.nick-riot').value.trim();
+        const team = card.dataset.team;
+
+        // 닉네임이 있으면 닉네임으로 찾고, 없으면 같은 팀의 순서(Index)로 찾음
+        let p = dbData.find(d => 
+            (currentName && d.name === currentName) || 
+            (currentRiotId && d.riot_id === currentRiotId)
+        );
+
+        // 찾지 못했다면 해당 팀의 데이터 중 하나를 할당 (초기 동기화용)
+        if (!p) {
+            const teamPlayers = dbData.filter(d => d.team === team);
+            // 각 팀 박스 내에서의 순서를 계산
+            const cardIndex = Array.from(card.parentNode.children).indexOf(card);
+            p = teamPlayers[cardIndex];
+        }
+
         if (!p) return;
+
+        // 중요: DB의 진짜 UUID를 HTML에 심어줌 (다음번 applyToSupabase 시 필수)
+        card.dataset.uuid = p.id;
 
         // 티어/LP 업데이트 (수동 수정 체크 안 된 경우만)
         const tCheck = card.querySelector('.tier-override');
@@ -237,23 +258,20 @@ function mergeData(dbData) {
             lInput.value = lpPart;
         }
 
-        // 승/패 자동 업데이트
+        // 승/패 및 전적 업데이트
         card.querySelector('.win-val').value = p.wins || 0;
         card.querySelector('.lose-val').value = p.losses || 0;
 
-        // 전적(최근 10판) 및 챔피언 업데이트
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
             const champInput = item.querySelector('.champ-input');
             const res = p.recent?.[idx];
             const champ = p.champions?.[idx];
 
-            // 결과 업데이트
             if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
             else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
             else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
 
-            // 챔피언 이름 업데이트
             if (champ && champ !== 'None') {
                 champInput.value = idToKorMap[champ] || champ;
             } else {
@@ -357,13 +375,20 @@ async function resetAllRecords() {
 
 function rebuildWithCache() { rebuild(cachedPlayers); }
 function rebuild(dataList = []) {
-    const redWrap = document.getElementById('redPlayers'); const blueWrap = document.getElementById('bluePlayers'); const count = Number(document.getElementById('teamCount').value);
+    const redWrap = document.getElementById('redPlayers'); 
+    const blueWrap = document.getElementById('bluePlayers'); 
+    const count = Number(document.getElementById('teamCount').value);
+    
     redWrap.innerHTML = ''; blueWrap.innerHTML = '';
-    const reds = dataList.filter(p => p.team === 'red').sort((a,b) => a.id - b.id);
-    const blues = dataList.filter(p => p.team === 'blue').sort((a,b) => a.id - b.id);
+    
+    // DB 데이터를 팀별로 분리
+    const reds = dataList.filter(p => p.team === 'red');
+    const blues = dataList.filter(p => p.team === 'blue');
+    
     for(let i=0; i<count; i++) { 
-        redWrap.appendChild(createMemberCard('red', reds[i] || {id: i+1, team:'red'})); 
-        blueWrap.appendChild(createMemberCard('blue', blues[i] || {id: i+21, team:'blue'})); 
+        // 데이터가 있으면 해당 데이터를 쓰고, 없으면 임시 ID 부여
+        redWrap.appendChild(createMemberCard('red', reds[i] || {id: `temp-red-${i}`, team:'red'})); 
+        blueWrap.appendChild(createMemberCard('blue', blues[i] || {id: `temp-blue-${i}`, team:'blue'})); 
     }
 }
 
