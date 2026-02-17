@@ -163,7 +163,7 @@ const TIER_COLORS = { "CHALLENGER": "#f7d61b", "GRANDMASTER": "#ff4e50", "MASTER
 let cachedPlayers = [];
 let idToKorMap = {};
 let korToIdMap = {};
-let engToIdMap = {}; // 영어 이름을 Riot ID로 매핑하기 위한 추가 객체
+let engToIdMap = {};
 let isWatching = false;
 let watchInterval = null;
 
@@ -183,7 +183,7 @@ async function initChampMap() {
         Object.values(json.data).forEach(c => {
             idToKorMap[c.key] = c.name; 
             korToIdMap[c.name] = c.id;
-            engToIdMap[c.id.toLowerCase()] = c.id; // 영어(소문자) -> Riot 원본 ID 매핑
+            engToIdMap[c.id.toLowerCase()] = c.id;
         });
     } catch (e) { console.error("챔피언 로드 실패", e); }
 }
@@ -196,35 +196,22 @@ async function syncWithRiot() {
         
         if (result.success) {
             console.log("✅ 서버 동기화 성공, DB에서 최신 데이터 가져오는 중...");
-            const { data: pData, error } = await sb
-                .from('players')
-                .select('*')
-                .order('id', { ascending: true });
-
-            if (pData) {
-                mergeData(pData);
-                console.log("✅ 화면 갱신 완료:", new Date().toLocaleTimeString());
-            }
+            const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
+            if (pData) mergeData(pData);
         }
-    } catch (e) { 
-        console.error("⚠️ 동기화 중 오류 발생:", e); 
-    }
+    } catch (e) { console.error("⚠️ 동기화 중 오류 발생:", e); }
 }
 
 function mergeData(dbData) {
     cachedPlayers = dbData;
     const cards = document.querySelectorAll('.member-card');
     
-    cards.forEach((card, index) => {
+    cards.forEach((card) => {
         const currentName = card.querySelector('.nick-disp').value.trim();
         const currentRiotId = card.querySelector('.nick-riot').value.trim();
         const team = card.dataset.team;
 
-        let p = dbData.find(d => 
-            (currentName && d.name === currentName) || 
-            (currentRiotId && d.riot_id === currentRiotId)
-        );
-
+        let p = dbData.find(d => (currentName && d.name === currentName) || (currentRiotId && d.riot_id === currentRiotId));
         if (!p) {
             const teamPlayers = dbData.filter(d => d.team === team);
             const cardIndex = Array.from(card.parentNode.children).indexOf(card);
@@ -234,17 +221,28 @@ function mergeData(dbData) {
         if (!p) return;
         card.dataset.uuid = p.id;
 
+        // [티어 인식 로직 보강] '실버 2' 같은 한글이나 'SILVER 2' 같은 영문 모두 대응
         const tCheck = card.querySelector('.tier-override');
         const lCheck = card.querySelector('.lp-override');
         
         if (!tCheck.checked) {
             const tSelect = card.querySelector('.tier-select');
             if (p.tier) {
-                const tierPart = p.tier.split(' - ')[0];
-                const engTier = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart);
-                if (engTier) { 
-                    tSelect.value = engTier;
+                // DB의 티어 텍스트(예: "실버 2 - 50LP")에서 티어 부분만 추출
+                const tierPart = p.tier.split(' - ')[0].trim();
+                // TIER_MAP의 값(한글)이나 키(영문)와 일치하는 것을 찾음
+                const matchedKey = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart || k === tierPart.toUpperCase());
+                
+                if (matchedKey) { 
+                    tSelect.value = matchedKey;
                     updateTierUI(tSelect);
+                } else {
+                    // 특수 케이스: "실버 2"인데 맵에는 "SILVER 2"인 경우 등 포함 검사
+                    const partialKey = Object.keys(TIER_MAP).find(k => tierPart.toUpperCase().includes(k));
+                    if(partialKey) {
+                        tSelect.value = partialKey;
+                        updateTierUI(tSelect);
+                    }
                 }
             }
         }
@@ -268,13 +266,9 @@ function mergeData(dbData) {
             else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
 
             if (champ && champ !== 'None') {
-                // 1. 숫자 ID인 경우 한글 매핑
-                // 2. 영어 이름인 경우(Aatrox 등) 한글 매핑 시도
                 const champKey = engToIdMap[champ.toLowerCase()] || champ;
                 champInput.value = idToKorMap[champKey] || idToKorMap[champ] || champ;
-            } else {
-                champInput.value = "";
-            }
+            } else { champInput.value = ""; }
         });
     });
 }
@@ -323,9 +317,9 @@ function createMemberCard(team, data = null) {
     setTimeout(() => {
         const sel = card.querySelector('.tier-select');
         if(data?.tier) {
-            const tierPart = data.tier.split(' - ')[0];
-            const engTier = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart);
-            if(engTier) sel.value = engTier;
+            const tierPart = data.tier.split(' - ')[0].trim();
+            const matchedKey = Object.keys(TIER_MAP).find(k => TIER_MAP[k] === tierPart || k === tierPart.toUpperCase());
+            if(matchedKey) sel.value = matchedKey;
         }
         updateTierUI(sel);
     }, 0);
@@ -376,11 +370,9 @@ function rebuild(dataList = []) {
     const redWrap = document.getElementById('redPlayers'); 
     const blueWrap = document.getElementById('bluePlayers'); 
     const count = Number(document.getElementById('teamCount').value);
-    
     redWrap.innerHTML = ''; blueWrap.innerHTML = '';
     const reds = dataList.filter(p => p.team === 'red');
     const blues = dataList.filter(p => p.team === 'blue');
-    
     for(let i=0; i<count; i++) { 
         redWrap.appendChild(createMemberCard('red', reds[i] || {id: `temp-red-${i}`, team:'red'})); 
         blueWrap.appendChild(createMemberCard('blue', blues[i] || {id: `temp-blue-${i}`, team:'blue'})); 
@@ -440,39 +432,21 @@ async function applyToSupabase() {
                 champions: champions
             };
 
-            if (rawId && isNaN(rawId)) { 
-                playerData.id = rawId; 
-            }
-
-            if (playerData.name || playerData.riot_id) {
-                toUpdate.push(playerData);
-            }
+            if (rawId && isNaN(rawId)) playerData.id = rawId; 
+            if (playerData.name || playerData.riot_id) toUpdate.push(playerData);
         });
 
-        await sb.from('settings').upsert({ 
-            id: 1, 
-            red_team_name: document.getElementById('redNameInput').value, 
-            blue_team_name: document.getElementById('blueNameInput').value, 
-            member_count: Number(document.getElementById('teamCount').value) 
-        });
-
-        if (toUpdate.length > 0) {
-            const { error } = await sb.from('players').upsert(toUpdate);
-            if (error) throw error;
-        }
+        await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value) });
+        if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
 
         alert('✅ 데이터가 성공적으로 반영되었습니다!');
         loadData();
-    } catch (e) {
-        console.error("❌ 저장 오류:", e);
-        alert(`저장 중 오류 발생: ${e.message || e.hint}`);
-    } finally {
+    } catch (e) { alert(`저장 중 오류 발생: ${e.message}`); } finally {
         applyBtn.innerText = "송출 화면 반영";
         applyBtn.disabled = false;
     }
 }
 
-// [추가] 엔터 키 이동 리스너
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
         const target = e.target;
