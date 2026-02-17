@@ -261,37 +261,45 @@ function mergeData(dbData) {
         card.querySelector('.win-val').value = p.wins || 0;
         card.querySelector('.lose-val').value = p.losses || 0;
 
-        card.querySelectorAll('.history-item').forEach((item, idx) => {
-            const btn = item.querySelector('.btn-toggle');
-            const champInput = item.querySelector('.champ-input');
-            const res = p.recent?.[idx];
-            const champ = p.champions?.[idx];
-            const matchTime = p.last_sync ? new Date(p.last_sync) : null;
+// mergeData 함수 내부의 history-item 반복문 구간을 아래와 같이 수정하세요
 
-            // [변경] 감시 중일 때는 감시 시작 이후 기록만 갱신
-            if (isWatching && watchStartTime) {
-                if (matchTime && (matchTime.getTime() > watchStartTime.getTime() + 30000)) {
-                    if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; } 
-                    else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; } 
-                    else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
+card.querySelectorAll('.history-item').forEach((item, idx) => {
+    const btn = item.querySelector('.btn-toggle');
+    const champInput = item.querySelector('.champ-input'); // 챔피언 입력창
+    const res = p.recent?.[idx];
+    const champ = p.champions?.[idx];
+    const matchTime = p.last_sync ? new Date(p.last_sync) : null;
 
-                    if (champ && champ !== 'None') {
-                        champInput.value = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
-                    }
-                }
-            } else {
-                // [변경] 감시 중이 아닐 때는 DB에 있는 모든 기록을 화면에 그대로 표시 (불러오기 기능)
-                if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
-                else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
-                else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
-                
-                if (champ && champ !== 'None') {
-                    champInput.value = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
+    // 감시 중일 때 로직
+    if (isWatching && watchStartTime) {
+        if (matchTime && (matchTime.getTime() > watchStartTime.getTime() + 30000)) {
+            // 승패 버튼 갱신
+            if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; } 
+            else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; } 
+            else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
+
+            // [이 부분이 핵심!] 챔피언 이름 즉시 반영
+            if (champ && champ !== 'None') {
+                const korChampName = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
+                // 현재 입력창이 비어있거나 값이 다를 때만 업데이트
+                if (champInput.value !== korChampName) {
+                    champInput.value = korChampName;
                 }
             }
-        });
-    });
-}
+        }
+    } else {
+        // 감시 중이 아닐 때 (일반 불러오기)
+        if (res === 'win') { btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; }
+        else if (res === 'lose' || res === 'leaver_loss') { btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; }
+        else { btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing'; }
+        
+if (champ && champ !== 'None') {
+            champInput.value = idToKorMap[champ] || engToIdMap[champ.toLowerCase()] || champ;
+        }
+    }
+}); // 이 중괄호는 card.querySelectorAll(...).forEach 를 닫음
+    }); // 이 중괄호는 cards.forEach 를 닫음
+} // 이 중괄호는 mergeData 함수 전체를 닫음 (매우 중요!)
 
 async function toggleWatch() {
     isWatching = !isWatching;
