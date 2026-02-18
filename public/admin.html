@@ -429,8 +429,8 @@ function createMemberCard(team, data = null) {
 
     card.innerHTML = `<button class="btn-reset-member" onclick="resetMemberRecord(this)" title="초기화">🧹</button>
     <div class="name-row">
-        <div class="input-group"><label>스트리머</label><input class="nick-disp" value="${data?.name||''}"></div>
-        <div class="input-group" style="flex:2;"><label>롤 닉네임</label><input class="nick-riot" value="${data?.riot_id||''}"></div>
+        <div class="input-group"><label>스트리머</label><input class="nick-disp" placeholder="스트리머명" value="${data?.name||''}"></div>
+        <div class="input-group" style="flex:2;"><label>롤 닉네임</label><input class="nick-riot" placeholder="롤 닉네임" value="${data?.riot_id||''}"></div>
         <div class="input-group" style="flex:2.5;">
             <label style="color:var(--gold);"><input type="checkbox" class="tier-override" ${isM?'checked':''} onchange="toggleManual(this)"> 수정</label>
             <select class="tier-select" ${isM?'':'disabled'} style="opacity:${isM?'1':'0.4'}" onchange="updateTierUI(this)">${opts}</select>
