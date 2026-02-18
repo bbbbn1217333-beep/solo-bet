@@ -77,8 +77,7 @@ module.exports = async (req, res) => {
         const matchIds = await matchIdRes.json();
         const currentMatchId = Array.isArray(matchIds) ? matchIds[0] : null;
 
-        // ── 4. 티어 조회: PUUID 직접 조회 (get-tier.js와 동일 방식) ──
-        // ✅ 수정 핵심: Summoner ID 경유 제거 → PUUID로 바로 league 조회
+        // ── 4. 티어 조회: PUUID 직접 조회 ──
         let apiTierStr = player.tier || "언랭크";
         let soloInfo = null;
         try {
@@ -135,9 +134,11 @@ module.exports = async (req, res) => {
             const isBeforeWatch = watchSince && gameEndTime && gameEndTime <= watchSince;
 
             if (isBeforeWatch) {
+              // 감시 시작 전 게임 → last_match_id만 저장하고 결과 무시
               console.log(`[${player.name}] 감시 전 게임 스킵: ${currentMatchId}`);
               pUpdate.last_match_id = currentMatchId;
             } else if (me) {
+              // 정상 케이스: 참가자 찾음 → 결과 처리
               const isRemake = detail.info.gameDuration < 300 || !!me.gameEndedInEarlySurrender;
               const targetIdx = safeRecent.findIndex(r => r === 'ing');
               const newRecent = [...safeRecent];
@@ -164,11 +165,16 @@ module.exports = async (req, res) => {
                 pUpdate.last_kda = `${me.kills}/${me.deaths}/${me.assists}`;
                 pUpdate.lp_diff = soloInfo ? String(soloInfo.leaguePoints) : '0';
               }
+            } else {
+              // ✅ 스트리머 모드 등으로 참가자 못 찾은 경우 → last_match_id만 저장해서 중복 방지
+              console.log(`[${player.name}] 참가자 못찾음(스트리머모드?), last_match_id만 업데이트: ${currentMatchId}`);
+              pUpdate.last_match_id = currentMatchId;
             }
           } else {
             pUpdate.last_match_id = currentMatchId;
           }
         } else if (liveChampId) {
+          // 인게임 중: 챔피언 ID 기록
           const targetIdx = safeRecent.findIndex(r => r === 'ing');
           if (targetIdx !== -1) {
             const newChamps = [...safeChamps];
