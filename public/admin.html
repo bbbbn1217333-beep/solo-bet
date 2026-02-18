@@ -521,8 +521,8 @@ async function applyToSupabase() {
                 champions: chs,
                 last_sync: ex?.last_sync ?? null,
                 trigger_cutscene: ex?.trigger_cutscene ?? false,
-                last_match_id: ex?.last_match_id ?? null,
-                watch_since: ex?.watch_since ?? null,
+...(ex?.last_match_id ? { last_match_id: ex.last_match_id } : {}),
+...(ex?.watch_since ? { watch_since: ex.watch_since } : {}),
             });
         });
 
