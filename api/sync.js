@@ -161,18 +161,20 @@ module.exports = async (req, res) => {
         const safeChamps = padArray(player.champions, 10, 'None');
         const watchSince = player.watch_since ? new Date(player.watch_since) : null;
 
-        let pUpdate = {
-          id: player.id,
-          tier: player.manual_tier ? player.tier : apiTierStr,
-          puuid: puuid,
-          manual_tier: !!player.manual_tier,
-          last_sync: new Date().toISOString(),
-          trigger_cutscene: false,
-          wins: player.wins || 0,
-          losses: player.losses || 0,
-          recent: safeRecent,
-          champions: safeChamps,
-        };
+let pUpdate = {
+  id: player.id,
+  tier: player.manual_tier ? player.tier : apiTierStr,
+  puuid: puuid,
+  manual_tier: !!player.manual_tier,
+  last_sync: new Date().toISOString(),
+  trigger_cutscene: false,
+  wins: player.wins || 0,
+  losses: player.losses || 0,
+  recent: safeRecent,
+  champions: safeChamps,
+  last_match_id: player.last_match_id || null,  // ✅ 이 줄 추가
+  watch_since: player.watch_since || null,       // ✅ 이 줄 추가
+};
 
         // ── 6. 새 매치 처리 ──
         if (currentMatchId && currentMatchId !== player.last_match_id) {
