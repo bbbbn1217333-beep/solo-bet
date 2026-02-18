@@ -105,8 +105,11 @@ const TIER_MAP = { "CHALLENGER": "챌린저", "GRANDMASTER": "그랜드마스터
 const TIER_COLORS = { "CHALLENGER": "#f7d61b", "GRANDMASTER": "#ff4e50", "MASTER": "#df73ff", "DIAMOND": "#57d8ff", "EMERALD": "#2ecc71", "PLATINUM": "#4fffc0", "GOLD": "#ffd369", "SILVER": "#c0c0c0", "BRONZE": "#cd7f32", "IRON": "#a19d94", "UNRANKED": "#ffffff" };
 
 let cachedPlayers = [], idToKorMap = {}, korToIdMap = {}, engToIdMap = {};
-let isWatching = false, watchInterval = null, watchStartTime = null;
-let watchBaseSyncMap = {}; // 추가
+let isWatching = false, watchInterval = null;
+
+// ✅ [수정] 감시 시작 시점의 스냅샷 저장용
+// key: player.id → { last_sync: Date | null, recent: string[] }
+let watchSnapshot = {};
 
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
@@ -139,7 +142,6 @@ async function initChampMap() {
             korToIdMap[c.name] = c.id; 
             engToIdMap[c.id.toLowerCase()] = c.name; 
         });
-        // 자르반 4세 및 특수 케이스 보강
         korToIdMap["자르반 4세"] = "JarvanIV";
         idToKorMap["64"] = "자르반 4세";
         engToIdMap["jarvaniv"] = "자르반 4세";
@@ -157,63 +159,84 @@ async function syncWithRiot() {
     } catch (e) { console.error(e); }
 }
 
-/* ================= mergeData 수정 반영 ================= */
+/* ===============================================================
+   ✅ [핵심 수정] mergeData - 감시 중 전적 반영 로직 재설계
+   
+   문제1: baseSync가 null(초기화 후)이면 과거 결과까지 반영됨
+          → 수정: watchSnapshot에 저장된 기준 recent 배열과 비교하여
+                  "감시 시작 이후 새로 바뀐 슬롯"만 반영
+   문제2: 게임 중(ing) 챔피언 이름이 안 뜸
+          → 수정: ing 상태일 때 champions 배열에 값이 있으면 무조건 표시
+   문제3: 팀 꼬임
+          → applyToSupabase()의 team 필드는 card.dataset.team 기반이라
+            팀 바꿔서 저장 시 DB의 team 컬럼도 바뀌어야 함
+            → applyToSupabase()에서 실제 렌더된 팀 위치로 저장하도록 수정
+=============================================================== */
 function mergeData(dbData) {
     cachedPlayers = dbData;
+
     document.querySelectorAll('.member-card').forEach((card) => {
         const uuid = card.dataset.uuid;
         const p = dbData.find(d => String(d.id) === String(uuid));
         if (!p) return;
 
-        // [티어 자동 반영] 수동 수정 체크가 안 된 경우에만 실행
+        // ── 티어 자동 반영 (수동 수정 체크 없을 때만) ──
         const tCheck = card.querySelector('.tier-override');
         if (tCheck && !tCheck.checked && p.tier) {
             const sel = card.querySelector('.tier-select');
             const lpInp = card.querySelector('.lp-input');
             const engTier = findEngTierKey(p.tier);
-            
-            if (engTier && sel.value !== engTier) { 
-                sel.value = engTier; 
-                updateTierUI(sel); 
-            }
-            
+            if (engTier && sel.value !== engTier) { sel.value = engTier; updateTierUI(sel); }
             const lpMatch = p.tier.match(/(\d+)LP/);
             const newLP = lpMatch ? lpMatch[1] : "0";
             if (lpInp.value !== newLP) lpInp.value = newLP;
         }
 
-        const lastSync = p.last_sync ? new Date(p.last_sync) : null;
-        const baseSync = watchBaseSyncMap[p.id];
-
+        // ── 전적/챔피언 반영 ──
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
             const cInput = item.querySelector('.champ-input');
-            const res = p.recent?.[idx];
-            const ch = p.champions?.[idx];
+            const dbRes = p.recent?.[idx];        // DB의 현재 결과
+            const dbChamp = p.champions?.[idx];    // DB의 현재 챔피언 (숫자key or engId)
 
             if (isWatching) {
-                // 챔피언 이름 반영
-                if (ch && ch !== 'None') {
-                    const korName = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+                // ── 챔피언 이름: ing 포함 항상 표시 (값이 있을 때) ──
+                if (dbChamp && dbChamp !== 'None') {
+                    // 숫자 key → 한글, engId 소문자 → 한글 순서로 변환
+                    const korName = idToKorMap[dbChamp]
+                        || engToIdMap[String(dbChamp).toLowerCase()]
+                        || dbChamp;
                     if (cInput.value !== korName) cInput.value = korName;
                 }
 
-                if (res === 'ing') {
+                // ── 결과 버튼 반영 ──
+                if (dbRes === 'ing') {
+                    // 진행 중으로 강제 표시
                     btn.innerText = '🕒 진행';
                     btn.className = 'btn-toggle ing';
-                } 
-                else if (baseSync && lastSync && lastSync >= baseSync) {
-                    if (res === 'win') {
-                        btn.innerText = '😁 승리';
-                        btn.className = 'btn-toggle win';
-                    } else if (res === 'lose' || res === 'leaver_loss') {
-                        btn.innerText = '😡 패배';
-                        btn.className = 'btn-toggle lose';
+                } else {
+                    // ✅ 감시 시작 전 스냅샷과 비교: 이 슬롯이 감시 시작 이후 바뀐 경우만 반영
+                    const snap = watchSnapshot[p.id];
+                    const snapRes = snap?.recent?.[idx];  // 감시 시작 시점의 결과
+                    const isNewResult = snapRes !== dbRes; // 달라졌으면 감시 중 새로 생긴 결과
+
+                    if (isNewResult) {
+                        if (dbRes === 'win') {
+                            btn.innerText = '😁 승리';
+                            btn.className = 'btn-toggle win';
+                        } else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
+                            btn.innerText = '😡 패배';
+                            btn.className = 'btn-toggle lose';
+                        }
                     }
+                    // snapRes === dbRes 이면 → 감시 전에 이미 있던 결과 → 건드리지 않음
                 }
             } else {
-                if (ch && ch !== 'None' && !cInput.value) {
-                    cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+                // 감시 비활성 시: 챔피언 이름만 빈 경우에 채워줌 (결과는 건드리지 않음)
+                if (dbChamp && dbChamp !== 'None' && !cInput.value) {
+                    cInput.value = idToKorMap[dbChamp]
+                        || engToIdMap[String(dbChamp).toLowerCase()]
+                        || dbChamp;
                 }
             }
         });
@@ -223,34 +246,43 @@ function mergeData(dbData) {
     });
 }
 
-/* ================= toggleWatch 수정 반영 ================= */
+/* ===============================================================
+   ✅ [핵심 수정] toggleWatch - 스냅샷 방식으로 교체
+   
+   기존: watchBaseSyncMap에 last_sync 저장 → null이면 조건 뚫림
+   수정: 감시 시작 시점의 recent 배열 전체를 watchSnapshot에 저장
+         → mergeData에서 슬롯별로 "before vs after" 비교
+=============================================================== */
 async function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
 
     if (isWatching) {
-        // 감시 시작 시점의 각 유저별 DB last_sync 상태를 저장 (이후 들어오는 데이터만 받기 위함)
-        const { data } = await sb.from('players').select('id, last_sync');
-        watchBaseSyncMap = {};
+        // 감시 시작 직전 DB 상태를 스냅샷으로 저장
+        const { data } = await sb.from('players').select('id, recent, champions');
+        watchSnapshot = {};
         if (data) {
             data.forEach(p => {
-                watchBaseSyncMap[p.id] = p.last_sync ? new Date(p.last_sync) : null;
+                watchSnapshot[p.id] = {
+                    recent: p.recent ? [...p.recent] : Array(10).fill('ing'),
+                    champions: p.champions ? [...p.champions] : Array(10).fill('None')
+                };
             });
         }
 
-        watchStartTime = new Date();
         btn.innerText = "⏹️ 감시 중 (45초 주기)";
         btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)";
+        btn.style.boxShadow = "var(--neon-red)";
 
         syncWithRiot();
         watchInterval = setInterval(syncWithRiot, 45000);
     } else {
         btn.innerText = "▶️ 자동 감시 시작";
         btn.style.color = "var(--gold)"; btn.style.borderColor = "var(--gold)";
+        btn.style.boxShadow = "var(--neon-gold)";
 
         clearInterval(watchInterval);
-        watchStartTime = null;
-        watchBaseSyncMap = {};
+        watchSnapshot = {};
     }
 }
 
@@ -302,7 +334,6 @@ async function resetAllRecords() {
     if(!confirm("⚠️ 전체 초기화하시겠습니까?")) return;
     const { data: current } = await sb.from('players').select('id, team');
     
-    // last_sync를 null이 아닌 아주 먼 과거 시간으로 설정하여 동기화 꼬임 방지
     const resetData = current.map(p => ({ 
         id: p.id, 
         name: "", 
@@ -314,7 +345,7 @@ async function resetAllRecords() {
         champions: Array(10).fill('None'), 
         manual_tier: false, 
         team: p.team, 
-        last_sync: '2000-01-01T00:00:00Z' 
+        last_sync: '2000-01-01T00:00:00Z'  // ✅ 아주 과거로 설정 (동기화 꼬임 방지)
     }));
     
     const { error } = await sb.from('players').upsert(resetData);
@@ -326,6 +357,14 @@ async function resetAllRecords() {
     }
 }
 
+/* ===============================================================
+   ✅ [수정] applyToSupabase - team 컬럼을 카드의 실제 팀으로 저장
+   
+   기존: card.dataset.team → DOM 생성 시 고정값, 팀 바꿔서 저장해도
+         항상 원래 팀으로 저장됨
+   수정: card가 속한 .team-box의 class(red/blue)를 읽어서 저장
+         → 팀을 바꿔 입력 후 송출 반영해도 올바른 team값 저장됨
+=============================================================== */
 async function applyToSupabase() {
     const btn = document.querySelector('.btn-apply'); btn.innerText = "⏳ 반영 중..."; btn.disabled = true;
     try {
@@ -333,6 +372,10 @@ async function applyToSupabase() {
         document.querySelectorAll('.member-card').forEach(card => {
             const rawId = card.dataset.uuid;
             if (!rawId || String(rawId).startsWith('temp-')) return;
+
+            // ✅ 카드가 실제로 속한 팀 박스의 team을 읽음 (red/blue)
+            const teamBox = card.closest('.team-box');
+            const actualTeam = teamBox?.classList.contains('red') ? 'red' : 'blue';
 
             let rec = [], chs = [];
             card.querySelectorAll('.history-item').forEach(it => {
@@ -346,7 +389,7 @@ async function applyToSupabase() {
             updates.push({
                 id: rawId, 
                 name: card.querySelector('.nick-disp').value.trim(), 
-                team: card.dataset.team,
+                team: actualTeam,  // ✅ 실제 팀으로 저장
                 riot_id: card.querySelector('.nick-riot').value.trim(),
                 tier: tC ? `${TIER_MAP[tV]} - ${lp}LP` : (ex?.tier || "언랭크"),
                 manual_tier: tC, 
@@ -383,7 +426,7 @@ function rebuildWithCache() { rebuild(cachedPlayers); }
 function rebuild(list) {
     const rW = document.getElementById('redPlayers'), bW = document.getElementById('bluePlayers'), cnt = Number(document.getElementById('teamCount').value);
     rW.innerHTML = ''; bW.innerHTML = '';
-    const reds = list.filter(p => p.team === 'red'), blues = list.filter(p => p.team === 'blue');
+    const reds = (list || []).filter(p => p.team === 'red'), blues = (list || []).filter(p => p.team === 'blue');
     for(let i=0; i<cnt; i++) {
         rW.appendChild(createMemberCard('red', reds[i] || {id: `temp-red-${i}`, team:'red'}));
         bW.appendChild(createMemberCard('blue', blues[i] || {id: `temp-blue-${i}`, team:'blue'}));
