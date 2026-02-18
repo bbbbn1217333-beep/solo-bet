@@ -27,11 +27,10 @@
             height: 50px; padding:12px; background:#000; border-radius:8px; font-size:16px; font-weight:900;
             outline:none; border: 2px solid var(--gold); color: #fff; box-shadow: var(--neon-gold); box-sizing: border-box;
         }
-        /* ✅ 목표종료시간 그림자 제거 */
         .timer-input-wrap {
             display: flex; align-items: center; background: #000; padding: 0 15px;
             border-radius: 8px; border: 2px solid var(--gold); height: 50px; box-sizing: border-box;
-            box-shadow: none !important;  /* 그림자 완전 제거 */
+            box-shadow: none !important;
         }
         #endDateTime {
             background: transparent; border: none; color: #fff; font-family: 'Pretendard';
@@ -155,10 +154,8 @@ const TIER_COLORS = {
 
 let cachedPlayers = [], idToKorMap = {}, korToIdMap = {}, engToIdMap = {};
 let isWatching = false, watchInterval = null;
-// ✅ 감시 시작 시점의 스냅샷 (UI 표시용)
 let watchSnapshot = {};
 
-// ── 디버그 로그 ──
 function log(msg) {
     const el = document.getElementById('debugLog');
     const t = new Date().toLocaleTimeString('ko-KR');
@@ -171,26 +168,20 @@ function toggleDebug() {
     el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-// ── 배열 10칸 보정 ──
 function padArray(arr, len, fill) {
     const base = Array.isArray(arr) ? [...arr] : [];
     while (base.length < len) base.push(fill);
     return base;
 }
 
-// ── 티어 문자열 → select option 키 변환 ──
-// DB 형식: "골드 1 - 45LP", "마스터 - 500LP", "언랭크"
 function findEngTierKey(tierStr) {
     if (!tierStr) return "UNRANKED";
     const t = tierStr.trim();
     if (!t || t === "언랭크" || t.toUpperCase() === "UNRANKED") return "UNRANKED";
-
     const upper = t.toUpperCase();
-
     if (upper.includes("챌린저") || upper.includes("CHALLENGER")) return "CHALLENGER";
     if (upper.includes("그랜드마스터") || upper.includes("GRANDMASTER")) return "GRANDMASTER";
     if (upper.includes("마스터") || upper.includes("MASTER")) return "MASTER";
-
     const tierDefs = [
         { key:"DIAMOND",  kor:["다이아몬드","다이아"], eng:"DIAMOND" },
         { key:"EMERALD",  kor:["에메랄드"],            eng:"EMERALD" },
@@ -200,30 +191,20 @@ function findEngTierKey(tierStr) {
         { key:"BRONZE",   kor:["브론즈"],              eng:"BRONZE" },
         { key:"IRON",     kor:["아이언"],              eng:"IRON" },
     ];
-
     let foundKey = "";
     for (const td of tierDefs) {
-        if ([...td.kor, td.eng].some(kw => upper.includes(kw.toUpperCase()))) {
-            foundKey = td.key;
-            break;
-        }
+        if ([...td.kor, td.eng].some(kw => upper.includes(kw.toUpperCase()))) { foundKey = td.key; break; }
     }
     if (!foundKey) return "UNRANKED";
-
-    // 단계 감지: 숫자 우선
     const numMatch = t.match(/[1-4]/);
     if (numMatch) return `${foundKey} ${numMatch[0]}`;
-
-    // 로마자 폴백
     if (/\bIV\b/.test(upper)) return `${foundKey} 4`;
     if (/\bIII\b/.test(upper)) return `${foundKey} 3`;
     if (/\bII\b/.test(upper)) return `${foundKey} 2`;
     if (/\bI\b/.test(upper)) return `${foundKey} 1`;
-
     return `${foundKey} 4`;
 }
 
-// ── LP 파싱 ──
 function extractLP(tierStr) {
     if (!tierStr) return "0";
     const m = tierStr.match(/(\d+)\s*LP/i);
@@ -261,7 +242,8 @@ async function syncWithRiot() {
         log("sync 호출 중...");
         const response = await fetch('/api/sync');
         const result = await response.json();
-        log(`sync 결과: updated=${result.updated}`); if(result.debug) result.debug.forEach(d => log(`  티어저장: ${d.id.slice(0,8)}... → ${d.tier} (manual:${d.manual})`));
+        log(`sync 결과: updated=${result.updated}`);
+        if (result.debug) result.debug.forEach(d => log(`  티어저장: ${d.id.slice(0,8)}... → ${d.tier} (manual:${d.manual})`));
         if (result.success || result.updated >= 0) {
             const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
             if (pData) {
@@ -276,13 +258,6 @@ async function syncWithRiot() {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────
-// mergeData: 감시 중 DB → UI 반영
-// ✅ [수정] 감시 시작 전 슬롯은 UI에서 절대 바꾸지 않음
-//   - watchSnapshot에 저장된 슬롯 결과와 비교
-//   - 스냅샷과 같으면 → 감시 전 데이터 → 무시
-//   - 스냅샷과 다르면 → 감시 후 새 결과 → 반영
-// ─────────────────────────────────────────────────────────────────
 function mergeData(dbData) {
     cachedPlayers = dbData;
 
@@ -294,7 +269,6 @@ function mergeData(dbData) {
         const safeRecent = padArray(p.recent, 10, 'ing');
         const safeChamps = padArray(p.champions, 10, 'None');
 
-        // ── 티어 자동 반영 (수동 수정 체크 없을 때만) ──
         const tCheck = card.querySelector('.tier-override');
         if (tCheck && !tCheck.checked && p.tier) {
             const sel = card.querySelector('.tier-select');
@@ -306,7 +280,6 @@ function mergeData(dbData) {
             if (lpInp.value !== newLP) lpInp.value = newLP;
         }
 
-        // ── 전적/챔피언 반영 ──
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
             const cInput = item.querySelector('.champ-input');
@@ -314,7 +287,6 @@ function mergeData(dbData) {
             const dbChamp = safeChamps[idx];
 
             if (isWatching) {
-                // 챔피언: None 아니면 항상 표시
                 if (dbChamp && dbChamp !== 'None') {
                     const korName = idToKorMap[dbChamp] || engToIdMap[String(dbChamp).toLowerCase()] || dbChamp;
                     if (cInput.value !== korName) {
@@ -326,26 +298,23 @@ function mergeData(dbData) {
                 if (dbRes === 'ing') {
                     btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing';
                 } else {
-                    // ✅ 스냅샷과 비교: 달라진 슬롯만 반영
                     const snap = watchSnapshot[p.id];
                     const snapRes = snap?.recent?.[idx];
-if (snapRes !== dbRes) {
-    if (dbRes === 'win') {
-        btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
-        log(`[${p.name}] ${idx+1}판 승리`);
-    } else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
-        btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
-        log(`[${p.name}] ${idx+1}판 패배`);
-    }
-    // ✅ 반영 후 스냅샷 업데이트 → 다음 sync에서 중복 반영 방지
-    if (watchSnapshot[p.id]) {
-        watchSnapshot[p.id].recent[idx] = dbRes;
-    }
-}
-                    // snapRes === dbRes → 감시 전 데이터 → UI 건드리지 않음
+                    if (snapRes !== dbRes) {
+                        if (dbRes === 'win') {
+                            btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
+                            log(`[${p.name}] ${idx+1}판 승리`);
+                        } else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
+                            btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
+                            log(`[${p.name}] ${idx+1}판 패배`);
+                        }
+                        // ✅ 반영 후 스냅샷 업데이트 → 다음 sync에서 중복 반영 방지
+                        if (watchSnapshot[p.id]) {
+                            watchSnapshot[p.id].recent[idx] = dbRes;
+                        }
+                    }
                 }
             } else {
-                // 감시 비활성: 챔피언 이름만 비어있으면 채움 (결과 버튼 건드리지 않음)
                 if (dbChamp && dbChamp !== 'None' && !cInput.value) {
                     cInput.value = idToKorMap[dbChamp] || engToIdMap[String(dbChamp).toLowerCase()] || dbChamp;
                 }
@@ -357,20 +326,12 @@ if (snapRes !== dbRes) {
     });
 }
 
-// ─────────────────────────────────────────────────────────────────
-// toggleWatch: 감시 시작/중지
-// ✅ [수정] 감시 시작 시 watch_since를 DB에 저장
-//   - sync.js가 이 시각 기준으로 이전 게임 스킵
-//   - UI 스냅샷도 함께 저장 (감시 전 슬롯 UI 표시 방지)
-// ─────────────────────────────────────────────────────────────────
 async function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
 
     if (isWatching) {
         const nowISO = new Date().toISOString();
-
-        // DB에 watch_since 기록 (sync.js가 이 시각 기준으로 이전 게임 스킵)
         const { data: allPlayers } = await sb.from('players').select('id, recent, champions');
         if (allPlayers && allPlayers.length > 0) {
             const watchUpdates = allPlayers.map(p => ({ id: p.id, watch_since: nowISO }));
@@ -379,7 +340,6 @@ async function toggleWatch() {
             else log(`watch_since 저장 완료 (${allPlayers.length}명)`);
         }
 
-        // UI 스냅샷 저장
         watchSnapshot = {};
         if (allPlayers) {
             allPlayers.forEach(p => {
@@ -509,9 +469,6 @@ async function applyToSupabase() {
     btn.innerText = "⏳ 반영 중..."; btn.disabled = true;
     try {
         const updates = [];
-        // ✅ [수정] temp- 카드도 새 UUID 생성해서 INSERT
-        // 기존: temp-로 시작하면 건너뜀 → 저장 안 됨 → loadData()가 빈값으로 덮어씌움
-        // 수정: temp- 카드에 닉네임이 입력돼있으면 새 UUID 발급해서 저장
         document.querySelectorAll('.member-card').forEach(card => {
             const rawId = card.dataset.uuid;
             const isTemp = !rawId || String(rawId).startsWith('temp-');
@@ -519,7 +476,6 @@ async function applyToSupabase() {
             const nameVal = card.querySelector('.nick-disp').value.trim();
             const riotVal = card.querySelector('.nick-riot').value.trim();
 
-            // temp- 카드이고 아무것도 입력 안 됐으면 스킵
             if (isTemp && !nameVal && !riotVal) return;
 
             const teamBox = card.closest('.team-box');
@@ -537,12 +493,10 @@ async function applyToSupabase() {
             const lp = card.querySelector('.lp-input').value;
             const ex = cachedPlayers.find(p => String(p.id) === String(rawId));
 
-            // temp- 카드면 새 UUID 생성 (crypto.randomUUID 사용)
             const finalId = isTemp
                 ? (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
                 : rawId;
 
-            // 카드에 새 uuid 반영 (다음 사용을 위해)
             if (isTemp) card.dataset.uuid = finalId;
 
             updates.push({
@@ -554,9 +508,13 @@ async function applyToSupabase() {
                 manual_tier: tC,
                 wins: parseInt(card.querySelector('.win-val').value) || 0,
                 losses: parseInt(card.querySelector('.lose-val').value) || 0,
-                recent: rec, champions: chs,
+                recent: rec,
+                champions: chs,
                 last_sync: ex?.last_sync ?? null,
                 trigger_cutscene: ex?.trigger_cutscene ?? false,
+                // ✅ 핵심 수정: last_match_id와 watch_since 보존
+                last_match_id: ex?.last_match_id ?? null,
+                watch_since: ex?.watch_since ?? null,
             });
         });
 
@@ -582,7 +540,6 @@ async function applyToSupabase() {
     }
 }
 
-// ✅ 데이터 불러오기: DB의 모든 데이터를 그대로 UI에 표시 (결과 포함)
 async function loadData() {
     const { data: s } = await sb.from('settings').select('*').eq('id', 1).maybeSingle();
     if (s) {
