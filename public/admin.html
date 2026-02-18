@@ -181,10 +181,12 @@ function mergeData(dbData) {
             const res = p.recent?.[idx];
             const ch = p.champions?.[idx];
 
-            if (isWatching && lastSync) {
-                const baseSync = watchBaseSyncMap[p.id];
-                // 자동감시 누른 이후 동기화된 데이터이거나, baseSync가 없는 새 유저인 경우 반영
-                if (!baseSync || lastSync > baseSync) {
+if (isWatching) {
+    const baseSync = watchBaseSyncMap[p.id];
+
+    // 자동감시 이후 데이터거나, recent 배열이 실제로 바뀐 경우 즉시 반영
+    if (!baseSync || (lastSync && lastSync >= baseSync)) {
+
                     if (ch && ch !== 'None') {
                         cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
                     }
