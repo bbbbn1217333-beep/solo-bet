@@ -184,12 +184,18 @@ function mergeData(dbData) {
 if (isWatching) {
     const baseSync = watchBaseSyncMap[p.id];
 
-    // 자동감시 이후 데이터거나, recent 배열이 실제로 바뀐 경우 즉시 반영
+    // 진행중 게임은 last_sync 상관없이 즉시 반영
+    if (res === 'ing' && ch && ch !== 'None') {
+        cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+    }
+
+    // 자동감시 이후 완료된 게임만 기존 조건 적용
     if (!baseSync || (lastSync && lastSync >= baseSync)) {
 
-                    if (ch && ch !== 'None') {
-                        cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
-                    }
+        if (ch && ch !== 'None') {
+            cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+        }
+
                     if (res === 'win') {
                         btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
                     } else if (res === 'lose' || res === 'leaver_loss') {
