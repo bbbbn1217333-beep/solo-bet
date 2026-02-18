@@ -504,9 +504,18 @@ async function applyToSupabase() {
     btn.innerText = "⏳ 반영 중..."; btn.disabled = true;
     try {
         const updates = [];
+        // ✅ [수정] temp- 카드도 새 UUID 생성해서 INSERT
+        // 기존: temp-로 시작하면 건너뜀 → 저장 안 됨 → loadData()가 빈값으로 덮어씌움
+        // 수정: temp- 카드에 닉네임이 입력돼있으면 새 UUID 발급해서 저장
         document.querySelectorAll('.member-card').forEach(card => {
             const rawId = card.dataset.uuid;
-            if (!rawId || String(rawId).startsWith('temp-')) return;
+            const isTemp = !rawId || String(rawId).startsWith('temp-');
+
+            const nameVal = card.querySelector('.nick-disp').value.trim();
+            const riotVal = card.querySelector('.nick-riot').value.trim();
+
+            // temp- 카드이고 아무것도 입력 안 됐으면 스킵
+            if (isTemp && !nameVal && !riotVal) return;
 
             const teamBox = card.closest('.team-box');
             const actualTeam = teamBox?.classList.contains('red') ? 'red' : 'blue';
@@ -523,17 +532,25 @@ async function applyToSupabase() {
             const lp = card.querySelector('.lp-input').value;
             const ex = cachedPlayers.find(p => String(p.id) === String(rawId));
 
+            // temp- 카드면 새 UUID 생성 (crypto.randomUUID 사용)
+            const finalId = isTemp
+                ? (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
+                : rawId;
+
+            // 카드에 새 uuid 반영 (다음 사용을 위해)
+            if (isTemp) card.dataset.uuid = finalId;
+
             updates.push({
-                id: rawId,
-                name: card.querySelector('.nick-disp').value.trim(),
+                id: finalId,
+                name: nameVal,
                 team: actualTeam,
-                riot_id: card.querySelector('.nick-riot').value.trim(),
+                riot_id: riotVal,
                 tier: tC ? `${TIER_MAP[tV]} - ${lp}LP` : (ex?.tier || "언랭크"),
                 manual_tier: tC,
                 wins: parseInt(card.querySelector('.win-val').value) || 0,
                 losses: parseInt(card.querySelector('.lose-val').value) || 0,
                 recent: rec, champions: chs,
-                last_sync: ex?.last_sync,
+                last_sync: ex?.last_sync ?? null,
                 trigger_cutscene: ex?.trigger_cutscene ?? false,
             });
         });
