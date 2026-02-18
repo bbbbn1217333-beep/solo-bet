@@ -28,7 +28,6 @@ function buildTierString(solo) {
   return `${korTier} ${numRank} - ${solo.leaguePoints}LP`;
 }
 
-// 티어 문자열 → TIER_ORDER 키 변환
 function parseTierKey(tierStr) {
   if (!tierStr || tierStr.includes('언랭크')) return null;
   const upper = tierStr.toUpperCase();
@@ -49,7 +48,6 @@ function parseTierKey(tierStr) {
   return `${foundTier} ${num}`;
 }
 
-// ✅ LP 변동량 계산: 이전 티어/LP vs 현재 티어/LP 비교
 function calcLpDiff(prevTierStr, newSolo) {
   if (!newSolo) return "0";
   const newLP = newSolo.leaguePoints;
@@ -68,15 +66,12 @@ function calcLpDiff(prevTierStr, newSolo) {
   if (prevOrder === -1 || newOrder === -1) return String(newLP);
 
   if (newOrder > prevOrder) {
-    // 승급/승격: (100 - 이전LP) + 새LP
     const diff = (100 - prevLP) + newLP;
     return String(diff > 0 ? diff : newLP);
   } else if (newOrder < prevOrder) {
-    // 강등: 이전LP + (100 - 새LP)
     const diff = prevLP + (100 - newLP);
     return String(diff > 0 ? diff : prevLP);
   } else {
-    // 같은 단계: 단순 차이
     return String(Math.abs(newLP - prevLP) || newLP);
   }
 }
@@ -138,7 +133,7 @@ module.exports = async (req, res) => {
         const matchIds = await matchIdRes.json();
         const currentMatchId = Array.isArray(matchIds) ? matchIds[0] : null;
 
-        // ── 4. 티어 조회: PUUID 직접 조회 ──
+        // ── 4. 티어 조회 ──
         let apiTierStr = player.tier || "언랭크";
         let soloInfo = null;
         try {
@@ -190,7 +185,9 @@ module.exports = async (req, res) => {
               ? new Date(detail.info.gameEndTimestamp)
               : null;
             const me = detail.info?.participants?.find(p => p.puuid === puuid);
-            const isBeforeWatch = watchSince && gameEndTime && gameEndTime <= watchSince;
+
+            // ✅ 핵심 수정: watch_since가 null이면(감시 미시작) 감시 전으로 간주 → last_match_id만 업데이트하고 기록 안 함
+            const isBeforeWatch = !watchSince || (gameEndTime && gameEndTime <= watchSince);
 
             if (isBeforeWatch) {
               console.log(`[${player.name}] 감시 전 게임 스킵: ${currentMatchId}`);
@@ -212,7 +209,6 @@ module.exports = async (req, res) => {
                   newChamps[targetIdx] = me.championName || 'None';
                 }
 
-                // ✅ 승급/승격/강등 감지
                 const prevTierKey = parseTierKey(player.tier);
                 const newTierKey = soloInfo ? parseTierKey(buildTierString(soloInfo)) : null;
                 const prevOrder = prevTierKey ? (TIER_ORDER[prevTierKey] ?? -1) : -1;
@@ -227,7 +223,6 @@ module.exports = async (req, res) => {
                   eventType = 'defeat_demotion';
                 }
 
-                // ✅ LP 변동량 계산 (이전 티어 기준)
                 const lpDiff = calcLpDiff(player.tier, soloInfo);
 
                 pUpdate.recent = newRecent;
