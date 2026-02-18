@@ -172,25 +172,28 @@ const fixChamp = c => {
     if (!c || c === 'None' || c === '' || c === 'undefined') return 'None';
     let raw = c.toString().trim();
 
-    // champIdToKey: 숫자 key → 챔피언 id
+    // 숫자 key → 챔피언 id
     if (champIdToKey[raw]) raw = champIdToKey[raw];
 
     const lowerRaw = raw.toLowerCase().replace(/\s+/g, '');
 
-    // ✅ 자르반 4세 / JarvanIV 예외 처리
-    if (lowerRaw === '자르반 4세' || lowerRaw === 'jarvaniv' || lowerRaw === 'jarvan4세' || raw === 'JarvanIV') return 'JarvanIV';
-
+    // 자르반 4세 예외
+    if (lowerRaw === '자르반 4세' || lowerRaw === 'jarvaniv') return 'JarvanIV';
     if (lowerRaw === '미스 포츈' || lowerRaw === 'missfortune') return 'MissFortune';
-    if (lowerRaw === '크산테' || lowerRaw === 'ksante' || lowerRaw === "k'sante") return 'KSante';
+    if (lowerRaw === '크산테' || lowerRaw === 'ksante') return 'KSante';
+    if (lowerRaw === 'tahmkench' || lowerRaw === '탐 켄치') return 'TahmKench';  // ✅ 추가
 
-const exceptions = {
-    '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai',
-    '누누와 윌럼프': 'Nunu', '누누': 'Nunu',
-    '자르반 4세': 'JarvanIV', '자르반 4세': 'JarvanIV',
-    '탐 켄치': 'TahmKench',   // ✅ 이 줄 추가
-};
+    const exceptions = {
+        '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai',
+        '누누와 윌럼프': 'Nunu', '누누': 'Nunu',
+        '자르반 4세': 'JarvanIV', '탐 켄치': 'TahmKench',
+    };
     if (exceptions[raw]) return exceptions[raw];
     if (champMap[raw]) return champMap[raw];
+
+    // ✅ 영어 챔피언 id가 그대로 오면 그냥 그대로 반환 (DDragon 파일명과 동일)
+    // 첫 글자가 대문자면 Riot API에서 온 영어 id로 간주
+    if (/^[A-Z]/.test(raw)) return raw;
 
     return raw.split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join('');
 };
