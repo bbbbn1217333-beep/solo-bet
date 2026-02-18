@@ -210,7 +210,8 @@ module.exports = async (req, res) => {
       }
     }
 
-    return res.status(200).json({ success: true, updated: updateData.length });
+    const debugInfo = updateData.map(p => ({ id: p.id, tier: p.tier, manual: p.manual_tier }));
+    return res.status(200).json({ success: true, updated: updateData.length, debug: debugInfo });
   } catch (error) {
     console.error('sync 전체 에러:', error);
     return res.status(500).json({ error: error.message });
