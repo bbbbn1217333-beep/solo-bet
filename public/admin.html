@@ -165,12 +165,21 @@ function mergeData(dbData) {
         const p = dbData.find(d => String(d.id) === String(uuid));
         if (!p) return;
 
+        // [티어 자동 반영] 수동 수정 체크가 안 된 경우에만 실행
         const tCheck = card.querySelector('.tier-override');
-        if (!tCheck.checked && p.tier) {
+        if (tCheck && !tCheck.checked && p.tier) {
             const sel = card.querySelector('.tier-select');
+            const lpInp = card.querySelector('.lp-input');
             const engTier = findEngTierKey(p.tier);
-            if (engTier) { sel.value = engTier; updateTierUI(sel); }
-            card.querySelector('.lp-input').value = p.tier.match(/(\d+)LP/)?.[1] || "0";
+            
+            if (engTier && sel.value !== engTier) { 
+                sel.value = engTier; 
+                updateTierUI(sel); 
+            }
+            
+            const lpMatch = p.tier.match(/(\d+)LP/);
+            const newLP = lpMatch ? lpMatch[1] : "0";
+            if (lpInp.value !== newLP) lpInp.value = newLP;
         }
 
         const lastSync = p.last_sync ? new Date(p.last_sync) : null;
@@ -183,20 +192,17 @@ function mergeData(dbData) {
             const ch = p.champions?.[idx];
 
             if (isWatching) {
-                // 1️⃣ 챔피언 이름 반영 (진행 중이든 완료됐든 정보가 있으면 즉시 입력)
+                // 챔피언 이름 반영
                 if (ch && ch !== 'None') {
                     const korName = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
                     if (cInput.value !== korName) cInput.value = korName;
                 }
 
-                // 2️⃣ 상태 분기 로직
                 if (res === 'ing') {
-                    // 진행 중인 판은 무조건 '진행' 상태로 유지
                     btn.innerText = '🕒 진행';
                     btn.className = 'btn-toggle ing';
                 } 
                 else if (baseSync && lastSync && lastSync >= baseSync) {
-                    // 감시 시작 이후에 종료(win/lose)된 게임만 결과 반영
                     if (res === 'win') {
                         btn.innerText = '😁 승리';
                         btn.className = 'btn-toggle win';
@@ -206,7 +212,6 @@ function mergeData(dbData) {
                     }
                 }
             } else {
-                // 감시 모드가 아닐 때 (데이터 불러오기 등) 이름이 없으면 채워줌
                 if (ch && ch !== 'None' && !cInput.value) {
                     cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
                 }
@@ -296,9 +301,29 @@ function resetMemberRecord(btn) {
 async function resetAllRecords() {
     if(!confirm("⚠️ 전체 초기화하시겠습니까?")) return;
     const { data: current } = await sb.from('players').select('id, team');
-    const resetData = current.map(p => ({ id: p.id, name: "", riot_id: "", tier: "언랭크", wins: 0, losses: 0, recent: Array(10).fill('ing'), champions: Array(10).fill('None'), manual_tier: false, team: p.team, last_sync: null }));
-    await sb.from('players').upsert(resetData);
-    location.reload();
+    
+    // last_sync를 null이 아닌 아주 먼 과거 시간으로 설정하여 동기화 꼬임 방지
+    const resetData = current.map(p => ({ 
+        id: p.id, 
+        name: "", 
+        riot_id: "", 
+        tier: "언랭크", 
+        wins: 0, 
+        losses: 0, 
+        recent: Array(10).fill('ing'), 
+        champions: Array(10).fill('None'), 
+        manual_tier: false, 
+        team: p.team, 
+        last_sync: '2000-01-01T00:00:00Z' 
+    }));
+    
+    const { error } = await sb.from('players').upsert(resetData);
+    if(error) {
+        alert("초기화 실패: " + error.message);
+    } else {
+        alert("✅ 초기화 완료");
+        location.reload();
+    }
 }
 
 async function applyToSupabase() {
