@@ -157,7 +157,7 @@ async function syncWithRiot() {
     } catch (e) { console.error(e); }
 }
 
-/* ================= mergeData (이름 반영 보강 버전) ================= */
+/* ================= mergeData 수정 반영 ================= */
 function mergeData(dbData) {
     cachedPlayers = dbData;
     document.querySelectorAll('.member-card').forEach((card) => {
@@ -165,7 +165,6 @@ function mergeData(dbData) {
         const p = dbData.find(d => String(d.id) === String(uuid));
         if (!p) return;
 
-        // 티어 갱신 (이미 잘 된다고 하신 부분)
         const tCheck = card.querySelector('.tier-override');
         if (!tCheck.checked && p.tier) {
             const sel = card.querySelector('.tier-select');
@@ -183,22 +182,21 @@ function mergeData(dbData) {
             const res = p.recent?.[idx];
             const ch = p.champions?.[idx];
 
-            // 챔피언 이름 찾기 (Map 데이터가 없을 경우를 대비해 ch 자체라도 반환)
-            const korName = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || (ch !== 'None' ? ch : "");
-
             if (isWatching) {
-                // [중요] 이름 반영: 정보가 있으면 버튼 상태와 무관하게 즉시 입력
-                if (korName && korName !== 'None') {
-                    if (cInput.value !== korName) {
-                        cInput.value = korName;
-                    }
+                // 1️⃣ 챔피언 이름 반영 (진행 중이든 완료됐든 정보가 있으면 즉시 입력)
+                if (ch && ch !== 'None') {
+                    const korName = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+                    if (cInput.value !== korName) cInput.value = korName;
                 }
 
+                // 2️⃣ 상태 분기 로직
                 if (res === 'ing') {
+                    // 진행 중인 판은 무조건 '진행' 상태로 유지
                     btn.innerText = '🕒 진행';
                     btn.className = 'btn-toggle ing';
                 } 
                 else if (baseSync && lastSync && lastSync >= baseSync) {
+                    // 감시 시작 이후에 종료(win/lose)된 게임만 결과 반영
                     if (res === 'win') {
                         btn.innerText = '😁 승리';
                         btn.className = 'btn-toggle win';
@@ -208,8 +206,9 @@ function mergeData(dbData) {
                     }
                 }
             } else {
-                if (korName && korName !== 'None' && !cInput.value) {
-                    cInput.value = korName;
+                // 감시 모드가 아닐 때 (데이터 불러오기 등) 이름이 없으면 채워줌
+                if (ch && ch !== 'None' && !cInput.value) {
+                    cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
                 }
             }
         });
