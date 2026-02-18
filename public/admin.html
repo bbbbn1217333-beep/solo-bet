@@ -174,6 +174,7 @@ function mergeData(dbData) {
         }
 
         const lastSync = p.last_sync ? new Date(p.last_sync) : null;
+        const baseSync = watchBaseSyncMap[p.id];
 
         card.querySelectorAll('.history-item').forEach((item, idx) => {
             const btn = item.querySelector('.btn-toggle');
@@ -181,43 +182,37 @@ function mergeData(dbData) {
             const res = p.recent?.[idx];
             const ch = p.champions?.[idx];
 
-if (isWatching) {
+            if (isWatching) {
+                // 1️⃣ 챔피언 이름 반영 (진행 중이든 완료됐든 정보가 있으면 즉시 입력)
+                if (ch && ch !== 'None') {
+                    const korName = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+                    if (cInput.value !== korName) cInput.value = korName;
+                }
 
-    // 1️⃣ 진행중은 무조건 반영
-    if (res === 'ing' && ch && ch !== 'None') {
-        const korName = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
-        if (cInput.value !== korName) cInput.value = korName;
-
-        btn.innerText = '🕒 진행';
-        btn.className = 'btn-toggle ing';
-    }
-
-    // 2️⃣ 감시 시작 이후에 동기화된 게임만 반영
-    else if (baseSync && lastSync && lastSync >= baseSync) {
-
-        if (ch && ch !== 'None') {
-            const korName = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
-            if (cInput.value !== korName) cInput.value = korName;
-        }
-
-        if (res === 'win') {
-            btn.innerText = '😁 승리';
-            btn.className = 'btn-toggle win';
-        } else if (res === 'lose' || res === 'leaver_loss') {
-            btn.innerText = '😡 패배';
-            btn.className = 'btn-toggle lose';
-        }
-    }
-}
-
-
-} else {
-    if (ch && ch !== 'None' && !cInput.value) {
-        cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
-    }
-}
-
+                // 2️⃣ 상태 분기 로직
+                if (res === 'ing') {
+                    // 진행 중인 판은 무조건 '진행' 상태로 유지
+                    btn.innerText = '🕒 진행';
+                    btn.className = 'btn-toggle ing';
+                } 
+                else if (baseSync && lastSync && lastSync >= baseSync) {
+                    // 감시 시작 이후에 종료(win/lose)된 게임만 결과 반영
+                    if (res === 'win') {
+                        btn.innerText = '😁 승리';
+                        btn.className = 'btn-toggle win';
+                    } else if (res === 'lose' || res === 'leaver_loss') {
+                        btn.innerText = '😡 패배';
+                        btn.className = 'btn-toggle lose';
+                    }
+                }
+            } else {
+                // 감시 모드가 아닐 때 (데이터 불러오기 등) 이름이 없으면 채워줌
+                if (ch && ch !== 'None' && !cInput.value) {
+                    cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+                }
+            }
         });
+
         card.querySelector('.win-val').value = p.wins || 0;
         card.querySelector('.lose-val').value = p.losses || 0;
     });
