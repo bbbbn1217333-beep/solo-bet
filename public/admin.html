@@ -329,15 +329,19 @@ function mergeData(dbData) {
                     // ✅ 스냅샷과 비교: 달라진 슬롯만 반영
                     const snap = watchSnapshot[p.id];
                     const snapRes = snap?.recent?.[idx];
-                    if (snapRes !== dbRes) {
-                        if (dbRes === 'win') {
-                            btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
-                            log(`[${p.name}] ${idx+1}판 승리`);
-                        } else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
-                            btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
-                            log(`[${p.name}] ${idx+1}판 패배`);
-                        }
-                    }
+if (snapRes !== dbRes) {
+    if (dbRes === 'win') {
+        btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
+        log(`[${p.name}] ${idx+1}판 승리`);
+    } else if (dbRes === 'lose' || dbRes === 'leaver_loss') {
+        btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
+        log(`[${p.name}] ${idx+1}판 패배`);
+    }
+    // ✅ 반영 후 스냅샷 업데이트 → 다음 sync에서 중복 반영 방지
+    if (watchSnapshot[p.id]) {
+        watchSnapshot[p.id].recent[idx] = dbRes;
+    }
+}
                     // snapRes === dbRes → 감시 전 데이터 → UI 건드리지 않음
                 }
             } else {
