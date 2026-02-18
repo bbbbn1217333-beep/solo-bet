@@ -178,16 +178,17 @@ const fixChamp = c => {
     const lowerRaw = raw.toLowerCase().replace(/\s+/g, '');
 
     // ✅ 자르반 4세 / JarvanIV 예외 처리
-    if (lowerRaw === '자르반4세' || lowerRaw === 'jarvaniv' || lowerRaw === 'jarvan4세' || raw === 'JarvanIV') return 'JarvanIV';
+    if (lowerRaw === '자르반 4세' || lowerRaw === 'jarvaniv' || lowerRaw === 'jarvan4세' || raw === 'JarvanIV') return 'JarvanIV';
 
-    if (lowerRaw === '미스포츈' || lowerRaw === 'missfortune') return 'MissFortune';
+    if (lowerRaw === '미스 포츈' || lowerRaw === 'missfortune') return 'MissFortune';
     if (lowerRaw === '크산테' || lowerRaw === 'ksante' || lowerRaw === "k'sante") return 'KSante';
 
-    const exceptions = {
-        '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai',
-        '누누와 윌럼프': 'Nunu', '누누': 'Nunu',
-        '자르반 4세': 'JarvanIV', '자르반4세': 'JarvanIV'
-    };
+const exceptions = {
+    '르블랑': 'Leblanc', '벨코즈': 'Velkoz', '렉사이': 'RekSai',
+    '누누와 윌럼프': 'Nunu', '누누': 'Nunu',
+    '자르반 4세': 'JarvanIV', '자르반 4세': 'JarvanIV',
+    '탐 켄치': 'TahmKench',   // ✅ 이 줄 추가
+};
     if (exceptions[raw]) return exceptions[raw];
     if (champMap[raw]) return champMap[raw];
 
