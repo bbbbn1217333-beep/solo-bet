@@ -182,19 +182,22 @@ function mergeData(dbData) {
             const ch = p.champions?.[idx];
 
 if (isWatching) {
-    const baseSync = watchBaseSyncMap[p.id];
 
-    // 진행중 또는 recent 값이 아직 없는 경우도 즉시 반영
-    if (ch && ch !== 'None' && (!res || res === 'ing')) {
-        cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+    // 1️⃣ 진행중은 무조건 반영
+    if (res === 'ing' && ch && ch !== 'None') {
+        const korName = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+        if (cInput.value !== korName) cInput.value = korName;
+
         btn.innerText = '🕒 진행';
         btn.className = 'btn-toggle ing';
     }
 
-    else if (!baseSync || (lastSync && lastSync >= baseSync)) {
+    // 2️⃣ 감시 시작 이후에 동기화된 게임만 반영
+    else if (baseSync && lastSync && lastSync >= baseSync) {
 
         if (ch && ch !== 'None') {
-            cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+            const korName = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+            if (cInput.value !== korName) cInput.value = korName;
         }
 
         if (res === 'win') {
@@ -205,6 +208,8 @@ if (isWatching) {
             btn.className = 'btn-toggle lose';
         }
     }
+}
+
 
 } else if (!isWatching) {
     if (ch && ch !== 'None' && !cInput.value) {
