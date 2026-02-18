@@ -184,31 +184,34 @@ function mergeData(dbData) {
 if (isWatching) {
     const baseSync = watchBaseSyncMap[p.id];
 
-    // 진행중 게임은 last_sync 상관없이 즉시 반영
-    if (res === 'ing' && ch && ch !== 'None') {
+    // 진행중 또는 recent 값이 아직 없는 경우도 즉시 반영
+    if (ch && ch !== 'None' && (!res || res === 'ing')) {
         cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+        btn.innerText = '🕒 진행';
+        btn.className = 'btn-toggle ing';
     }
 
-    // 자동감시 이후 완료된 게임만 기존 조건 적용
-    if (!baseSync || (lastSync && lastSync >= baseSync)) {
+    else if (!baseSync || (lastSync && lastSync >= baseSync)) {
 
         if (ch && ch !== 'None') {
             cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
         }
 
-                    if (res === 'win') {
-                        btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
-                    } else if (res === 'lose' || res === 'leaver_loss') {
-                        btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
-                    } else if (res === 'ing') {
-                        btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing';
-                    }
-                }
-            } else if (!isWatching) {
-                if (ch && ch !== 'None' && !cInput.value) {
-                    cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
-                }
-            }
+        if (res === 'win') {
+            btn.innerText = '😁 승리';
+            btn.className = 'btn-toggle win';
+        } else if (res === 'lose' || res === 'leaver_loss') {
+            btn.innerText = '😡 패배';
+            btn.className = 'btn-toggle lose';
+        }
+    }
+
+} else if (!isWatching) {
+    if (ch && ch !== 'None' && !cInput.value) {
+        cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+    }
+}
+
         });
         card.querySelector('.win-val').value = p.wins || 0;
         card.querySelector('.lose-val').value = p.losses || 0;
