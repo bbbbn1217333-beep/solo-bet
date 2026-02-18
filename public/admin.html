@@ -422,9 +422,9 @@ async function applyToSupabase() {
     try {
         const toUpdate = [];
         const cards = document.querySelectorAll('.member-card');
+        
         cards.forEach(card => {
             const rawId = card.dataset.uuid;
-            // [수정 포인트] 기존에 캐시된 플레이어 정보에서 동기화 시각을 가져옵니다.
             const existingPlayer = cachedPlayers.find(cp => cp.id == rawId);
             
             let recent = [], champions = [];
@@ -434,31 +434,59 @@ async function applyToSupabase() {
                 const champName = item.querySelector('.champ-input').value.trim();
                 champions.push(korToIdMap[champName] || 'None');
             });
+
             const tCheck = card.querySelector('.tier-override').checked;
             const tVal = card.querySelector('.tier-select').value;
             const lpVal = card.querySelector('.lp-input').value;
+
+            // ID가 숫자인지 확인하여 Supabase 형식 맞춤
+            const numericId = parseInt(rawId);
             const playerData = {
                 name: card.querySelector('.nick-disp').value.trim(),
                 team: card.dataset.team,
                 riot_id: card.querySelector('.nick-riot').value.trim(),
-                tier: tCheck ? (lpVal ? `${TIER_MAP[tVal]} - ${lpVal}LP` : TIER_MAP[tVal]) : (card.querySelector('.tier-select').disabled ? "언랭크" : `${TIER_MAP[tVal]} - ${lpVal}LP`),
+                tier: tCheck ? (lpVal ? `${TIER_MAP[tVal]} - ${lpVal}LP` : TIER_MAP[tVal]) : (existingPlayer?.tier || "언랭크"),
                 manual_tier: tCheck,
                 wins: parseInt(card.querySelector('.win-val').value) || 0,
                 losses: parseInt(card.querySelector('.lose-val').value) || 0,
                 recent: recent, 
                 champions: champions,
-                // [핵심] 기존의 동기화 시각을 보존하여 자동 감시 로직이 깨지지 않게 합니다.
                 last_sync: existingPlayer ? existingPlayer.last_sync : null
             };
-            if (rawId && isNaN(rawId)) playerData.id = rawId;
-            if (playerData.name || playerData.riot_id) toUpdate.push(playerData);
+
+            // 임시 ID가 아닌 실제 DB ID가 있을 때만 포함
+            if (!isNaN(numericId)) {
+                playerData.id = numericId;
+                toUpdate.push(playerData);
+            } else if (playerData.name || playerData.riot_id) {
+                // 새 플레이어 추가 시
+                toUpdate.push(playerData);
+            }
         });
-        await sb.from('settings').upsert({ id: 1, red_team_name: document.getElementById('redNameInput').value, blue_team_name: document.getElementById('blueNameInput').value, member_count: Number(document.getElementById('teamCount').value) });
-        if (toUpdate.length > 0) await sb.from('players').upsert(toUpdate);
+
+        // 1. 설정 저장
+        await sb.from('settings').upsert({ 
+            id: 1, 
+            red_team_name: document.getElementById('redNameInput').value, 
+            blue_team_name: document.getElementById('blueNameInput').value, 
+            member_count: Number(document.getElementById('teamCount').value) 
+        });
+
+        // 2. 플레이어 데이터 저장 (표준 upsert 방식)
+        if (toUpdate.length > 0) {
+            const { error } = await sb.from('players').upsert(toUpdate, { onConflict: 'id' });
+            if (error) throw error;
+        }
+
         alert('✅ 데이터가 성공적으로 반영되었습니다!');
-        await loadData(); // 데이터 재로드하여 캐시 업데이트
-    } catch (e) { alert(`저장 중 오류 발생: ${e.message}`); }
-    finally { applyBtn.innerText = "송출 화면 반영"; applyBtn.disabled = false; }
+        await loadData(); 
+    } catch (e) { 
+        console.error(e);
+        alert(`저장 중 오류 발생: ${e.message || '인증 오류가 발생했습니다. 키를 확인해주세요.'}`); 
+    } finally { 
+        applyBtn.innerText = "송출 화면 반영"; 
+        applyBtn.disabled = false; 
+    }
 }
 
 document.addEventListener('keydown', function(e) {
