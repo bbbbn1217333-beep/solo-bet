@@ -261,7 +261,7 @@ async function syncWithRiot() {
         log("sync 호출 중...");
         const response = await fetch('/api/sync');
         const result = await response.json();
-        log(`sync 결과: ${JSON.stringify(result)}`);
+        log(`sync 결과: updated=${result.updated}`); if(result.debug) result.debug.forEach(d => log(`  티어저장: ${d.id.slice(0,8)}... → ${d.tier} (manual:${d.manual})`));
         if (result.success || result.updated >= 0) {
             const { data: pData } = await sb.from('players').select('*').order('id', { ascending: true });
             if (pData) {
@@ -425,6 +425,7 @@ function createMemberCard(team, data = null) {
     const isM = data?.manual_tier || false;
     const tierKey = findEngTierKey(data?.tier);
     const lpVal = extractLP(data?.tier);
+    log(`카드생성 [${data?.name||'?'}] DB티어="${data?.tier}" → key="${tierKey}" LP=${lpVal}`);
 
     card.innerHTML = `<button class="btn-reset-member" onclick="resetMemberRecord(this)" title="초기화">🧹</button>
     <div class="name-row">
