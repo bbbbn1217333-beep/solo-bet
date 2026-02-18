@@ -104,8 +104,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TIER_MAP = { "CHALLENGER": "챌린저", "GRANDMASTER": "그랜드마스터", "MASTER": "마스터", "DIAMOND 1": "다이아몬드 1", "DIAMOND 2": "다이아몬드 2", "DIAMOND 3": "다이아몬드 3", "DIAMOND 4": "다이아몬드 4", "EMERALD 1": "에메랄드 1", "EMERALD 2": "에메랄드 2", "EMERALD 3": "에메랄드 3", "EMERALD 4": "에메랄드 4", "PLATINUM 1": "플래티넘 1", "PLATINUM 2": "플래티넘 2", "PLATINUM 3": "플래티넘 3", "PLATINUM 4": "플래티넘 4", "GOLD 1": "골드 1", "GOLD 2": "골드 2", "GOLD 3": "골드 3", "GOLD 4": "골드 4", "SILVER 1": "실버 1", "SILVER 2": "실버 2", "SILVER 3": "실버 3", "SILVER 4": "실버 4", "BRONZE 1": "브론즈 1", "BRONZE 2": "브론즈 2", "BRONZE 3": "브론즈 3", "BRONZE 4": "브론즈 4", "IRON 1": "아이언 1", "IRON 2": "아이언 2", "IRON 3": "아이언 3", "IRON 4": "아이언 4", "UNRANKED": "언랭크" };
 const TIER_COLORS = { "CHALLENGER": "#f7d61b", "GRANDMASTER": "#ff4e50", "MASTER": "#df73ff", "DIAMOND": "#57d8ff", "EMERALD": "#2ecc71", "PLATINUM": "#4fffc0", "GOLD": "#ffd369", "SILVER": "#c0c0c0", "BRONZE": "#cd7f32", "IRON": "#a19d94", "UNRANKED": "#ffffff" };
 
-let cachedPlayers = [], idToKorMap = {}, korToIdMap = {}, engToIdMap = {}; 
+let cachedPlayers = [], idToKorMap = {}, korToIdMap = {}, engToIdMap = {};
 let isWatching = false, watchInterval = null, watchStartTime = null;
+let watchBaseSyncMap = {}; // 추가
 
 function findEngTierKey(tierStr) {
     if (!tierStr || tierStr.includes("언랭크") || tierStr.toUpperCase().includes("UNRANKED")) return "UNRANKED";
@@ -131,7 +132,7 @@ function updateTierUI(el) {
 
 async function initChampMap() {
     try {
-        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/16.3.1/data/ko_KR/champion.json`);
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/14.3.1/data/ko_KR/champion.json`);
         const json = await res.json();
         Object.values(json.data).forEach(c => { 
             idToKorMap[c.key] = c.name; 
@@ -156,6 +157,7 @@ async function syncWithRiot() {
     } catch (e) { console.error(e); }
 }
 
+/* ================= mergeData 수정 반영 ================= */
 function mergeData(dbData) {
     cachedPlayers = dbData;
     document.querySelectorAll('.member-card').forEach((card) => {
@@ -165,32 +167,39 @@ function mergeData(dbData) {
 
         const tCheck = card.querySelector('.tier-override');
         if (!tCheck.checked && p.tier) {
-            const sel = card.querySelector('.tier-select'), engTier = findEngTierKey(p.tier);
+            const sel = card.querySelector('.tier-select');
+            const engTier = findEngTierKey(p.tier);
             if (engTier) { sel.value = engTier; updateTierUI(sel); }
             card.querySelector('.lp-input').value = p.tier.match(/(\d+)LP/)?.[1] || "0";
         }
 
         const lastSync = p.last_sync ? new Date(p.last_sync) : null;
-        card.querySelectorAll('.history-item').forEach((item, idx) => {
-            const btn = item.querySelector('.btn-toggle'), cInput = item.querySelector('.champ-input');
-            const res = p.recent?.[idx], ch = p.champions?.[idx];
 
-            // [수정] 실시간 감시 중일 때 '진행(ing)' 상태와 챔피언 이름을 즉시 화면에 반영
-            if (isWatching && watchStartTime && lastSync && lastSync > watchStartTime) {
-                // 챔피언 이름 동기화
-                if (ch && ch !== 'None') {
-                    cInput.value = idToKorMap[ch] || engToIdMap[ch.toLowerCase()] || ch;
-                }
-                // 승/패/진행 상태 동기화
-                if (res === 'win') { 
-                    btn.innerText = '😁 승리'; btn.className = 'btn-toggle win'; 
-                } else if (res === 'lose' || res === 'leaver_loss') { 
-                    btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose'; 
-                } else if (res === 'ing') {
-                    btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing';
+        card.querySelectorAll('.history-item').forEach((item, idx) => {
+            const btn = item.querySelector('.btn-toggle');
+            const cInput = item.querySelector('.champ-input');
+            const res = p.recent?.[idx];
+            const ch = p.champions?.[idx];
+
+            if (isWatching && lastSync) {
+                const baseSync = watchBaseSyncMap[p.id];
+                // 자동감시 누른 이후 동기화된 데이터이거나, baseSync가 없는 새 유저인 경우 반영
+                if (!baseSync || lastSync > baseSync) {
+                    if (ch && ch !== 'None') {
+                        cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+                    }
+                    if (res === 'win') {
+                        btn.innerText = '😁 승리'; btn.className = 'btn-toggle win';
+                    } else if (res === 'lose' || res === 'leaver_loss') {
+                        btn.innerText = '😡 패배'; btn.className = 'btn-toggle lose';
+                    } else if (res === 'ing') {
+                        btn.innerText = '🕒 진행'; btn.className = 'btn-toggle ing';
+                    }
                 }
             } else if (!isWatching) {
-                if (ch && ch !== 'None' && !cInput.value) cInput.value = idToKorMap[ch] || engToIdMap[ch.toLowerCase()] || ch;
+                if (ch && ch !== 'None' && !cInput.value) {
+                    cInput.value = idToKorMap[ch] || engToIdMap[ch?.toLowerCase()] || ch;
+                }
             }
         });
         card.querySelector('.win-val').value = p.wins || 0;
@@ -198,16 +207,34 @@ function mergeData(dbData) {
     });
 }
 
+/* ================= toggleWatch 수정 반영 ================= */
 async function toggleWatch() {
     isWatching = !isWatching;
     const btn = document.getElementById('watchBtn');
-    if(isWatching) {
+
+    if (isWatching) {
+        // 감시 시작 시점의 각 유저별 DB last_sync 상태를 저장 (이후 들어오는 데이터만 받기 위함)
+        const { data } = await sb.from('players').select('id, last_sync');
+        watchBaseSyncMap = {};
+        if (data) {
+            data.forEach(p => {
+                watchBaseSyncMap[p.id] = p.last_sync ? new Date(p.last_sync) : null;
+            });
+        }
+
         watchStartTime = new Date();
-        btn.innerText = "⏹️ 감시 중 (45초 주기)"; btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)";
-        syncWithRiot(); watchInterval = setInterval(syncWithRiot, 45000);
+        btn.innerText = "⏹️ 감시 중 (45초 주기)";
+        btn.style.color = "var(--red)"; btn.style.borderColor = "var(--red)";
+
+        syncWithRiot();
+        watchInterval = setInterval(syncWithRiot, 45000);
     } else {
-        btn.innerText = "▶️ 자동 감시 시작"; btn.style.color = "var(--gold)"; btn.style.borderColor = "var(--gold)";
-        clearInterval(watchInterval); watchStartTime = null; 
+        btn.innerText = "▶️ 자동 감시 시작";
+        btn.style.color = "var(--gold)"; btn.style.borderColor = "var(--gold)";
+
+        clearInterval(watchInterval);
+        watchStartTime = null;
+        watchBaseSyncMap = {};
     }
 }
 
