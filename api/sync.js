@@ -82,6 +82,37 @@ function padArray(arr, length, fill) {
   return base;
 }
 
+// ✅ DDragon 챔피언 맵: championId(숫자) → DDragon 파일명(id)
+// 예외처리 없이 항상 정확한 이미지 파일명을 얻기 위해 사용
+let champIdToName = {}; // { "59": "JarvanIV", "62": "MonkeyKing", ... }
+
+async function loadChampMap() {
+  try {
+    const verRes = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+    const versions = await verRes.json();
+    const latestVer = versions[0];
+    const champRes = await fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVer}/data/ko_KR/champion.json`);
+    const champJson = await champRes.json();
+    champIdToName = {};
+    Object.values(champJson.data).forEach(c => {
+      champIdToName[c.key] = c.id; // c.key = 숫자문자열, c.id = DDragon 파일명
+    });
+    console.log(`챔피언 맵 로드 완료: ${Object.keys(champIdToName).length}개`);
+  } catch (e) {
+    console.error('챔피언 맵 로드 실패:', e.message);
+  }
+}
+
+// championId(숫자) 또는 championName(문자열)을 DDragon 파일명으로 변환
+function resolveChampId(championId, championName) {
+  // championId(숫자)로 먼저 찾기 - 가장 정확함
+  if (championId && champIdToName[String(championId)]) {
+    return champIdToName[String(championId)];
+  }
+  // fallback: championName 그대로 사용
+  return championName || 'None';
+}
+
 module.exports = async (req, res) => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
@@ -93,6 +124,9 @@ module.exports = async (req, res) => {
   const supabase = createClient(url, key);
 
   try {
+    // ✅ 매 sync 호출마다 최신 챔피언 맵 로드 (신챔 자동 반영)
+    await loadChampMap();
+
     const { data: players, error: dbError } = await supabase.from('players').select('*');
     if (dbError) throw dbError;
 
@@ -209,13 +243,13 @@ module.exports = async (req, res) => {
                 if (targetIdx !== -1) {
                   // ing 슬롯이 있으면 거기에 채움
                   newRecent[targetIdx] = me.win ? 'win' : 'lose';
-                  newChamps[targetIdx] = me.championName || 'None';
+                  newChamps[targetIdx] = resolveChampId(me.championId, me.championName);
                 } else {
                   // ✅ 순환 큐: 슬롯이 꽉 찼으면 맨 앞 제거하고 맨 뒤에 추가
                   newRecent.shift();
                   newChamps.shift();
                   newRecent.push(me.win ? 'win' : 'lose');
-                  newChamps.push(me.championName || 'None');
+                  newChamps.push(resolveChampId(me.championId, me.championName));
                 }
 
                 const prevTierKey = parseTierKey(player.tier);
@@ -241,7 +275,7 @@ module.exports = async (req, res) => {
                 pUpdate.last_match_id = currentMatchId;
                 pUpdate.trigger_cutscene = true;
                 pUpdate.event_type = eventType;
-                pUpdate.target_champion = me.championName || 'None';
+                pUpdate.target_champion = resolveChampId(me.championId, me.championName);
                 pUpdate.last_kda = `${me.kills}/${me.deaths}/${me.assists}`;
                 pUpdate.lp_diff = lpDiff;
               }
