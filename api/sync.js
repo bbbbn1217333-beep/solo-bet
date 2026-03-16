@@ -200,14 +200,22 @@ module.exports = async (req, res) => {
               const newChamps = [...safeChamps];
 
               if (isRemake) {
+                // 리메이크: ing 슬롯 챔피언만 지우고 결과는 ing 유지
                 if (targetIdx !== -1) newChamps[targetIdx] = "None";
                 pUpdate.recent = newRecent;
                 pUpdate.champions = newChamps;
                 pUpdate.last_match_id = currentMatchId;
               } else {
                 if (targetIdx !== -1) {
+                  // ing 슬롯이 있으면 거기에 채움
                   newRecent[targetIdx] = me.win ? 'win' : 'lose';
                   newChamps[targetIdx] = me.championName || 'None';
+                } else {
+                  // ✅ 순환 큐: 슬롯이 꽉 찼으면 맨 앞 제거하고 맨 뒤에 추가
+                  newRecent.shift();
+                  newChamps.shift();
+                  newRecent.push(me.win ? 'win' : 'lose');
+                  newChamps.push(me.championName || 'None');
                 }
 
                 const prevTierKey = parseTierKey(player.tier);
