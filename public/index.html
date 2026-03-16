@@ -6,26 +6,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body{margin:0; background:transparent; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
-.scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 8px;}
+body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
+.scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 16px;}
 .scene.active{opacity:1; z-index:1; display:block;}
-/* OBS 브라우저 소스: 1920x1080 기준 우측하단 배치용 */
-/* scene-all: 양팀 나란히 표시 - 전체 축소 */
-#scene-all .container, #scene-red .container, #scene-blue .container {
-    transform-origin: top left;
-    transform: scale(0.38);
-    width: 260%;
-}
-.container{display:flex; gap:6px; justify-content:flex-start; margin-top:0px;}
+.container{display:flex; gap:8px; justify-content:center; margin-top:0px;}
 .team{display:flex; flex-direction:column; align-items:center;}
-.team-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
-.team h1{font-family:'Orbitron',sans-serif; font-size:22px; margin: 0;}
+.team-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.team h1{font-family:'Orbitron',sans-serif; font-size:20px; margin: 0;}
 .red h1{color:#ff5c5c} .blue h1{color:#4db8ff;}
-.summary{font-size:13px; font-weight:800;}
+.summary{font-size:12px; font-weight:800;}
 .summary .win{color:#ffd369; text-shadow:0 0 8px #ffd369;}
 .summary .lose{color:#ff6b6b; text-shadow:0 0 8px #ff6b6b;}
 .members{display:flex; flex-direction:column; gap:2px;}
-.member-card{position:relative; width:200px; padding:5px 6px 4px; background:rgba(255,255,255,.08); border-radius:5px; border:1px solid rgba(120,120,120,.4); text-align:center; overflow:visible; margin-top: 8px;}
+.member-card{position:relative; width:185px; padding:5px 7px 5px; background:rgba(255,255,255,.07); border-radius:6px; border:1px solid rgba(120,120,120,.4); text-align:center; overflow:visible; margin-top: 10px;}
 .status-icon { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 16px; z-index: 10; }
 .crown-glow { animation: floatCrown 2s infinite ease-in-out, glowGoldIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ffd369); }
 .skull-shake { animation: shakeSkull 0.5s infinite linear, glowRedIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ff4d4d); }
@@ -33,12 +26,12 @@ body{margin:0; background:transparent; color:#fff; font-family:'Pretendard',sans
 @keyframes glowGoldIcon { 0% { filter: drop-shadow(0 0 5px #ffd369); } 100% { filter: drop-shadow(0 0 15px #ffd369) brightness(1.2); } }
 @keyframes shakeSkull { 0% { transform: translateX(-50%) rotate(0deg); } 25% { transform: translateX(-52%) rotate(-5deg); } 75% { transform: translateX(-48%) rotate(5deg); } 100% { transform: translateX(-50%) rotate(0deg); } }
 @keyframes glowRedIcon { 0% { filter: drop-shadow(0 0 5px #ff4d4d); } 100% { filter: drop-shadow(0 0 15px #ff4d4d) brightness(1.2); } }
-.info-line{display:flex; justify-content:center; align-items:baseline; gap:3px; margin-bottom:4px; white-space:nowrap;}
-.name{font-family:'Orbitron',sans-serif; font-size:10px; font-weight:800; flex-shrink: 0;}
-.tier{font-size:9px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}
-.record{font-size:9px; font-weight:800; flex-shrink: 0; display:flex; gap:2px;}
+.info-line{display:flex; justify-content:center; align-items:baseline; gap:4px; margin-bottom:5px; white-space:nowrap;}
+.name{font-family:'Orbitron',sans-serif; font-size:11px; font-weight:800; flex-shrink: 0;}
+.tier{font-size:10px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}
+.record{font-size:10px; font-weight:800; flex-shrink: 0; display:flex; gap:3px;}
 .record .win{color:#ffd369;} .record .lose{color:#ff6b6b;}
-.streak{font-size:8px; font-weight:900; padding:1px 3px; border-radius:3px; margin-left:1px; flex-shrink: 0;}
+.streak{font-size:9px; font-weight:900; padding:1px 4px; border-radius:3px; margin-left:1px; flex-shrink: 0;}
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
 .tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;}
@@ -52,12 +45,12 @@ body{margin:0; background:transparent; color:#fff; font-family:'Pretendard',sans
 .tier.grandmaster{--t-clr:#e74c3c; color:var(--t-clr) !important;}
 .tier.challenger{--t-clr:#f1c40f; color:var(--t-clr) !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);}
 .tier.unranked{--t-clr:#aaa; color:var(--t-clr) !important;}
-.history{display:flex; justify-content:center; gap:3px;}
-.champ{position:relative; width:18px; height:18px;}
+.history{display:flex; justify-content:center; gap:4px;}
+.champ{position:relative; width:16px; height:16px;}
 .champ img{width:100%; height:100%; border-radius:4px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
 @keyframes ingamePulse { 0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } 50% { box-shadow: 0 0 12px #00FFAA; border-color: #fff; } 100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } }
 .champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.2); }
-.wl-badge { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 9px; height: 9px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 2px; font-size: 5px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
+.wl-badge { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 10px; height: 10px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 2px; font-size: 6px; font-weight: 900; display: flex; align-items: center; justify-content: center; z-index: 5; }
 .wl-badge.win { color: #ffd369; border-color: #ffd369; }
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
 .wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; font-size: 9px; }
