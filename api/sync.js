@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+// ✅ node-fetch 제거 - Node 18+ 내장 fetch 사용
 
 const TIER_KOR = {
   "CHALLENGER": "챌린저", "GRANDMASTER": "그랜드마스터", "MASTER": "마스터",
@@ -161,20 +161,20 @@ module.exports = async (req, res) => {
         const safeChamps = padArray(player.champions, 10, 'None');
         const watchSince = player.watch_since ? new Date(player.watch_since) : null;
 
-let pUpdate = {
-  id: player.id,
-  tier: player.manual_tier ? player.tier : apiTierStr,
-  puuid: puuid,
-  manual_tier: !!player.manual_tier,
-  last_sync: new Date().toISOString(),
-  trigger_cutscene: false,
-  wins: player.wins || 0,
-  losses: player.losses || 0,
-  recent: safeRecent,
-  champions: safeChamps,
-  last_match_id: player.last_match_id || null,  // ✅ 이 줄 추가
-  watch_since: player.watch_since || null,       // ✅ 이 줄 추가
-};
+        let pUpdate = {
+          id: player.id,
+          tier: player.manual_tier ? player.tier : apiTierStr,
+          puuid: puuid,
+          manual_tier: !!player.manual_tier,
+          last_sync: new Date().toISOString(),
+          trigger_cutscene: false,
+          wins: player.wins || 0,
+          losses: player.losses || 0,
+          recent: safeRecent,
+          champions: safeChamps,
+          last_match_id: player.last_match_id || null,
+          watch_since: player.watch_since || null,
+        };
 
         // ── 6. 새 매치 처리 ──
         if (currentMatchId && currentMatchId !== player.last_match_id) {
@@ -188,7 +188,6 @@ let pUpdate = {
               : null;
             const me = detail.info?.participants?.find(p => p.puuid === puuid);
 
-            // ✅ 핵심 수정: watch_since가 null이면(감시 미시작) 감시 전으로 간주 → last_match_id만 업데이트하고 기록 안 함
             const isBeforeWatch = !watchSince || (gameEndTime && gameEndTime <= watchSince);
 
             if (isBeforeWatch) {
