@@ -530,7 +530,8 @@ async function applyToSupabase() {
             id: 1,
             red_team_name: document.getElementById('redNameInput').value,
             blue_team_name: document.getElementById('blueNameInput').value,
-            member_count: Number(document.getElementById('teamCount').value)
+            member_count: Number(document.getElementById('teamCount').value),
+            timer_end_at: document.getElementById('endDateTime').value || null
         });
 
         if (updates.length > 0) {
