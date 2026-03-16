@@ -451,26 +451,24 @@ function resetMemberRecord(btn) {
 }
 
 async function resetAllRecords() {
-    if (!confirm("⚠️ 전체 초기화하시겠습니까?")) return;
-    const { data: current } = await sb.from('players').select('id, team');
-    if (!current) return;
+    if (!confirm("⚠️ 전체 초기화하시겠습니까?\n기존 플레이어 데이터가 모두 삭제됩니다.")) return;
 
-    const resetData = current.map(p => ({
-        id: p.id, name:"", riot_id:"", tier:"언랭크",
-        wins:0, losses:0,
-        recent: Array(10).fill('ing'),
-        champions: Array(10).fill('None'),
-        manual_tier: false, team: p.team,
-        last_sync: '2000-01-01T00:00:00Z',
-        trigger_cutscene: false, lp_diff:'',
-        event_type: null, target_champion: null,
-        last_kda: null, last_match_id: null,
-        watch_since: null,
-    }));
+    const cnt = Number(document.getElementById('teamCount').value) || 5;
 
-    const { error } = await sb.from('players').upsert(resetData, { onConflict: 'id' });
-    if (error) { alert("초기화 실패: " + error.message); log(`초기화 실패: ${error.message}`); }
-    else { alert("✅ 초기화 완료"); location.reload(); }
+    // 기존 row 전체 DELETE (upsert 대신 DELETE+INSERT로 변경 - 남은 row 방지)
+    const { error: delError } = await sb.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (delError) { alert("초기화 실패: " + delError.message); log(`삭제 실패: ${delError.message}`); return; }
+
+    // 현재 인원수에 맞게 새 row INSERT
+    const newData = [];
+    for (let i = 0; i < cnt; i++) {
+        newData.push({ team: 'red',  name:"", riot_id:"", tier:"언랭크", wins:0, losses:0, recent: Array(10).fill('ing'), champions: Array(10).fill('None'), manual_tier:false, trigger_cutscene:false, lp_diff:'', event_type:null, target_champion:null, last_kda:null, last_match_id:null, watch_since:null });
+        newData.push({ team: 'blue', name:"", riot_id:"", tier:"언랭크", wins:0, losses:0, recent: Array(10).fill('ing'), champions: Array(10).fill('None'), manual_tier:false, trigger_cutscene:false, lp_diff:'', event_type:null, target_champion:null, last_kda:null, last_match_id:null, watch_since:null });
+    }
+
+    const { error: insError } = await sb.from('players').insert(newData);
+    if (insError) { alert("초기화 실패: " + insError.message); log(`삽입 실패: ${insError.message}`); }
+    else { log(`초기화 완료 - 레드${cnt}명 블루${cnt}명`); alert("✅ 초기화 완료"); location.reload(); }
 }
 
 async function applyToSupabase() {
