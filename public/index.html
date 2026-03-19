@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
-.wrapper{width:420px; height:580px; position:relative; transform-origin:top left; transform:scale(0.72);}
+.wrapper{width:1920px; height:1080px; position:relative; transform-origin:top left; transform:scale(var(--ui-scale, 1));}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 16px;}
 .scene.active{opacity:1; z-index:1; display:block;}
 .container{display:flex; gap:8px; justify-content:center; margin-top:0px;}
@@ -102,7 +102,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="wrapper" id="wrapper">
 <div class="scene active" id="scene-all"></div>
 <div class="scene" id="scene-red"></div>
 <div class="scene" id="scene-blue"></div>
@@ -110,6 +110,16 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 <div class="scene" id="scene-game-win"></div>
 <div class="scene" id="scene-game-lose"></div>
 </div>
+<script>
+function applyScale() {
+    const scaleX = window.innerWidth / 1920;
+    const scaleY = window.innerHeight / 1080;
+    const scale = Math.min(scaleX, scaleY);
+    document.getElementById('wrapper').style.transform = `scale(${scale})`;
+}
+applyScale();
+window.addEventListener('resize', applyScale);
+</script>
 
 <script>
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
@@ -228,7 +238,7 @@ function renderMainScene(container, filterTeam) {
                         ${sText ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${sText}</span>` : ''}
                     </div>
                     <div class="history">
-                    ${(p.recent || Array(5).fill(null)).slice(0, 5).map((r, i) => {
+                    ${(p.recent || Array(10).fill(null)).map((r, i) => {
                         const c = fixChamp(p.champions ? p.champions[i] : 'None');
                         const isResult = (r === 'win' || r === 'lose');
                         const isIngame = (!isResult && c !== 'None');
