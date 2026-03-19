@@ -2,12 +2,18 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1920">
 <title>이라네 솔랭 내기 시트지</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@600;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden; zoom:1.5;}
+body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
+.wrapper{
+    width: 400px;
+    height: 600px;
+    position: relative;
+    transform-origin: top left;
+    transform: scale(0.5);
+}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 16px;}
 .scene.active{opacity:1; z-index:1; display:block;}
 .container{display:flex; gap:8px; justify-content:center; margin-top:0px;}
@@ -102,12 +108,14 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 </style>
 </head>
 <body>
+<div class="wrapper">
 <div class="scene active" id="scene-all"></div>
 <div class="scene" id="scene-red"></div>
 <div class="scene" id="scene-blue"></div>
 <div class="scene" id="scene-score"></div>
 <div class="scene" id="scene-game-win"></div>
 <div class="scene" id="scene-game-lose"></div>
+</div>
 
 <script>
 const SUPABASE_URL = "https://hsvknfmnsehwytnvaiwr.supabase.co";
