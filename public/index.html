@@ -10,7 +10,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wrapper{width:1920px; height:1080px; position:relative;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 16px;}
 .scene.active{opacity:1; z-index:1; display:block;}
-.container{display:flex; gap:8px; justify-content:center; margin-top:0px;}
+.container{display:flex; gap:8px; justify-content:center; margin-top:0px; min-width:410px;}
 .team{display:flex; flex-direction:column; align-items:center;}
 .team-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 .team h1{font-family:'Orbitron',sans-serif; font-size:20px; margin: 0;}
@@ -56,7 +56,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .wl-badge.lose { color: #ff4d4d; border-color: #ff4d4d; }
 .wl-badge.ing { color: #00FFAA !important; border-color: #00FFAA !important; font-size: 9px; }
 .wl-badge.none { color: #00FFAA !important; border-color: #00FFAA !important; background: rgba(0, 255, 170, 0.1); }
-.score-board{margin-top:20px; text-align:center; font-family:'Orbitron',sans-serif;}
+.score-board{margin-top:20px; text-align:center; font-family:'Orbitron',sans-serif; min-width:410px; min-height:320px; display:flex; flex-direction:column; justify-content:center; align-items:center;}
 .timer-label{font-size:16px; font-weight:900; color:#fff; margin-bottom:8px; padding:4px 10px; background: rgba(0,0,0,0.3); border:2px solid #00FFAA; border-radius:8px; display:inline-block;}
 .timer{ font-size:14px; font-weight:800; margin-bottom:10px; color: #ffd369; display: flex; justify-content: center; align-items: center; gap: 8px; height: 24px;}
 .timer-nums { font-variant-numeric: tabular-nums; min-width: 80px; text-align: left; }
@@ -447,6 +447,24 @@ function renderAll() {
     renderMainScene(document.getElementById('scene-red'), 'red');
     renderMainScene(document.getElementById('scene-blue'), 'blue');
     renderScoreScene();
+
+    // 두 팀 씬 실제 크기 측정 후 한 팀/스코어 씬에 동일하게 맞추기
+    requestAnimationFrame(() => {
+        const allContainer = document.querySelector('#scene-all .container');
+        if (!allContainer) return;
+        const w = allContainer.offsetWidth;
+        const h = allContainer.offsetHeight;
+
+        // 한 팀 씬 - container에 동일 크기 강제 적용
+        ['scene-red', 'scene-blue'].forEach(id => {
+            const c = document.querySelector('#' + id + ' .container');
+            if (c) { c.style.minWidth = w + 'px'; c.style.minHeight = h + 'px'; }
+        });
+
+        // 스코어 씬 - score-board에 동일 크기 강제 적용
+        const scoreBoard = document.querySelector('#scene-score .score-board');
+        if (scoreBoard) { scoreBoard.style.width = w + 'px'; scoreBoard.style.minHeight = h + 'px'; }
+    });
 }
 
 function nextScene() {
