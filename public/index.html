@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif; overflow:hidden;}
-.wrapper{width:1920px; height:1080px; position:relative; transform-origin:top left; transform:scale(var(--ui-scale, 1));}
+.wrapper{width:1920px; height:1080px; position:relative;}
 .scene{position:absolute; inset:0; opacity:0; transition:opacity .6s ease; display:none; padding: 16px;}
 .scene.active{opacity:1; z-index:1; display:block;}
 .container{display:flex; gap:8px; justify-content:center; margin-top:0px;}
@@ -115,7 +115,7 @@ function applyScale() {
     const scaleX = window.innerWidth / 1920;
     const scaleY = window.innerHeight / 1080;
     const scale = Math.min(scaleX, scaleY);
-    document.getElementById('wrapper').style.transform = `scale(${scale})`;
+    document.body.style.zoom = scale;
 }
 applyScale();
 window.addEventListener('resize', applyScale);
