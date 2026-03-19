@@ -228,7 +228,7 @@ function renderMainScene(container, filterTeam) {
                         ${sText ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${sText}</span>` : ''}
                     </div>
                     <div class="history">
-                    ${(p.recent || Array(10).fill(null)).map((r, i) => {
+                    ${(p.recent || Array(5).fill(null)).slice(0, 5).map((r, i) => {
                         const c = fixChamp(p.champions ? p.champions[i] : 'None');
                         const isResult = (r === 'win' || r === 'lose');
                         const isIngame = (!isResult && c !== 'None');
