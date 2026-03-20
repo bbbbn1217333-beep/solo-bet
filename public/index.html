@@ -13,13 +13,13 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .container{display:flex; gap:0px; justify-content:center; margin-top:0px; min-width:0;}
 .team{display:flex; flex-direction:column; align-items:center;}
 .team-header { display: flex; align-items: baseline; gap: 6px; margin-bottom: 3px; }
-.team h1{font-family:'Orbitron',sans-serif; font-size:15px; margin: 0;}
+.team h1{font-family:'Orbitron',sans-serif; font-size:16px; margin: 0;}
 .red h1{color:#ff5c5c} .blue h1{color:#4db8ff;}
-.summary{font-size:12px; font-weight:800;}
+.summary{font-size:13px; font-weight:800;}
 .summary .win{color:#ffd369; text-shadow:0 0 8px #ffd369;}
 .summary .lose{color:#ff6b6b; text-shadow:0 0 8px #ff6b6b;}
-.members{display:flex; flex-direction:column; gap:0px;}
-.member-card{position:relative; width:210px; padding:8px 7px; background:rgba(255,255,255,.07); border-radius:0px; border:1px solid rgba(120,120,120,.4); text-align:center; overflow:hidden; margin-top: 0px;}
+.members{display:flex; flex-direction:column; gap:0px; align-items:stretch;}
+.member-card{position:relative; width:240px; min-height:60px; padding:5px 7px; background:rgba(255,255,255,.07); border-radius:0px; border:1px solid rgba(120,120,120,.4); text-align:center; overflow:visible; margin-top: 0px; box-sizing:border-box;}
 .status-icon { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 13px; z-index: 10; }
 .crown-glow { animation: floatCrown 2s infinite ease-in-out, glowGoldIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ffd369); }
 .skull-shake { animation: shakeSkull 0.5s infinite linear, glowRedIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ff4d4d); }
@@ -28,11 +28,11 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 @keyframes shakeSkull { 0% { transform: translateX(-50%) rotate(0deg); } 25% { transform: translateX(-52%) rotate(-5deg); } 75% { transform: translateX(-48%) rotate(5deg); } 100% { transform: translateX(-50%) rotate(0deg); } }
 @keyframes glowRedIcon { 0% { filter: drop-shadow(0 0 5px #ff4d4d); } 100% { filter: drop-shadow(0 0 15px #ff4d4d) brightness(1.2); } }
 .info-line{display:flex; justify-content:center; align-items:baseline; gap:3px; margin-bottom:3px; white-space:nowrap;}
-.name{font-family:'Orbitron',sans-serif; font-size:10px; font-weight:800; flex-shrink: 0; overflow:hidden; text-overflow:ellipsis;}
-.tier{font-size:10px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}
-.record{font-size:10px; font-weight:800; flex-shrink: 0; display:flex; gap:3px;}
+.name{font-family:'Orbitron',sans-serif; font-size:11px; font-weight:800; flex-shrink: 0;}
+.tier{font-size:11px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}
+.record{font-size:11px; font-weight:800; flex-shrink: 0; display:flex; gap:3px;}
 .record .win{color:#ffd369;} .record .lose{color:#ff6b6b;}
-.streak{font-size:9px; font-weight:900; padding:1px 3px; border-radius:3px; margin-left:1px; flex-shrink: 0;}
+.streak{font-size:10px; font-weight:900; padding:1px 3px; border-radius:3px; margin-left:1px; flex-shrink: 0;}
 .streak.win{color:#ffd369; border: 1px solid #ffd369; background: rgba(255, 211, 105, 0.15);}
 .streak.lose{color:#ff6b6b; border: 1px solid #ff6b6b; background: rgba(255, 107, 107, 0.15);}
 .tier.iron{--t-clr:#a19d94; color:var(--t-clr) !important;}
@@ -47,7 +47,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .tier.challenger{--t-clr:#f1c40f; color:var(--t-clr) !important; text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);}
 .tier.unranked{--t-clr:#aaa; color:var(--t-clr) !important;}
 .history{display:flex; justify-content:center; gap:6px;}
-.champ{position:relative; width:13px; height:13px;}
+.champ{position:relative; width:20px; height:20px;}
 .champ img{width:100%; height:100%; border-radius:3px; border: 1px solid rgba(255,255,255,0.2); background: #222;}
 @keyframes ingamePulse { 0% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } 50% { box-shadow: 0 0 12px #00FFAA; border-color: #fff; } 100% { box-shadow: 0 0 2px #00FFAA; border-color: #00FFAA; } }
 .champ img.ingame { animation: ingamePulse 1.2s infinite; border: 2px solid #00FFAA !important; filter: brightness(1.2); }
@@ -222,7 +222,7 @@ function renderMainScene(container, filterTeam) {
                 const tInfo = getTierInfo(p.tier);
                 let icon = p.streak >= 3 ? '<span class="status-icon crown-glow">👑</span>' : (p.streak <= -3 ? '<span class="status-icon skull-shake">💀</span>' : '');
                 let sText = p.streak > 0 ? (p.streak === 1 ? '1승중' : p.streak + '연승') : (p.streak < 0 ? (p.streak === -1 ? '1패중' : Math.abs(p.streak) + '연패') : '');
-                return `<div class="member-card" style="border-color:${streakCol}; box-shadow:0 0 ${4 + level * 2}px ${streakCol}">
+                return `<div class="member-card" style="border-color:${streakCol}; box-shadow:inset 0 0 ${4 + level * 2}px ${streakCol}">
                     ${icon}
                     <div class="info-line">
                         <span class="name">${p.name}</span>
