@@ -10,7 +10,7 @@ body{margin:0; background:transparent; color:#fff; font-family:'Pretendard',sans
 .wrapper{display:inline-block; height:auto; position:relative;}
 .scene{position:relative; inset:auto; opacity:0; transition:opacity .6s ease; display:none; padding: 0px;}
 .scene.active{opacity:1; z-index:1; display:block;}
-.container{display:flex; gap:0px; justify-content:center; margin-top:0px; min-width:0; background:#000; border-radius:8px; padding:8px;}
+.container{display:flex; gap:1px; justify-content:center; margin-top:0px; min-width:0; background:#000; border-radius:8px; padding:8px;}
 .team{display:flex; flex-direction:column; align-items:center;}
 .team-header { display: flex; align-items: baseline; gap: 6px; margin-bottom: 3px; }
 .team h1{font-family:'Orbitron',sans-serif; font-size:16px; margin: 0;}
@@ -18,7 +18,7 @@ body{margin:0; background:transparent; color:#fff; font-family:'Pretendard',sans
 .summary{font-size:13px; font-weight:800;}
 .summary .win{color:#ffd369; text-shadow:0 0 8px #ffd369;}
 .summary .lose{color:#ff6b6b; text-shadow:0 0 8px #ff6b6b;}
-.members{display:flex; flex-direction:column; gap:0px; align-items:stretch;}
+.members{display:flex; flex-direction:column; gap:1px; align-items:stretch;}
 .member-card{position:relative; width:240px; min-height:60px; padding:5px 7px; background:rgba(255,255,255,.07); border-radius:0px; border:1px solid rgba(120,120,120,.4); text-align:center; overflow:visible; margin-top: 0px; box-sizing:border-box;}
 .status-icon { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 13px; z-index: 10; }
 .crown-glow { animation: floatCrown 2s infinite ease-in-out, glowGoldIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ffd369); }
@@ -75,28 +75,28 @@ body{margin:0; background:transparent; color:#fff; font-family:'Pretendard',sans
 .score-box.draw .score-num { color: #ffffff; animation: glowWhite 1.2s infinite alternate; }
 .score-box.loser .score-num { color: #ff5c5c; text-shadow: 0 0 15px rgba(255, 92, 92, 0.5); }
 .sub-info{font-size:10px; font-weight:800; color:#ff6b6b; margin-top:4px;}
-.game-result-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; box-sizing: border-box; padding: 40px; border-radius: 30px; text-align: center; background: rgba(0, 0, 0, 0.95); border: 5px solid #fff; z-index: 9999; }
-.res-win { border-color: #ffd369; box-shadow: 0 0 50px rgba(255, 211, 105, 0.5); }
-.res-lose { border-color: #ff5c5c; box-shadow: 0 0 50px rgba(255, 92, 92, 0.5); }
-.res-title { font-size: 70px; margin: 0; line-height: 1.2; font-weight: 900; font-family:'Pretendard'; }
-.res-win .res-title { color: #fff; text-shadow: 0 0 25px #ffd369, 0 0 45px #ffd369; }
-.res-lose .res-title { color: #fff; text-shadow: 0 0 25px #ff5c5c, 0 0 45px #ff5c5c; }
-.res-nick { font-size: 38px; font-weight: 800; margin: 25px 0 10px; display: flex; align-items: center; justify-content: center; gap: 12px; }
-.res-team { padding: 4px 12px; border-radius: 6px; font-size: 20px; vertical-align: middle; color: #fff; text-transform: uppercase; }
-.res-tier-wrap { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px; margin-bottom: 20px; }
-.res-tier { font-size: 28px; font-weight: 800; color: #fff !important; padding: 10px 25px; border-radius: 8px; border: 2px solid var(--t-clr); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 10px var(--t-clr), 0 0 15px var(--t-clr); display: flex; align-items: center; gap: 15px; }
-.status-badge { font-size: 32px; font-weight: 900; text-shadow: 2px 2px 4px #000; font-family:'Pretendard'; white-space: nowrap; margin-left: 10px; }
+.game-result-card { width: 100%; box-sizing: border-box; padding: 20px; border-radius: 16px; text-align: center; background: rgba(0, 0, 0, 0.95); border: 3px solid #fff; z-index: 9999; }
+.res-win { border-color: #ffd369; box-shadow: 0 0 30px rgba(255, 211, 105, 0.5); }
+.res-lose { border-color: #ff5c5c; box-shadow: 0 0 30px rgba(255, 92, 92, 0.5); }
+.res-title { font-size: 32px; margin: 0; line-height: 1.2; font-weight: 900; font-family:'Pretendard'; }
+.res-win .res-title { color: #fff; text-shadow: 0 0 15px #ffd369, 0 0 25px #ffd369; }
+.res-lose .res-title { color: #fff; text-shadow: 0 0 15px #ff5c5c, 0 0 25px #ff5c5c; }
+.res-nick { font-size: 18px; font-weight: 800; margin: 10px 0 6px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.res-team { padding: 2px 8px; border-radius: 6px; font-size: 12px; vertical-align: middle; color: #fff; text-transform: uppercase; }
+.res-tier-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; margin-bottom: 8px; }
+.res-tier { font-size: 14px; font-weight: 800; color: #fff !important; padding: 6px 14px; border-radius: 8px; border: 2px solid var(--t-clr); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 10px var(--t-clr), 0 0 15px var(--t-clr); display: flex; align-items: center; gap: 8px; }
+.status-badge { font-size: 14px; font-weight: 900; text-shadow: 2px 2px 4px #000; font-family:'Pretendard'; white-space: nowrap; margin-left: 6px; }
 .badge-pro-super { color: #FFD700 !important; }
 .badge-pro { color: #FFFACD !important; }
 .badge-dem { color: #FF4D4D !important; }
-.res-point { font-weight: 900; font-family: 'Orbitron'; font-size: 32px; margin-left: 10px; }
+.res-point { font-weight: 900; font-family: 'Orbitron'; font-size: 16px; margin-left: 6px; }
 .res-point.win { color: #ffd369; text-shadow: 0 0 10px #ffd369; }
 .res-point.lose { color: #ff6b6b; text-shadow: 0 0 10px #ff6b6b; }
-.res-champ img { width: 140px; height: 140px; border-radius: 50%; border: 4px solid #fff; margin-bottom: 15px; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
-.res-kda-box { font-family: 'Orbitron'; margin-top: 10px; }
-.kda-main { font-size: 42px; font-weight: 900; display: block; letter-spacing: 2px; }
-.kda-calc { font-size: 24px; font-weight: 800; color: #ffd369; margin-top: 5px; display: block; }
-.res-streak { font-size: 22px; font-weight: 900; padding: 4px 12px; border-radius: 6px; vertical-align: middle; }
+.res-champ img { width: 70px; height: 70px; border-radius: 50%; border: 3px solid #fff; margin-bottom: 8px; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+.res-kda-box { font-family: 'Orbitron'; margin-top: 6px; }
+.kda-main { font-size: 20px; font-weight: 900; display: block; letter-spacing: 2px; }
+.kda-calc { font-size: 13px; font-weight: 800; color: #ffd369; margin-top: 4px; display: block; }
+.res-streak { font-size: 12px; font-weight: 900; padding: 2px 8px; border-radius: 6px; vertical-align: middle; }
 .res-streak.win { color:#ffd369; border: 2px solid #ffd369; background: rgba(255,211,105,0.1); }
 .res-streak.lose { color:#ff6b6b; border: 2px solid #ff6b6b; background: rgba(255,107,107,0.1); }
 </style>
@@ -205,14 +205,18 @@ const fixChamp = c => {
 
 function renderMainScene(container, filterTeam) {
     const teams = filterTeam ? [filterTeam] : ['red', 'blue'];
+    const cardWidth = filterTeam ? 480 : 240;  // 한 팀이면 2배
+    const fontSize = filterTeam ? { name: 22, tier: 22, record: 22, streak: 20, h1: 32, summary: 26, champ: 40 } 
+                                : { name: 11, tier: 11, record: 11, streak: 10, h1: 16, summary: 13, champ: 20 };
+    const champGap = filterTeam ? 12 : 6;
     container.innerHTML = `<div class="container">${teams.map(t => {
         const teamPlayers = players.filter(p => p.team === t);
         const tW = teamPlayers.reduce((a, b) => a + (b.wins || 0), 0);
         const tL = teamPlayers.reduce((a, b) => a + (b.losses || 0), 0);
         return `<div class="team ${t}">
             <div class="team-header">
-                <h1>${(t === 'red' ? settings.red_team_name : settings.blue_team_name) || t.toUpperCase()}</h1>
-                <div class="summary"><span class="win">😁${tW}승</span> / <span class="lose">😡${tL}패</span></div>
+                <h1 style="font-size:${fontSize.h1}px">${(t === 'red' ? settings.red_team_name : settings.blue_team_name) || t.toUpperCase()}</h1>
+                <div class="summary" style="font-size:${fontSize.summary}px"><span class="win">😁${tW}승</span> / <span class="lose">😡${tL}패</span></div>
             </div>
             <div class="members">
             ${teamPlayers.map(p => {
@@ -221,22 +225,22 @@ function renderMainScene(container, filterTeam) {
                 const tInfo = getTierInfo(p.tier);
                 let icon = p.streak >= 3 ? '<span class="status-icon crown-glow">👑</span>' : (p.streak <= -3 ? '<span class="status-icon skull-shake">💀</span>' : '');
                 let sText = p.streak > 0 ? (p.streak === 1 ? '1승중' : p.streak + '연승') : (p.streak < 0 ? (p.streak === -1 ? '1패중' : Math.abs(p.streak) + '연패') : '');
-                return `<div class="member-card" style="border-color:${streakCol}; box-shadow:inset 0 0 ${4 + level * 2}px ${streakCol}">
+                return `<div class="member-card" style="width:${cardWidth}px; border-color:${streakCol}; box-shadow:inset 0 0 ${4 + level * 2}px ${streakCol}">
                     ${icon}
                     <div class="info-line">
-                        <span class="name">${p.name}</span>
-                        <span class="tier ${tInfo.class}">${tInfo.name}</span>
-                        <div class="record"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div>
-                        ${sText ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}">${sText}</span>` : ''}
+                        <span class="name" style="font-size:${fontSize.name}px">${p.name}</span>
+                        <span class="tier ${tInfo.class}" style="font-size:${fontSize.tier}px">${tInfo.name}</span>
+                        <div class="record" style="font-size:${fontSize.record}px"><span class="win">😁${p.wins || 0}승</span> <span class="lose">😡${p.losses || 0}패</span></div>
+                        ${sText ? `<span class="streak ${p.streak > 0 ? 'win' : 'lose'}" style="font-size:${fontSize.streak}px">${sText}</span>` : ''}
                     </div>
-                    <div class="history">
+                    <div class="history" style="gap:${champGap}px">
                     ${(p.recent || Array(10).fill(null)).map((r, i) => {
                         const c = fixChamp(p.champions ? p.champions[i] : 'None');
                         const isResult = (r === 'win' || r === 'lose');
                         const isIngame = (!isResult && c !== 'None');
                         const badgeText = isResult ? (r === 'win' ? 'W' : 'L') : (isIngame ? '⚡' : '...');
                         const badgeClass = isResult ? r : (isIngame ? 'ing' : 'none');
-                        return `<div class="champ">
+                        return `<div class="champ" style="width:${fontSize.champ}px; height:${fontSize.champ}px">
                             <img src="${c === 'None' ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : `https://ddragon.leagueoflegends.com/cdn/${LOL_VER}/img/champion/${c}.png`}" class="${isIngame ? 'ingame' : ''}">
                             <span class="wl-badge ${badgeClass}">${badgeText}</span>
                         </div>`;
@@ -439,6 +443,120 @@ function renderAll() {
     renderMainScene(document.getElementById('scene-red'), 'red');
     renderMainScene(document.getElementById('scene-blue'), 'blue');
     renderScoreScene();
+
+    requestAnimationFrame(() => {
+        const allContainer = document.querySelector('#scene-all .container');
+        if (!allContainer) return;
+        const w = allContainer.offsetWidth;
+        const h = allContainer.offsetHeight;
+        const scale = w / 480;  // 두 팀 기준 너비
+
+        // 한 팀 씬 - container 크기 고정 + 카드/내용물 비율 키우기
+        ['scene-red', 'scene-blue'].forEach(id => {
+            const c = document.querySelector('#' + id + ' .container');
+            if (c) {
+                c.style.width = w + 'px';
+                c.style.height = h + 'px';
+                c.style.overflow = 'hidden';  // 배경 초과 방지
+                c.style.boxSizing = 'border-box';
+                const cardW = w - 16;
+                const cards = c.querySelectorAll('.member-card');
+                const cardCount = cards.length || 5;
+                const header = c.querySelector('.team-header');
+                const headerH = header ? header.offsetHeight + 30 : 60;
+                const cardH = Math.floor((h - headerH - 16) / cardCount);
+                const csW = cardW / 240;
+                const csH = cardH / 60;
+                const cs = Math.min(csW, csH) * 0.95;
+
+                cards.forEach(card => {
+                    card.style.width = cardW + 'px';
+                    card.style.height = cardH + 'px';
+                    card.style.minHeight = cardH + 'px';
+                    card.style.overflow = 'hidden';
+                    card.style.boxSizing = 'border-box';
+                    card.style.padding = Math.round(4 * csH) + 'px ' + Math.round(7 * csW) + 'px';
+                });
+                c.querySelectorAll('.name').forEach(el => el.style.fontSize = Math.round(11 * cs * 1.3) + 'px');
+                c.querySelectorAll('.tier').forEach(el => el.style.fontSize = Math.round(11 * cs * 1.3) + 'px');
+                c.querySelectorAll('.record').forEach(el => el.style.fontSize = Math.round(11 * cs * 1.3) + 'px');
+                c.querySelectorAll('.streak').forEach(el => el.style.fontSize = Math.round(10 * cs * 1.3) + 'px');
+                c.querySelectorAll('h1').forEach(el => el.style.fontSize = Math.round(16 * cs * 1.3) + 'px');
+                c.querySelectorAll('.summary').forEach(el => el.style.fontSize = Math.round(13 * cs * 1.3) + 'px');
+                c.querySelectorAll('.info-line').forEach(el => el.style.gap = Math.round(3 * cs * 1.3) + 'px');
+                c.querySelectorAll('.history').forEach(el => {
+                    el.style.gap = '0px';
+                    el.style.justifyContent = 'space-between';
+                });
+                const champSize = Math.floor(cardW / 10 * 0.55);
+                const badgeSize = Math.round(champSize * 0.45);
+                c.querySelectorAll('.champ').forEach(el => {
+                    el.style.width = champSize + 'px';
+                    el.style.height = champSize + 'px';
+                });
+                c.querySelectorAll('.wl-badge').forEach(el => {
+                    el.style.width = badgeSize + 'px';
+                    el.style.height = badgeSize + 'px';
+                    el.style.fontSize = Math.round(badgeSize * 0.7) + 'px';
+                });
+            }
+        });
+
+        // 스코어 씬 - 크기/내용물 두 팀 기준으로 키우기
+        const scoreBoard = document.querySelector('#scene-score .score-board');
+        if (scoreBoard) {
+            scoreBoard.style.width = w + 'px';
+            scoreBoard.style.height = h + 'px';
+            scoreBoard.style.overflow = 'hidden';
+            scoreBoard.style.background = '#000';
+            scoreBoard.style.borderRadius = '8px';
+            scoreBoard.style.padding = '8px';
+            scoreBoard.style.boxSizing = 'border-box';
+            scoreBoard.style.margin = '0';  // 위치 맞추기
+            const ss = h / 150;
+            const tl = scoreBoard.querySelector('.timer-label');
+            const ti = scoreBoard.querySelector('.timer');
+            const vs = scoreBoard.querySelector('.vs');
+            if (tl) tl.style.fontSize = Math.round(12 * ss) + 'px';
+            if (ti) ti.style.fontSize = Math.round(11 * ss) + 'px';
+            if (vs) vs.style.fontSize = Math.round(14 * ss) + 'px';
+            scoreBoard.querySelectorAll('.team-name-score').forEach(el => el.style.fontSize = Math.round(13 * ss) + 'px');
+            scoreBoard.querySelectorAll('.score-num').forEach(el => el.style.fontSize = Math.round(52 * ss) + 'px');
+            scoreBoard.querySelectorAll('.sub-info').forEach(el => el.style.fontSize = Math.round(10 * ss) + 'px');
+        }
+
+        // 컷씬 - 두 팀 크기 기준으로 내용물 키우기
+        const cs2 = Math.min(w / 480, h / 300);
+        ['scene-game-win', 'scene-game-lose'].forEach(id => {
+            const s = document.getElementById(id);
+            if (!s) return;
+            s.style.width = w + 'px';
+            s.style.height = h + 'px';
+            s.style.overflow = 'hidden';
+            s.style.boxSizing = 'border-box';
+            const card = s.querySelector('.game-result-card');
+            if (card) {
+                card.style.width = w + 'px';
+                card.style.height = h + 'px';
+                card.style.boxSizing = 'border-box';
+                card.style.overflow = 'hidden';
+                card.style.padding = Math.round(20 * cs2) + 'px';
+                s.querySelectorAll('.res-title').forEach(el => el.style.fontSize = Math.round(32 * cs2) + 'px');
+                s.querySelectorAll('.res-nick').forEach(el => el.style.fontSize = Math.round(18 * cs2) + 'px');
+                s.querySelectorAll('.res-team').forEach(el => el.style.fontSize = Math.round(12 * cs2) + 'px');
+                s.querySelectorAll('.res-tier').forEach(el => el.style.fontSize = Math.round(14 * cs2) + 'px');
+                s.querySelectorAll('.res-point').forEach(el => el.style.fontSize = Math.round(16 * cs2) + 'px');
+                s.querySelectorAll('.res-streak').forEach(el => el.style.fontSize = Math.round(12 * cs2) + 'px');
+                s.querySelectorAll('.kda-main').forEach(el => el.style.fontSize = Math.round(20 * cs2) + 'px');
+                s.querySelectorAll('.kda-calc').forEach(el => el.style.fontSize = Math.round(13 * cs2) + 'px');
+                s.querySelectorAll('.status-badge').forEach(el => el.style.fontSize = Math.round(14 * cs2) + 'px');
+                s.querySelectorAll('.res-champ img').forEach(el => {
+                    el.style.width = Math.round(70 * cs2) + 'px';
+                    el.style.height = Math.round(70 * cs2) + 'px';
+                });
+            }
+        });
+    });
 }
 
 function nextScene() {
