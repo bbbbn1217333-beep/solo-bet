@@ -19,7 +19,7 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 .summary .win{color:#ffd369; text-shadow:0 0 8px #ffd369;}
 .summary .lose{color:#ff6b6b; text-shadow:0 0 8px #ff6b6b;}
 .members{display:flex; flex-direction:column; gap:0px;}
-.member-card{position:relative; width:175px; padding:5px 7px; background:rgba(255,255,255,.07); border-radius:0px; border:1px solid rgba(120,120,120,.4); text-align:center; overflow:hidden; margin-top: 0px;}
+.member-card{position:relative; width:210px; padding:8px 7px; background:rgba(255,255,255,.07); border-radius:0px; border:1px solid rgba(120,120,120,.4); text-align:center; overflow:hidden; margin-top: 0px;}
 .status-icon { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 13px; z-index: 10; }
 .crown-glow { animation: floatCrown 2s infinite ease-in-out, glowGoldIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ffd369); }
 .skull-shake { animation: shakeSkull 0.5s infinite linear, glowRedIcon 1.5s infinite alternate; filter: drop-shadow(0 0 8px #ff4d4d); }
@@ -27,8 +27,8 @@ body{margin:0; background:#000; color:#fff; font-family:'Pretendard',sans-serif;
 @keyframes glowGoldIcon { 0% { filter: drop-shadow(0 0 5px #ffd369); } 100% { filter: drop-shadow(0 0 15px #ffd369) brightness(1.2); } }
 @keyframes shakeSkull { 0% { transform: translateX(-50%) rotate(0deg); } 25% { transform: translateX(-52%) rotate(-5deg); } 75% { transform: translateX(-48%) rotate(5deg); } 100% { transform: translateX(-50%) rotate(0deg); } }
 @keyframes glowRedIcon { 0% { filter: drop-shadow(0 0 5px #ff4d4d); } 100% { filter: drop-shadow(0 0 15px #ff4d4d) brightness(1.2); } }
-.info-line{display:flex; justify-content:center; align-items:baseline; gap:3px; margin-bottom:3px; white-space:nowrap; overflow:hidden;}
-.name{font-family:'Orbitron',sans-serif; font-size:11px; font-weight:800; flex-shrink: 1; overflow:hidden; text-overflow:ellipsis; max-width:65px;}
+.info-line{display:flex; justify-content:center; align-items:baseline; gap:3px; margin-bottom:3px; white-space:nowrap;}
+.name{font-family:'Orbitron',sans-serif; font-size:10px; font-weight:800; flex-shrink: 0; overflow:hidden; text-overflow:ellipsis;}
 .tier{font-size:10px; font-weight:900; flex-shrink: 0; letter-spacing: -0.2px;}
 .record{font-size:10px; font-weight:800; flex-shrink: 0; display:flex; gap:3px;}
 .record .win{color:#ffd369;} .record .lose{color:#ff6b6b;}
